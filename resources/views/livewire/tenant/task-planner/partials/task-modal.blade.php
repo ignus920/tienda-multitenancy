@@ -135,23 +135,7 @@
                 @endif
             </div>
 
-            @if(!$editingTaskId)
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Depende de (opcional)</label>
-                @if($allOpenTasksForDependency->isEmpty())
-                <p class="text-xs text-gray-400">No hay otras tareas abiertas.</p>
-                @else
-                <div x-data="taskPlannerChoices()" x-init="init($el)">
-                    <select x-ref="select" wire:model="dependsOnTaskIds" multiple
-                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm">
-                        @foreach($allOpenTasksForDependency as $depTask)
-                        <option value="{{ $depTask->id }}" @selected(in_array($depTask->id, $dependsOnTaskIds))>{{ $depTask->title }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                @endif
-            </div>
-            @endif
+
 
             <hr class="border-gray-100 dark:border-gray-700 my-4">
 
