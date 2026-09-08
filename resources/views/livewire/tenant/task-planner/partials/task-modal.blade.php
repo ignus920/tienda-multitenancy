@@ -112,57 +112,57 @@
             </div>
             @endif
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Origen (opcional) <x-help-tip text="De dónde nace la tarea (cliente, proyecto, mantenimiento, exhibición…). Sirve para los reportes." /></label>
-                    <select wire:model="originType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                        <option value="">Sin origen específico</option>
-                        @foreach(\App\Models\Tenant\TaskPlanner\Task::ORIGIN_TYPES as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
+            <!-- ORIGEN + RECURRENCIA (lado a lado) -->
+            <div class="grid grid-cols-2 gap-4 items-start">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Origen (opcional) <x-help-tip text="De dónde nace la tarea (cliente, proyecto, mantenimiento, exhibición…). Sirve para los reportes." /></label>
+                        <select wire:model="originType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            <option value="">Sin origen específico</option>
+                            @foreach(\App\Models\Tenant\TaskPlanner\Task::ORIGIN_TYPES as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @if($originType === 'proyecto')
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Proyecto relacionado <x-help-tip text="Proyecto del módulo Proyectos al que pertenece esta tarea." /></label>
+                        <select wire:model="originProjectId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            <option value="">Selecciona...</option>
+                            @foreach($projectsForOrigin as $project)
+                            <option value="{{ $project->id }}">{{ $project->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
                 </div>
-                @if($originType === 'proyecto')
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Proyecto relacionado <x-help-tip text="Proyecto del módulo Proyectos al que pertenece esta tarea." /></label>
-                    <select wire:model="originProjectId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                        <option value="">Selecciona...</option>
-                        @foreach($projectsForOrigin as $project)
-                        <option value="{{ $project->id }}">{{ $project->title }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                @endif
-            </div>
 
-
-
-            <!-- RECURRENCIA -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Repetir <x-help-tip text="Si se repite, esta tarea queda como plantilla y el sistema crea una copia nueva (sin programar) cada día, semana o mes, de forma automática." /></label>
-                    <select wire:model.live="recurrenceType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                        <option value="none">No se repite</option>
-                        <option value="daily">Cada día laboral</option>
-                        <option value="weekly">Cada semana</option>
-                        <option value="monthly">Cada mes</option>
-                    </select>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Repetir <x-help-tip text="Si se repite, esta tarea queda como plantilla y el sistema crea una copia nueva (sin programar) cada día, semana o mes, de forma automática." /></label>
+                        <select wire:model.live="recurrenceType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            <option value="none">No se repite</option>
+                            <option value="daily">Cada día laboral</option>
+                            <option value="weekly">Cada semana</option>
+                            <option value="monthly">Cada mes</option>
+                        </select>
+                    </div>
+                    @if($recurrenceType === 'weekly')
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Día de la semana</label>
+                        <select wire:model="recurrenceWeekday" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            @foreach(['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] as $i => $d)
+                            <option value="{{ $i }}">{{ $d }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @elseif($recurrenceType === 'monthly')
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Día del mes (1–28)</label>
+                        <input wire:model="recurrenceMonthday" type="number" min="1" max="28" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    @endif
                 </div>
-                @if($recurrenceType === 'weekly')
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Día de la semana</label>
-                    <select wire:model="recurrenceWeekday" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                        @foreach(['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] as $i => $d)
-                        <option value="{{ $i }}">{{ $d }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                @elseif($recurrenceType === 'monthly')
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Día del mes (1–28)</label>
-                    <input wire:model="recurrenceMonthday" type="number" min="1" max="28" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                </div>
-                @endif
             </div>
             @if($recurrenceType !== 'none')
             <p class="text-[11px] text-gray-400 -mt-2">Esta tarea sirve de plantilla: el sistema creará una copia nueva (sin programar) en cada repetición. Se genera automáticamente cada madrugada.</p>
