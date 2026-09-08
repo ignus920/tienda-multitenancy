@@ -24,7 +24,7 @@ class TaskService
 
             TaskHistory::log($task->id, $actingUserId, 'creada', null, $task->title);
 
-            TaskNotification::push(
+            TaskNotification::notify(
                 $assignedUserIds,
                 $task->id,
                 'asignacion',
@@ -50,7 +50,7 @@ class TaskService
         if ($current != $new) {
             TaskHistory::log($task->id, $actingUserId, 'responsables_actualizados', implode(',', $current), implode(',', $new));
 
-            TaskNotification::push(
+            TaskNotification::notify(
                 array_values(array_diff($new, $current)),
                 $task->id,
                 'asignacion',
@@ -68,7 +68,7 @@ class TaskService
         $task->update(['status' => 'cancelada']);
         TaskHistory::log($task->id, $actingUserId, 'cancelada', $previousStatus, 'cancelada', $reason);
 
-        TaskNotification::push($assigned, $task->id, 'cancelacion', 'Se canceló una tarea: ' . $task->title, $actingUserId);
+        TaskNotification::notify($assigned, $task->id, 'cancelacion', 'Se canceló una tarea: ' . $task->title, $actingUserId);
     }
 
     /**

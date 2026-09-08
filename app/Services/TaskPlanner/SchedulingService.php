@@ -78,7 +78,7 @@ class SchedulingService
 
         $task->update(['status' => $newStatus]);
 
-        TaskNotification::push(
+        TaskNotification::notify(
             $userIds,
             $task->id,
             'programacion',

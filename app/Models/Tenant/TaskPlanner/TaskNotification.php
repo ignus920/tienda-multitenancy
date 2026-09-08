@@ -38,7 +38,7 @@ class TaskNotification extends Model
      * Crea una notificación in-app para uno o varios usuarios.
      * Silenciosa si la tabla aún no existe (módulo a medio instalar).
      */
-    public static function push($userIds, ?int $taskId, string $type, string $message, ?int $exceptUserId = null): void
+    public static function notify($userIds, ?int $taskId, string $type, string $message, ?int $exceptUserId = null): void
     {
         try {
             if (!Schema::connection('tenant')->hasTable('tsk_notifications')) {
