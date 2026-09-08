@@ -45,6 +45,48 @@ class Project extends Model
         'total_value' => 'decimal:2',
     ];
 
+    /**
+     * Perfiles que ven TODOS los proyectos. El resto solo ve los proyectos
+     * donde son creador, "dirigido a" o participante del chat.
+     * 1 = Super Administrador, 2 = Administrador, 15 = Gestión operativa
+     */
+    const FULL_ACCESS_PROFILES = [1, 2, 15];
+
+    /**
+     * Limita la consulta a los proyectos visibles para el usuario dado.
+     * Los perfiles con acceso total no se filtran.
+     */
+    public function scopeVisibleTo($query, $user)
+    {
+        if (!$user || in_array($user->profile_id, self::FULL_ACCESS_PROFILES)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('created_by', $user->id)
+              ->orWhere('assigned_to', $user->id)
+              ->orWhereHas('participants', fn($p) => $p->where('user_id', $user->id));
+        });
+    }
+
+    /**
+     * ¿Este usuario puede abrir el proyecto (listado o URL directa)?
+     */
+    public function canBeViewedBy($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (in_array($user->profile_id, self::FULL_ACCESS_PROFILES)) {
+            return true;
+        }
+
+        return (int) $this->created_by === (int) $user->id
+            || (int) $this->assigned_to === (int) $user->id
+            || $this->participants()->where('user_id', $user->id)->exists();
+    }
+
     public function customer()
     {
         return $this->belongsTo(VntCompany::class, 'company_id');
