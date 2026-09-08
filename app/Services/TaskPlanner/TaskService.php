@@ -5,6 +5,7 @@ namespace App\Services\TaskPlanner;
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskAssignment;
 use App\Models\Tenant\TaskPlanner\TaskHistory;
+use App\Models\Tenant\TaskPlanner\TaskNotification;
 use Illuminate\Support\Facades\DB;
 
 class TaskService
@@ -23,6 +24,14 @@ class TaskService
 
             TaskHistory::log($task->id, $actingUserId, 'creada', null, $task->title);
 
+            TaskNotification::push(
+                $assignedUserIds,
+                $task->id,
+                'asignacion',
+                'Se te asignó una tarea: ' . $task->title,
+                $actingUserId
+            );
+
             return $task;
         });
     }
@@ -40,19 +49,38 @@ class TaskService
 
         if ($current != $new) {
             TaskHistory::log($task->id, $actingUserId, 'responsables_actualizados', implode(',', $current), implode(',', $new));
+
+            TaskNotification::push(
+                array_values(array_diff($new, $current)),
+                $task->id,
+                'asignacion',
+                'Se te asignó una tarea: ' . $task->title,
+                $actingUserId
+            );
         }
     }
 
     public function cancelTask(Task $task, $actingUserId, ?string $reason = null): void
     {
         $previousStatus = $task->status;
+        $assigned = $task->assignments()->pluck('user_id')->toArray();
+
         $task->update(['status' => 'cancelada']);
         TaskHistory::log($task->id, $actingUserId, 'cancelada', $previousStatus, 'cancelada', $reason);
+
+        TaskNotification::push($assigned, $task->id, 'cancelacion', 'Se canceló una tarea: ' . $task->title, $actingUserId);
     }
 
+    /**
+     * Marca como "vencida" solo las tareas que aún no se han empezado.
+     * Una tarea "en_proceso", "pausada" o "bloqueada" NO se toca: seguir
+     * ejecutándola es más importante que reflejar el atraso en el estado.
+     * El atraso de esas se calcula en caliente (ver Task::is_overdue y la
+     * consulta de "Atrasadas" en ManageTasks::render).
+     */
     public function markOverdueTasks(): int
     {
-        return Task::whereIn('status', Task::OPEN_STATUSES)
+        return Task::whereIn('status', ['sin_programar', 'pendiente'])
             ->whereNotNull('deadline_at')
             ->where('deadline_at', '<', now())
             ->update(['status' => 'vencida']);

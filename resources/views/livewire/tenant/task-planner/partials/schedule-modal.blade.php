@@ -26,10 +26,28 @@
                 </div>
             </div>
 
-            <button wire:click="checkScheduleConflicts" type="button"
-                class="w-full px-3 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100">
-                Verificar disponibilidad
-            </button>
+            <div class="grid grid-cols-2 gap-2">
+                <button wire:click="checkScheduleConflicts" type="button"
+                    class="px-3 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100">
+                    Verificar disponibilidad
+                </button>
+                <button wire:click="findSlots" type="button"
+                    class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-100">
+                    Buscar espacio libre
+                </button>
+            </div>
+
+            @if(!empty($suggestedSlots))
+            <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-1">
+                <p class="text-xs font-bold text-emerald-700 dark:text-emerald-300">Primeros huecos disponibles</p>
+                @foreach($suggestedSlots as $i => $slot)
+                <button wire:click="applySlot({{ $i }})" type="button"
+                    class="w-full text-left text-xs px-2 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-gray-700 dark:text-gray-200">
+                    {{ $slot['label'] }}
+                </button>
+                @endforeach
+            </div>
+            @endif
 
             @if(!empty($scheduleConflicts))
             <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 space-y-2">

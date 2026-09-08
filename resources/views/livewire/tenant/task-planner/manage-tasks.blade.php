@@ -20,12 +20,42 @@
         </div>
     </div>
 
+    <!-- Novedades para Gerencia (solicitudes de más tiempo, etc.) -->
+    @if($myNotifications->isNotEmpty())
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 mt-6">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">🔔 Novedades ({{ $myNotifications->count() }})</h3>
+            <button wire:click="markAllMyNotifsRead" class="text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:underline">Marcar todo leído</button>
+        </div>
+        <ul class="space-y-1.5">
+            @foreach($myNotifications as $n)
+            <li class="flex items-start justify-between gap-2 text-xs">
+                <span class="text-gray-700 dark:text-gray-200">
+                    @if($n->task_id)
+                        <button wire:click="openDetailModal({{ $n->task_id }})" class="hover:text-indigo-600 text-left">{{ $n->message }}</button>
+                    @else
+                        {{ $n->message }}
+                    @endif
+                    <span class="text-gray-400"> · {{ $n->created_at->diffForHumans() }}</span>
+                </span>
+                <button wire:click="markMyNotifRead({{ $n->id }})" class="text-gray-400 hover:text-gray-600 shrink-0" title="Marcar leído">✕</button>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <!-- Dashboard rápido (clic filtra el listado) -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mt-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mt-6">
         <button wire:click="filterByDashboard('programadas')" type="button"
             class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer">
             <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboard['programadas'] }}</p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Programadas</p>
+        </button>
+        <button wire:click="filterByDashboard('urgentes')" type="button"
+            class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-red-300 hover:shadow-md transition-all cursor-pointer">
+            <p class="text-2xl font-bold text-red-600">{{ $dashboard['urgentes'] }}</p>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400">Urgentes (P1)</p>
         </button>
         <button wire:click="filterByDashboard('en_proceso')" type="button"
             class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-center hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
@@ -61,7 +91,7 @@
 
     <!-- Pestañas -->
     <div class="flex flex-wrap gap-1 mt-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs font-semibold w-fit border border-gray-200 dark:border-gray-700">
-        @foreach(['bandeja' => 'Bandeja', 'calendario' => 'Calendario', 'atrasadas' => 'Atrasadas', 'horarios' => 'Horarios laborales'] as $tab => $label)
+        @foreach(['bandeja' => 'Bandeja', 'calendario' => 'Calendario', 'actividad' => '¿Quién hace qué?', 'atrasadas' => 'Atrasadas', 'reportes' => 'Reportes', 'horarios' => 'Horarios laborales'] as $tab => $label)
         <button wire:click="$set('activeTab', '{{ $tab }}')"
             class="px-3 py-1.5 rounded-md transition-colors {{ $activeTab === $tab ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
             {{ $label }}
@@ -227,10 +257,16 @@
             <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Arrastra al calendario</h4>
             <p class="text-[11px] text-gray-400 mb-3">Tareas sin programar. Suéltalas en el día/hora deseada.</p>
 
-            <select wire:model.live="calendarDepartmentId" class="block w-full mb-3 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs">
+            <select wire:model.live="calendarDepartmentId" class="block w-full mb-2 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs">
                 <option value="">Todos los departamentos</option>
                 @foreach($departments as $dept)
                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="calendarUserId" class="block w-full mb-3 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs">
+                <option value="">Todos los trabajadores</option>
+                @foreach($assignableUsers as $u)
+                <option value="{{ $u->id }}">{{ $u->name }}</option>
                 @endforeach
             </select>
 
@@ -261,6 +297,60 @@
              x-data="taskPlannerCalendar($wire)" x-init="init($el)" wire:ignore>
             <div id="task-planner-calendar-el"></div>
         </div>
+    </div>
+    @endif
+
+    <!-- =================== TAB: ¿QUIÉN HACE QUÉ? =================== -->
+    @if($activeTab === 'actividad')
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        @forelse($currentActivity as $row)
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ $row['user']->name }}</h4>
+                @if($row['active'])
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold {{ $row['active']->task->status === 'pausada' ? 'text-yellow-600' : 'text-blue-600' }}">
+                        <span class="w-2 h-2 rounded-full {{ $row['active']->task->status === 'pausada' ? 'bg-yellow-500' : 'bg-blue-500 animate-pulse' }}"></span>
+                        {{ $row['active']->task->status === 'pausada' ? 'Pausada' : 'En proceso' }}
+                    </span>
+                @else
+                    <span class="text-[11px] font-semibold text-gray-400">Sin actividad ahora</span>
+                @endif
+            </div>
+
+            @if($row['active'])
+                <button wire:click="openDetailModal({{ $row['active']->task_id }})" class="text-sm font-semibold text-gray-800 dark:text-gray-100 hover:text-indigo-600 text-left">
+                    {{ $row['active']->task->title }}
+                </button>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {{ $row['active']->task->department->name ?? '—' }} ·
+                    {{ $row['active']->scheduled_start->format('H:i') }} - {{ $row['active']->scheduled_end->format('H:i') }}
+                </p>
+                @if($row['active_started_at'])
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Inició {{ $row['active_started_at']->format('H:i') }} ·
+                    lleva {{ (int) $row['active_started_at']->diffInMinutes(now()) }} min
+                    (estimado {{ $row['active']->task->estimated_minutes }} min)
+                </p>
+                @endif
+            @elseif($row['next'])
+                <p class="text-xs text-gray-400 mb-1">Siguiente hoy:</p>
+                <button wire:click="openDetailModal({{ $row['next']->task_id }})" class="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-indigo-600 text-left">
+                    {{ $row['next']->task->title }}
+                </button>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {{ $row['next']->task->department->name ?? '—' }} ·
+                    debía iniciar {{ $row['next']->scheduled_start->format('H:i') }}
+                    @if($row['next']->scheduled_start->isPast())
+                        <span class="text-red-500 font-semibold">(atrasada)</span>
+                    @endif
+                </p>
+            @else
+                <p class="text-sm text-gray-400">No tiene tareas programadas para hoy.</p>
+            @endif
+        </div>
+        @empty
+        <p class="text-sm text-gray-400 col-span-full text-center py-8">No hay trabajadores registrados.</p>
+        @endforelse
     </div>
     @endif
 
@@ -297,6 +387,104 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+    @endif
+
+    <!-- =================== TAB: REPORTES =================== -->
+    @if($activeTab === 'reportes' && $reports)
+    <div class="mt-4 space-y-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Desde</label>
+                <input wire:model.live="reportFrom" type="date" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-1.5 text-xs">
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Hasta</label>
+                <input wire:model.live="reportTo" type="date" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-1.5 text-xs">
+            </div>
+            <p class="text-xs text-gray-400">Se cuenta lo terminado entre esas fechas.</p>
+        </div>
+
+        <!-- Productividad por trabajador -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-x-auto">
+            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100">Productividad por trabajador</h3>
+            </div>
+            <table class="w-full text-xs whitespace-nowrap">
+                <thead class="bg-gray-50 dark:bg-gray-900/40 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <tr>
+                        <th class="px-3 py-2 text-left">Trabajador</th>
+                        <th class="px-3 py-2 text-right">Creadas</th>
+                        <th class="px-3 py-2 text-right">Terminadas</th>
+                        <th class="px-3 py-2 text-right">Pendientes</th>
+                        <th class="px-3 py-2 text-right">Vencidas</th>
+                        <th class="px-3 py-2 text-right">H. programadas</th>
+                        <th class="px-3 py-2 text-right">H. trabajadas</th>
+                        <th class="px-3 py-2 text-right">Prom. est.</th>
+                        <th class="px-3 py-2 text-right">Prom. real</th>
+                        <th class="px-3 py-2 text-right">Reprog.</th>
+                        <th class="px-3 py-2 text-left">Causas de pausa</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse($reports['per_worker'] as $w)
+                    <tr class="text-gray-700 dark:text-gray-300">
+                        <td class="px-3 py-2 font-semibold text-gray-900 dark:text-white">{{ $w['name'] }}</td>
+                        <td class="px-3 py-2 text-right">{{ $w['assigned'] }}</td>
+                        <td class="px-3 py-2 text-right text-green-600 font-semibold">{{ $w['done'] }}</td>
+                        <td class="px-3 py-2 text-right">{{ $w['pending'] }}</td>
+                        <td class="px-3 py-2 text-right {{ $w['overdue'] > 0 ? 'text-red-600 font-semibold' : '' }}">{{ $w['overdue'] }}</td>
+                        <td class="px-3 py-2 text-right">{{ intdiv($w['scheduled_min'], 60) }}h {{ $w['scheduled_min'] % 60 }}m</td>
+                        <td class="px-3 py-2 text-right">{{ intdiv($w['worked_min'], 60) }}h {{ $w['worked_min'] % 60 }}m</td>
+                        <td class="px-3 py-2 text-right">{{ $w['avg_est'] }} min</td>
+                        <td class="px-3 py-2 text-right">
+                            {{ $w['avg_real'] }} min
+                            @if($w['diff'] != 0)
+                                <span class="{{ $w['diff'] > 0 ? 'text-red-500' : 'text-green-500' }}">({{ $w['diff'] > 0 ? '+' : '' }}{{ $w['diff'] }})</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-2 text-right">{{ $w['reschedules'] }}</td>
+                        <td class="px-3 py-2 text-left text-gray-500 dark:text-gray-400 whitespace-normal">{{ $w['pause_causes'] }}</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="11" class="px-3 py-6 text-center text-gray-400">Sin datos en el rango.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Exactitud de tiempos por departamento -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100">Exactitud de tiempos (estimado vs. real)</h3>
+            </div>
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-gray-900/40 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <tr>
+                        <th class="px-3 py-2 text-left">Departamento</th>
+                        <th class="px-3 py-2 text-right">Tareas</th>
+                        <th class="px-3 py-2 text-right">Estimado prom.</th>
+                        <th class="px-3 py-2 text-right">Real prom.</th>
+                        <th class="px-3 py-2 text-right">Desviación</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse($reports['accuracy'] as $a)
+                    <tr class="text-gray-700 dark:text-gray-300">
+                        <td class="px-3 py-2 font-semibold text-gray-900 dark:text-white">{{ $a['department'] }}</td>
+                        <td class="px-3 py-2 text-right">{{ $a['count'] }}</td>
+                        <td class="px-3 py-2 text-right">{{ $a['avg_est'] }} min</td>
+                        <td class="px-3 py-2 text-right">{{ $a['avg_real'] }} min</td>
+                        <td class="px-3 py-2 text-right font-semibold {{ $a['deviation_pct'] > 0 ? 'text-red-500' : ($a['deviation_pct'] < 0 ? 'text-green-500' : '') }}">
+                            {{ $a['deviation_pct'] > 0 ? '+' : '' }}{{ $a['deviation_pct'] }}%
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" class="px-3 py-6 text-center text-gray-400">Aún no hay tareas terminadas en el rango.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
     @endif
 
@@ -359,6 +547,7 @@
     {{-- ==================== MODALES ==================== --}}
     @include('livewire.tenant.task-planner.partials.task-modal')
     @include('livewire.tenant.task-planner.partials.schedule-modal')
+    @include('livewire.tenant.task-planner.partials.proposal-modal')
     @include('livewire.tenant.task-planner.partials.detail-modal')
     @include('livewire.tenant.task-planner.partials.cancel-modal')
     @include('livewire.tenant.task-planner.partials.block-modal')

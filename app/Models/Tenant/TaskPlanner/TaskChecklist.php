@@ -12,8 +12,10 @@ class TaskChecklist extends Model
     protected $fillable = [
         'task_id',
         'description',
+        'is_required',
         'is_completed',
-        'completed_at'
+        'completed_at',
+        'order',
     ];
 
     protected $casts = [
