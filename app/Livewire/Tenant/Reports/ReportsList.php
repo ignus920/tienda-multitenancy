@@ -223,9 +223,9 @@ class ReportsList extends Component
             ->select([
                 'u.name as vendedor',
                 DB::raw('CASE 
-                    WHEN r.status = 4 THEN "Entregado"
                     WHEN r.status = 6 THEN "Anulado"
-                    ELSE "Pendiente de entregar"
+                    WHEN inv.invoiceNumber IS NOT NULL AND inv.invoiceNumber != "" THEN "Facturado"
+                    ELSE "Pendiente entrega"
                 END as estado_texto'),
                 'r.consecutive as remission',
                 'inv.invoiceNumber as factura',
@@ -422,9 +422,9 @@ class ReportsList extends Component
                 'inv.invoiceNumber as factura',
                 'u.name as creator',
                 DB::raw('CASE 
-                    WHEN r.status = 4 THEN "Entregado"
                     WHEN r.status = 6 THEN "Anulado"
-                    ELSE "Pendiente de entregar"
+                    WHEN inv.invoiceNumber IS NOT NULL AND inv.invoiceNumber != "" THEN "Facturado"
+                    ELSE "Pendiente entrega"
                 END as estado_texto')
             ])
             ->orderBy('r.created_at', 'desc');
