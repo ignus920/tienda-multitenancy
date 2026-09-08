@@ -33,6 +33,7 @@ class TaskSchedule extends Model
         'cambio_solicitado_cliente' => 'Cambio solicitado por cliente',
         'prioridad_gerencia' => 'Prioridad de Gerencia',
         'problema_tecnico' => 'Problema técnico',
+        'reorganizacion_automatica' => 'Reorganización propuesta por el sistema',
         'otro' => 'Otro',
     ];
 

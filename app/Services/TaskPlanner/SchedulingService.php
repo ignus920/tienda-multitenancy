@@ -5,6 +5,7 @@ namespace App\Services\TaskPlanner;
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskSchedule;
 use App\Models\Tenant\TaskPlanner\TaskHistory;
+use App\Models\Tenant\TaskPlanner\TaskNotification;
 use App\Models\Tenant\TaskPlanner\EmployeeSchedule;
 use Carbon\Carbon;
 
@@ -76,6 +77,15 @@ class SchedulingService
         );
 
         $task->update(['status' => $newStatus]);
+
+        TaskNotification::push(
+            $userIds,
+            $task->id,
+            'programacion',
+            ($wasScheduled ? 'Cambió tu programación: ' : 'Nueva actividad programada: ') . $task->title
+                . ' — ' . $start->format('d/m H:i') . ' a ' . $end->format('H:i'),
+            $actingUserId
+        );
     }
 
     /**

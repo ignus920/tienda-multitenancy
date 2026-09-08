@@ -18,3 +18,13 @@ Schedule::call(function () {
   ->name('sync-wordpress-stock-all-tenants')
   ->withoutOverlapping();
 
+// Genera las tareas de plantillas recurrentes del Planificador Operativo (tsk_*)
+Schedule::call(function () {
+    $tenants = \App\Models\Auth\Tenant::where('is_active', true)->get();
+    foreach ($tenants as $tenant) {
+        \App\Jobs\Tenant\TaskPlanner\GenerateRecurringTasksJob::dispatch($tenant);
+    }
+})->dailyAt('05:00')
+  ->name('tsk-generate-recurring-tasks')
+  ->withoutOverlapping();
+

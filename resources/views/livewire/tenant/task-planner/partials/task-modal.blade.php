@@ -137,6 +137,37 @@
 
 
 
+            <!-- RECURRENCIA -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Repetir</label>
+                    <select wire:model.live="recurrenceType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                        <option value="none">No se repite</option>
+                        <option value="daily">Cada día laboral</option>
+                        <option value="weekly">Cada semana</option>
+                        <option value="monthly">Cada mes</option>
+                    </select>
+                </div>
+                @if($recurrenceType === 'weekly')
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Día de la semana</label>
+                    <select wire:model="recurrenceWeekday" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                        @foreach(['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] as $i => $d)
+                        <option value="{{ $i }}">{{ $d }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @elseif($recurrenceType === 'monthly')
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Día del mes (1–28)</label>
+                    <input wire:model="recurrenceMonthday" type="number" min="1" max="28" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                </div>
+                @endif
+            </div>
+            @if($recurrenceType !== 'none')
+            <p class="text-[11px] text-gray-400 -mt-2">Esta tarea sirve de plantilla: el sistema creará una copia nueva (sin programar) en cada repetición. Se genera automáticamente cada madrugada.</p>
+            @endif
+
             <hr class="border-gray-100 dark:border-gray-700 my-4">
 
             <!-- CHECKLIST -->
@@ -162,6 +193,10 @@
                     @foreach($tempChecklists as $idx => $chk)
                     <div class="flex items-center gap-2">
                         <input wire:model="tempChecklists.{{ $idx }}.description" type="text" placeholder="Paso a realizar..." class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                        <label class="flex items-center gap-1 shrink-0 text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap" title="Si es obligatorio, la tarea no se puede terminar sin marcarlo">
+                            <input type="checkbox" wire:model="tempChecklists.{{ $idx }}.is_required" class="rounded border-gray-300 text-indigo-600">
+                            Obligatorio
+                        </label>
                         <button wire:click="$dispatch('swal:confirm', { action: 'removeChecklistItem', params: {{ $idx }}, title: '¿Quitar paso?', text: 'Se eliminará de la lista.' })" type="button" class="p-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>

@@ -119,7 +119,7 @@ class Task extends Model
     public function currentSchedule()
     {
         return $this->hasOne(TaskSchedule::class, 'task_id')
-            ->whereIn('schedule_status', ['programada', 'en_proceso', 'pausada'])
+            ->whereIn('schedule_status', ['pendiente', 'en_proceso', 'pausada'])
             ->orderBy('scheduled_start');
     }
 

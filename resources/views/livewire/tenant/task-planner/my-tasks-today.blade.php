@@ -3,13 +3,37 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 mb-4">
         <h1 class="text-lg font-bold text-gray-900 dark:text-white">Mis Tareas de Hoy</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 capitalize">{{ $today->translatedFormat('l j \d\e F') }}</p>
-        <div class="flex gap-4 mt-2 text-xs">
+        <div class="flex flex-wrap gap-4 mt-2 text-xs">
             @if($daySchedule)
             <span class="text-gray-500 dark:text-gray-400">Horario: <strong class="text-gray-700 dark:text-gray-200">{{ $daySchedule->start_time }} - {{ $daySchedule->end_time }}</strong></span>
+            @endif
+            @if($availableMinutes > 0)
+            <span class="text-gray-500 dark:text-gray-400">Disponible: <strong class="text-gray-700 dark:text-gray-200">{{ intdiv($availableMinutes, 60) }}h {{ $availableMinutes % 60 }}min</strong></span>
             @endif
             <span class="text-gray-500 dark:text-gray-400">Programado: <strong class="text-gray-700 dark:text-gray-200">{{ intdiv($scheduledMinutes, 60) }}h {{ $scheduledMinutes % 60 }}min</strong></span>
         </div>
     </div>
+
+    <!-- NOVEDADES -->
+    @if($notifications->isNotEmpty())
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 mb-4">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">🔔 Novedades ({{ $notifications->count() }})</h3>
+            <button wire:click="markAllNotifsRead" class="text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:underline">Marcar todo leído</button>
+        </div>
+        <ul class="space-y-1.5">
+            @foreach($notifications as $n)
+            <li class="flex items-start justify-between gap-2 text-xs">
+                <span class="text-gray-700 dark:text-gray-200">
+                    {{ $n->message }}
+                    <span class="text-gray-400"> · {{ $n->created_at->diffForHumans() }}</span>
+                </span>
+                <button wire:click="markNotifRead({{ $n->id }})" class="text-gray-400 hover:text-gray-600 shrink-0" title="Marcar leído">✕</button>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 
     <!-- AHORA -->
     @if($currentSchedule)
@@ -52,6 +76,7 @@
                             @if(!in_array($task->status, ['en_proceso', 'pausada'])) disabled @endif>
                         <span class="text-indigo-50 leading-tight select-none {{ $chk->is_completed ? 'line-through opacity-60' : 'group-hover:text-white transition-colors' }}">
                             {{ $chk->description }}
+                            @if($chk->is_required)<span class="text-amber-300 font-bold" title="Obligatorio para poder terminar">*</span>@endif
                         </span>
                     </label>
                 </li>
@@ -61,7 +86,10 @@
         @endif
 
         <div class="grid grid-cols-2 gap-2">
-            @if($task->status === 'programada' || $task->status === 'disponible' || $task->status === 'pendiente')
+            @if(in_array($task->status, ['pendiente', 'vencida']))
+            @if($task->status === 'vencida')
+            <p class="col-span-2 text-[11px] font-semibold text-amber-200">⚠ Esta tarea pasó su fecha límite. Iníciala o avisa a Gerencia para reprogramarla.</p>
+            @endif
             <button wire:click="startTask({{ $task->id }})" class="col-span-2 py-3 rounded-xl bg-white text-indigo-700 font-bold text-sm shadow">INICIAR TAREA</button>
             @elseif($task->status === 'en_proceso')
             <button wire:click="openFinishModal({{ $task->id }})" class="py-3 rounded-xl bg-white text-indigo-700 font-bold text-sm shadow">TERMINAR</button>
@@ -71,6 +99,7 @@
             @elseif($task->status === 'pausada')
             <button wire:click="resumeTask({{ $task->id }})" class="col-span-2 py-3 rounded-xl bg-white text-indigo-700 font-bold text-sm shadow">REANUDAR</button>
             @endif
+            <button wire:click="openAttachModal({{ $task->id }})" class="col-span-2 py-2 rounded-xl bg-indigo-500/40 text-white text-xs font-semibold">📎 Adjuntar foto / archivo</button>
         </div>
     </div>
     @elseif($fillerTasks->isNotEmpty())
@@ -109,6 +138,34 @@
                     </p>
                 </div>
                 @include('livewire.tenant.task-planner.partials.status-badge', ['task' => $schedule->task])
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- PRÓXIMOS DÍAS --}}
+    @if($upcomingDays->isNotEmpty())
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-4">
+        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Próximos días</h3>
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-700">
+            @foreach($upcomingDays as $date => $daySchedules)
+            <div class="px-4 py-3">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 capitalize">
+                    {{ \Carbon\Carbon::parse($date)->translatedFormat('l j \d\e F') }}
+                </p>
+                <ul class="space-y-1">
+                    @foreach($daySchedules as $schedule)
+                    <li class="flex items-center justify-between text-sm">
+                        <span class="text-gray-700 dark:text-gray-200">{{ $schedule->task->title }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">
+                            {{ $schedule->scheduled_start->format('H:i') }} - {{ $schedule->scheduled_end->format('H:i') }}
+                        </span>
+                    </li>
+                    @endforeach
+                </ul>
             </div>
             @endforeach
         </div>
@@ -204,6 +261,29 @@
             <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showCommentModal', false)" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg">Cerrar</button>
                 <button wire:click="addComment" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Enviar</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal: Adjuntar foto / archivo --}}
+    @if($showAttachModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Adjuntar foto / archivo</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Fotos del antes / después, evidencias, documentos.</p>
+            </div>
+            <div class="p-6 space-y-2">
+                <input wire:model="attachFiles" type="file" multiple accept="image/*,application/pdf"
+                    class="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                @error('attachFiles') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                @error('attachFiles.*') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                <div wire:loading wire:target="attachFiles" class="text-xs text-gray-400">Subiendo…</div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button wire:click="$set('showAttachModal', false)" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg">Cancelar</button>
+                <button wire:click="saveAttachments" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Guardar</button>
             </div>
         </div>
     </div>
