@@ -4,10 +4,10 @@ namespace App\Livewire\Tenant\TaskPlanner;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\Attributes\On;
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskSchedule;
 use App\Models\Tenant\TaskPlanner\TaskComment;
-use App\Models\Tenant\TaskPlanner\TaskNotification;
 use App\Models\Tenant\TaskPlanner\TaskDepartment;
 use App\Models\Tenant\TaskPlanner\EmployeeSchedule;
 use App\Models\Auth\Tenant;
@@ -42,9 +42,27 @@ class MyTasksToday extends Component
     public $attachTaskId = null;
     public $attachFiles = [];
 
+    public $userId;
+
+    public function mount()
+    {
+        $this->userId = Auth::id();
+    }
+
     public function boot()
     {
         $this->ensureTenantConnection();
+    }
+
+    /**
+     * Cuando llega un aviso del planificador por WebSocket, refrescamos la
+     * pantalla para que la tarjeta "AHORA DEBE REALIZAR" y la lista aparezcan
+     * sin recargar. El toast/sonido lo maneja la campanita (NotificationBell).
+     */
+    #[On('echo-private:user.{userId},.NewTaskPlannerNotification')]
+    public function onRealtimeUpdate()
+    {
+        // El solo hecho de que este método corra dispara un re-render de Livewire.
     }
 
     private function ensureTenantConnection()
@@ -170,18 +188,6 @@ class MyTasksToday extends Component
         $this->reset(['newComment']);
         $this->commentTaskId = $taskId;
         $this->showCommentModal = true;
-    }
-
-    public function markNotifRead($id)
-    {
-        $this->ensureTenantConnection();
-        TaskNotification::where('id', $id)->where('user_id', Auth::id())->update(['read_at' => now()]);
-    }
-
-    public function markAllNotifsRead()
-    {
-        $this->ensureTenantConnection();
-        TaskNotification::where('user_id', Auth::id())->whereNull('read_at')->update(['read_at' => now()]);
     }
 
     public function openAttachModal($taskId)
@@ -313,19 +319,8 @@ class MyTasksToday extends Component
             ->get()
             ->groupBy(fn($s) => $s->scheduled_start->toDateString());
 
-        try {
-            $notifications = TaskNotification::where('user_id', $userId)
-                ->whereNull('read_at')
-                ->orderByDesc('id')
-                ->limit(15)
-                ->get();
-        } catch (\Throwable $e) {
-            $notifications = collect();
-        }
-
         return view('livewire.tenant.task-planner.my-tasks-today', [
             'today' => $today,
-            'notifications' => $notifications,
             'daySchedule' => $daySchedule,
             'todaySchedules' => $todaySchedules,
             'scheduledMinutes' => $scheduledMinutes,
@@ -335,6 +330,6 @@ class MyTasksToday extends Component
             'upcomingDays' => $upcomingDays,
             'fillerTasks' => $fillerTasks,
             'pauseReasons' => \App\Models\Tenant\TaskPlanner\TaskPause::REASONS,
-        ])->layout('layouts.app', ['header' => 'Mis Tareas de Hoy']);
+        ])->layout('layouts.app');
     }
 }

@@ -124,9 +124,6 @@
                     <!-- Contenedor para Teleport de Acciones de Cabecera (ej: Nuevas Solicitudes / Producto Nuevo) -->
                     <div id="header-actions-container" class="flex items-center gap-3 mr-2"></div>
 
-                    <!-- Campanita de Notificaciones -->
-                    <livewire:layout.notification-bell />
-
                     <!-- Dark mode toggle -->
                     <button @click="darkMode = !darkMode" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <svg x-show="!darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,8 +134,8 @@
                         </svg>
                     </button>
 
-                    <!-- User menu -->
-                    <livewire:layout.user-menu />
+                    <!-- Menú de usuario + notificaciones (avatar) -->
+                    <livewire:layout.notification-bell />
                 </div>
             </div>
 

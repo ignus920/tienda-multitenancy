@@ -1,5 +1,6 @@
 @if($showDetailModal && $detailTask)
-<div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+<div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50"
+     x-data="{ lightboxImg: null }">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between">
             <div>
@@ -74,10 +75,28 @@
                 <h4 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Archivos Adjuntos</h4>
                 <div class="flex flex-wrap gap-2">
                     @foreach($detailTask->attachments as $att)
-                    <a href="{{ Storage::url($att->file_path) }}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        {{ $att->file_name }}
-                    </a>
+                        @php
+                            $attUrl = \Illuminate\Support\Str::startsWith($att->file_path, ['http://', 'https://'])
+                                ? $att->file_path
+                                : tenant_asset(ltrim($att->file_path, '/'));
+                            $attExt = strtolower($att->file_type ?: pathinfo($att->file_name, PATHINFO_EXTENSION));
+                            $attIsImage = in_array($attExt, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif']);
+                        @endphp
+                        @if($attIsImage)
+                        <button type="button" @click="lightboxImg = @js($attUrl)"
+                            title="{{ $att->file_name }}"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm max-w-[220px]">
+                            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span class="truncate">{{ $att->file_name }}</span>
+                        </button>
+                        @else
+                        <a href="{{ $attUrl }}" target="_blank" rel="noopener"
+                            title="{{ $att->file_name }}"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm max-w-[220px]">
+                            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                            <span class="truncate">{{ $att->file_name }}</span>
+                        </a>
+                        @endif
                     @endforeach
                 </div>
             </div>
@@ -145,6 +164,20 @@
                 </ul>
             </div>
         </div>
+    </div>
+
+    {{-- Visor de imagen (lightbox) — se abre aquí mismo, sin ventana nueva --}}
+    <div x-show="lightboxImg" x-cloak style="display: none;"
+         x-transition.opacity
+         class="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+         @click="lightboxImg = null"
+         @keydown.escape.window="lightboxImg = null">
+        <button type="button" @click="lightboxImg = null"
+            class="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 z-[61]">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        <img :src="lightboxImg" @click.stop alt=""
+             class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
     </div>
 </div>
 @endif

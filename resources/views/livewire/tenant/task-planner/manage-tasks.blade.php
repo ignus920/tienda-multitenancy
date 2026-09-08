@@ -20,31 +20,6 @@
         </div>
     </div>
 
-    <!-- Novedades para Gerencia (solicitudes de más tiempo, etc.) -->
-    @if($myNotifications->isNotEmpty())
-    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 mt-6">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">🔔 Novedades ({{ $myNotifications->count() }})</h3>
-            <button wire:click="markAllMyNotifsRead" class="text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:underline">Marcar todo leído</button>
-        </div>
-        <ul class="space-y-1.5">
-            @foreach($myNotifications as $n)
-            <li class="flex items-start justify-between gap-2 text-xs">
-                <span class="text-gray-700 dark:text-gray-200">
-                    @if($n->task_id)
-                        <button wire:click="openDetailModal({{ $n->task_id }})" class="hover:text-indigo-600 text-left">{{ $n->message }}</button>
-                    @else
-                        {{ $n->message }}
-                    @endif
-                    <span class="text-gray-400"> · {{ $n->created_at->diffForHumans() }}</span>
-                </span>
-                <button wire:click="markMyNotifRead({{ $n->id }})" class="text-gray-400 hover:text-gray-600 shrink-0" title="Marcar leído">✕</button>
-            </li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
     <!-- Dashboard rápido (clic filtra el listado) -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mt-6">
         <button wire:click="filterByDashboard('programadas')" type="button"

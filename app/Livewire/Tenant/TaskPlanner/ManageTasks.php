@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\TaskPlanner;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskDepartment;
 use App\Models\Tenant\TaskPlanner\TaskSchedule;
@@ -22,7 +23,6 @@ use App\Models\Tenant\TaskPlanner\TaskMaterial;
 use App\Models\Tenant\TaskPlanner\TaskChecklist;
 use App\Models\Tenant\TaskPlanner\TaskAttachment;
 use App\Models\Tenant\TaskPlanner\RecurringTask;
-use App\Models\Tenant\TaskPlanner\TaskNotification;
 use App\Services\Tenant\TenantManager;
 use App\Services\TaskPlanner\TaskService;
 use App\Services\TaskPlanner\SchedulingService;
@@ -37,6 +37,7 @@ class ManageTasks extends Component
 {
     use WithPagination, WithFileUploads;
 
+    public $userId;
     public $activeTab = 'bandeja';
 
     // Filtros del listado
@@ -148,9 +149,20 @@ class ManageTasks extends Component
 
     public function mount()
     {
+        $this->userId = Auth::id();
         $this->deadlineDate = now()->addDay()->format('Y-m-d');
         $this->reportFrom = now()->subDays(30)->format('Y-m-d');
         $this->reportTo = now()->format('Y-m-d');
+    }
+
+    /**
+     * Refresca el panel cuando llega un aviso del planificador por WebSocket
+     * (ej. un trabajador pidió más tiempo). El toast/sonido lo da la campanita.
+     */
+    #[On('echo-private:user.{userId},.NewTaskPlannerNotification')]
+    public function onRealtimeUpdate()
+    {
+        // El re-render de Livewire ocurre solo con que este método se ejecute.
     }
 
     /**
@@ -1049,18 +1061,6 @@ class ManageTasks extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Indisponibilidad eliminada.']);
     }
 
-    public function markMyNotifRead($id)
-    {
-        $this->ensureTenantConnection();
-        TaskNotification::where('id', $id)->where('user_id', Auth::id())->update(['read_at' => now()]);
-    }
-
-    public function markAllMyNotifsRead()
-    {
-        $this->ensureTenantConnection();
-        TaskNotification::where('user_id', Auth::id())->whereNull('read_at')->update(['read_at' => now()]);
-    }
-
     // ---------------------------------------------------------------
     // Render
     // ---------------------------------------------------------------
@@ -1170,16 +1170,6 @@ class ManageTasks extends Component
             ? $this->buildReports($assignableUsers, $departments)
             : null;
 
-        try {
-            $myNotifications = TaskNotification::where('user_id', Auth::id())
-                ->whereNull('read_at')
-                ->orderByDesc('id')
-                ->limit(15)
-                ->get();
-        } catch (\Throwable $e) {
-            $myNotifications = collect();
-        }
-
         $unavailabilities = EmployeeUnavailability::with('user')
             ->where('end_datetime', '>=', now())
             ->orderBy('start_datetime')
@@ -1196,7 +1186,6 @@ class ManageTasks extends Component
             'dashboard' => $dashboard,
             'currentActivity' => $currentActivity,
             'reports' => $reports,
-            'myNotifications' => $myNotifications,
             'unavailabilities' => $unavailabilities,
             'projectsForOrigin' => $projectsForOrigin,
             'detailTask' => $this->detailTaskId ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'schedules', 'pauses.user', 'timeLogs.user', 'materials.item', 'checklists', 'attachments'])->find($this->detailTaskId) : null,
