@@ -281,7 +281,7 @@
                 <ul class="text-xs space-y-1 mb-2">
                     @foreach($existingAttachments as $att)
                     <li class="flex items-center justify-between bg-gray-50 p-1.5 rounded border border-gray-200">
-                        <a href="{{ tenant_asset(ltrim($att['file_path'], '/')) }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">{{ $att['file_name'] }}</a>
+                        <a href="{{ route('tenant.task-planner.attachment', $att['id']) }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">{{ $att['file_name'] }}</a>
                         <button wire:click="$dispatch('swal:confirm', { action: 'deleteExistingAttachment', params: {{ $att['id'] }}, title: '¿Borrar archivo?', text: 'Se eliminará permanentemente.' })" type="button" class="text-red-500 hover:text-red-700">Borrar</button>
                     </li>
                     @endforeach

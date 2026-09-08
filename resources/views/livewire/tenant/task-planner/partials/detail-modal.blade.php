@@ -78,7 +78,7 @@
                         @php
                             $attUrl = \Illuminate\Support\Str::startsWith($att->file_path, ['http://', 'https://'])
                                 ? $att->file_path
-                                : tenant_asset(ltrim($att->file_path, '/'));
+                                : route('tenant.task-planner.attachment', $att->id);
                             $attExt = strtolower($att->file_type ?: pathinfo($att->file_name, PATHINFO_EXTENSION));
                             $attIsImage = in_array($attExt, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif']);
                         @endphp
