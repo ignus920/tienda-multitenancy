@@ -765,8 +765,12 @@ class Orders extends Component
     private function translateText($text, $from, $to)
     {
         try {
-            $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" . $from . "&tl=" . $to . "&dt=t&q=" . urlencode($text);
-            $response = \Illuminate\Support\Facades\Http::get($url);
+            $url = "https://translate.googleapis.com/translate_a/single?client=dict-chrome-ex&sl=" . $from . "&tl=" . $to . "&dt=t&q=" . urlencode($text);
+            
+            // Usar un User-Agent de navegador para evitar bloqueo 429 de Google en VPS
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+            ])->get($url);
             
             if ($response->successful()) {
                 $result = $response->json();
@@ -779,9 +783,11 @@ class Orders extends Component
                     }
                     return $translatedText;
                 }
+            } else {
+                \Illuminate\Support\Facades\Log::error("Traductor falló. HTTP " . $response->status() . " Body: " . $response->body());
             }
         } catch (\Exception $e) {
-            Log::error("Error al traducir comentario automático: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Error crítico al traducir comentario automático: " . $e->getMessage());
         }
         return null;
     }
@@ -2029,10 +2035,24 @@ class Orders extends Component
         ]);
 
         try {
+            $originalComment = $this->historyComment;
+            $finalComment = $originalComment;
+            if (Auth::user()->profile_id == 17) {
+                $translated = $this->translateText($originalComment, 'en', 'es');
+                if ($translated) {
+                    $finalComment = $originalComment . "[TRANSLATED]" . $translated;
+                }
+            } else {
+                $translated = $this->translateText($originalComment, 'es', 'en');
+                if ($translated) {
+                    $finalComment = $originalComment . "[TRANSLATED]" . $translated;
+                }
+            }
+
             if ($this->filterStatus == 13) {
                 DB::connection('tenant')->table('imp_comments')->insert([
                     'new_product_id' => $this->import_id,
-                    'comment' => $this->historyComment,
+                    'comment' => $finalComment,
                     'user_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -2040,7 +2060,7 @@ class Orders extends Component
             } else {
                 DB::connection('tenant')->table('imp_comments')->insert([
                     'import_id' => $this->import_id,
-                    'comment' => $this->historyComment,
+                    'comment' => $finalComment,
                     'user_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -2107,10 +2127,10 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
         $this->validate([
-            'additionalProductImages.*' => 'nullable|image|max:2048'
+            'additionalProductImages.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf,xlsx,xls|max:5120'
         ], [
-            'additionalProductImages.*.image' => 'Los archivos deben ser imágenes',
-            'additionalProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
+            'additionalProductImages.*.mimes' => 'Los archivos deben ser imágenes, PDF o Excel',
+            'additionalProductImages.*.max' => 'Los archivos no deben pesar más de 5MB'
         ]);
 
         if (empty($this->additionalProductImages)) {
@@ -3148,12 +3168,12 @@ class Orders extends Component
             'newProductDescription' => 'required|min:3',
             'newProductObservations' => 'nullable|string',
             'newProductSupplierId' => 'nullable|integer',
-            'newProductImages.*' => 'nullable|image|max:2048' // Validación para múltiples imágenes
+            'newProductImages.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf,xlsx,xls|max:5120' // Validación para múltiples archivos
         ], [
             'newProductCode.required' => 'El código es obligatorio',
             'newProductDescription.required' => 'La descripción es obligatoria',
-            'newProductImages.*.image' => 'Los archivos deben ser imágenes',
-            'newProductImages.*.max' => 'Las imágenes no deben pesar más de 2MB'
+            'newProductImages.*.mimes' => 'Los archivos deben ser imágenes, PDF o Excel',
+            'newProductImages.*.max' => 'Los archivos no deben pesar más de 5MB'
         ]);
 
         $imagePaths = [];
