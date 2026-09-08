@@ -1362,12 +1362,12 @@
                                                         @endphp
                                                         <div class="space-y-3">
                                                             <!-- Original Español -->
-                                                            <div class="relative pl-3 border-l-2 border-indigo-200 dark:border-indigo-800">
+                                                            <div class="relative pl-7 border-l-2 border-indigo-200 dark:border-indigo-800">
                                                                 <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-indigo-400 bg-white dark:bg-gray-800 px-1">ES</span>
                                                                 <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[0]) }}</p>
                                                             </div>
                                                             <!-- Traducción Inglés -->
-                                                            <div class="relative pl-3 border-l-2 border-teal-200 dark:border-teal-800">
+                                                            <div class="relative pl-7 border-l-2 border-teal-200 dark:border-teal-800">
                                                                 <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-teal-400 bg-white dark:bg-gray-800 px-1">EN</span>
                                                                 <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[1]) }}</p>
                                                             </div>
@@ -1377,11 +1377,11 @@
                                                             $parts = explode('--- Translated to English ---', $event->comment);
                                                         @endphp
                                                         <div class="space-y-3">
-                                                            <div class="relative pl-3 border-l-2 border-indigo-200 dark:border-indigo-800">
+                                                            <div class="relative pl-7 border-l-2 border-indigo-200 dark:border-indigo-800">
                                                                 <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-indigo-400 bg-white dark:bg-gray-800 px-1">ES</span>
                                                                 <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[0]) }}</p>
                                                             </div>
-                                                            <div class="relative pl-3 border-l-2 border-teal-200 dark:border-teal-800">
+                                                            <div class="relative pl-7 border-l-2 border-teal-200 dark:border-teal-800">
                                                                 <span class="absolute -left-[5px] top-1 text-[8px] font-bold uppercase tracking-wider text-teal-400 bg-white dark:bg-gray-800 px-1">EN</span>
                                                                 <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ trim($parts[1]) }}</p>
                                                             </div>
