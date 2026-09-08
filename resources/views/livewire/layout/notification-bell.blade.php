@@ -20,23 +20,32 @@
     @play-notification-sound.window="playSound()"
     wire:poll.60s="loadNotifications"
 >
-    {{-- Botón de Campanita --}}
+    {{-- Trigger: avatar + nombre del usuario (reemplaza la campana) --}}
     <button type="button"
-            class="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            class="relative -m-1.5 flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             @click="open = !open"
             id="notification-bell-button">
-        {{-- Ícono de Campana --}}
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-        </svg>
+        <span class="sr-only">Notificaciones y menú de usuario</span>
 
-        {{-- Badge rojo (Punto indicador global con animación radar) --}}
-        @if(($unreadCount + $pendingCount + $taskCount + $operativeCount) > 0)
-            <span class="absolute top-1 right-1 flex items-center justify-center">
-                <span class="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
-            </span>
-        @endif
+        <span class="relative shrink-0">
+            <img id="header-avatar-button"
+                 class="h-8 w-8 rounded-full bg-gray-50 dark:bg-gray-700 ring-2 ring-gray-200 dark:ring-gray-600 object-cover"
+                 src="{{ auth()->user()?->getAvatarUrl() }}" alt="{{ auth()->user()?->name }}">
+            {{-- Punto indicador global con animación radar --}}
+            @if(($unreadCount + $pendingCount + $taskCount + $operativeCount) > 0)
+                <span class="absolute -top-1 -right-1 flex items-center justify-center">
+                    <span class="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
+                </span>
+            @endif
+        </span>
+
+        <span class="hidden lg:flex lg:items-center">
+            <span class="text-sm font-semibold leading-6 text-gray-900 dark:text-white">{{ auth()->user()?->name }}</span>
+            <svg class="ml-2 h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+        </span>
     </button>
 
     {{-- Dropdown de Notificaciones --}}
@@ -305,6 +314,26 @@
                     </div>
                 @endforelse
             </div>
+        </div>
+
+        {{-- Pie: perfil / cerrar sesión --}}
+        <div class="border-t border-gray-100 dark:border-gray-700 py-1 shrink-0 bg-white dark:bg-gray-800">
+            <a href="{{ route('profile') }}" wire:navigate
+               class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <svg class="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Tu Perfil
+            </a>
+            <form method="POST" action="{{ route('logout') }}" class="w-full">
+                @csrf
+                <button type="submit" class="flex items-center w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <svg class="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Cerrar Sesión
+                </button>
+            </form>
         </div>
     </div>
 </div>
