@@ -24,13 +24,9 @@ class TaskService
 
             TaskHistory::log($task->id, $actingUserId, 'creada', null, $task->title);
 
-            TaskNotification::notify(
-                $assignedUserIds,
-                $task->id,
-                'asignacion',
-                'Se te asignó una tarea: ' . $task->title,
-                $actingUserId
-            );
+            // No se notifica al crear: la tarea nace "sin programar" y todavía
+            // no es accionable para el trabajador (no aparece en "Mis Tareas de Hoy").
+            // El aviso se envía cuando la tarea se programa (SchedulingService).
 
             return $task;
         });
@@ -50,13 +46,21 @@ class TaskService
         if ($current != $new) {
             TaskHistory::log($task->id, $actingUserId, 'responsables_actualizados', implode(',', $current), implode(',', $new));
 
-            TaskNotification::notify(
-                array_values(array_diff($new, $current)),
-                $task->id,
-                'asignacion',
-                'Se te asignó una tarea: ' . $task->title,
-                $actingUserId
-            );
+            // Avisar al nuevo responsable SOLO si la tarea ya está en el calendario.
+            // Si sigue "sin programar", se enterará cuando se programe.
+            if (!in_array($task->status, ['sin_programar', 'terminada', 'cancelada'])) {
+                $added = array_values(array_diff($new, $current));
+                $when = optional($task->currentSchedule)->scheduled_start;
+                $suffix = $when ? ' — ' . $when->format('d/m H:i') : '';
+
+                TaskNotification::notify(
+                    $added,
+                    $task->id,
+                    'asignacion',
+                    'Se te asignó una tarea: ' . $task->title . $suffix,
+                    $actingUserId
+                );
+            }
         }
     }
 
