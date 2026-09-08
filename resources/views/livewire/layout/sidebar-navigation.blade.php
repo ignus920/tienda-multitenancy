@@ -123,7 +123,7 @@ new class extends Component
         @endif
 
         <!-- Proyectos -->
-        @if(!$isOperario && Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18)
+        @if(Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18)
         <a href="{{ route('tenant.projects') }}" wire:navigate
             class="group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 {{ request()->routeIs('tenant.projects*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-r-2 border-indigo-500' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400' }}"
             :class="sidebarCollapsed ? 'justify-center' : 'justify-start'" x-data="{ tooltip: false }"
