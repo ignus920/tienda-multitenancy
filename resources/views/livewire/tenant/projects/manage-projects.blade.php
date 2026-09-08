@@ -71,6 +71,17 @@
                     <x-heroicon-o-trash class="w-4 h-4" />
                 </button>
 
+                <!-- Filtrar por Dirigido A -->
+                <div class="w-full md:w-auto">
+                    <select wire:model.live="searchAssignedToId" 
+                        class="block w-full py-2 pl-3 pr-8 border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="">Dirigido a...</option>
+                        @foreach($usersWithAssignedProjects as $user)
+                            <option value="{{ $user->id }}">{{ Str::limit($user->name, 20) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <!-- Pestañas (Tabs) -->
                 <div class="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold self-stretch md:self-auto">
                     <button wire:click="$set('selectedTab', 'activos')" 

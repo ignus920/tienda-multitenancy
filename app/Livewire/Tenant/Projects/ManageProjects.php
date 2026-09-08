@@ -43,6 +43,7 @@ class ManageProjects extends Component
     public $searchDateFrom = '';
     public $searchDateTo = '';
     public $searchParticipantId = '';
+    public $searchAssignedToId = ''; // Nuevo filtro Dirigido A
 
     // Filtros del panel "Mis Pendientes"
     public $pendientesStatusFilter = 'pendiente';
@@ -58,7 +59,8 @@ class ManageProjects extends Component
         'selectedStatus' => ['except' => ''],
         'selectedTab' => ['except' => 'activos'],
         'vencimientoFilter' => ['except' => ''],
-        'projectTypeFilter' => ['except' => '']
+        'projectTypeFilter' => ['except' => ''],
+        'searchAssignedToId' => ['except' => '']
     ];
 
     public function boot()
@@ -83,7 +85,8 @@ class ManageProjects extends Component
             'selectedTab',
             'vencimientoFilter',
             'projectTypeFilter',
-            'searchParticipantId'
+            'searchParticipantId',
+            'searchAssignedToId'
         ]);
         
         $this->searchDateFrom = now()->subMonth()->format('Y-m-d');
@@ -338,6 +341,10 @@ class ManageProjects extends Component
             });
         }
 
+        if ($this->searchAssignedToId) {
+            $query->where('assigned_to', $this->searchAssignedToId);
+        }
+
         // Buscador flexible (multi-palabra) según el estándar del cotizador
         if ($this->search) {
             $words = array_filter(explode(' ', trim($this->search)));
@@ -361,7 +368,7 @@ class ManageProjects extends Component
 
         $projects = $query->orderBy('created_at', 'desc')->paginate(12);
 
-        // 3. Usuarios del tenant para asignar proyectos internos
+        // Usuarios del tenant para asignar proyectos internos
         $assignableUsers = User::whereHas('tenants', function ($q) {
                 $q->where('tenants.id', session('tenant_id'));
             })
@@ -369,11 +376,16 @@ class ManageProjects extends Component
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        // Usuarios que actualmente tienen proyectos asignados a ellos
+        $assignedUserIds = Project::whereNotNull('assigned_to')->pluck('assigned_to')->unique();
+        $usersWithAssignedProjects = User::whereIn('id', $assignedUserIds)->orderBy('name')->get(['id', 'name']);
+
         return view('livewire.tenant.projects.manage-projects', [
             'projects' => $projects,
             'myMentions' => $myMentions,
             'myQuestions' => $myQuestions,
             'assignableUsers' => $assignableUsers,
+            'usersWithAssignedProjects' => $usersWithAssignedProjects,
             'pendientesCount' => $pendientesCount,
             'myMentionProjects' => $myMentionProjects,
             'mentioningUsers' => $mentioningUsers
