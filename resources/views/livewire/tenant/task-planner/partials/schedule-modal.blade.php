@@ -9,17 +9,17 @@
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Fecha</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Fecha <x-help-tip text="Día en que el trabajador realizará la tarea." /></label>
                     <input wire:model="scheduleDate" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                     @error('scheduleDate') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hora inicio</label>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hora inicio <x-help-tip text="Hora a la que empieza el bloque reservado en la agenda del trabajador (debe ser el mismo día)." /></label>
                         <input wire:model="scheduleStartTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hora fin</label>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hora fin <x-help-tip text="Hora a la que termina el bloque. Suele calcularse sola según la duración estimada de la tarea." /></label>
                         <input wire:model="scheduleEndTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         @error('scheduleEndTime') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
@@ -36,6 +36,10 @@
                     Buscar espacio libre
                 </button>
             </div>
+            <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-tight -mt-1">
+                <span class="font-semibold text-gray-500 dark:text-gray-400">Verificar disponibilidad:</span> ¿el trabajador está libre a la hora que pusiste? Avisa si hay choque, permiso o está fuera de horario (no bloquea).
+                <span class="font-semibold text-gray-500 dark:text-gray-400">Buscar espacio libre:</span> el sistema te propone los primeros huecos disponibles antes de la fecha límite.
+            </p>
 
             @if(!empty($suggestedSlots))
             <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-1">
@@ -67,7 +71,7 @@
             @endif
 
             <div>
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Motivo de reprogramación (si aplica)</label>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Motivo de reprogramación (si aplica) <x-help-tip text="Solo si estás moviendo una tarea que YA estaba programada. Queda registrado en el historial para saber por qué no se cumplió el plan original." /></label>
                 <select wire:model="rescheduleReason" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                     <option value="">No aplica</option>
                     @foreach(\App\Models\Tenant\TaskPlanner\TaskSchedule::RESCHEDULE_REASONS as $value => $label)

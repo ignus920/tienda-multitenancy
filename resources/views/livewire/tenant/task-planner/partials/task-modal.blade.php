@@ -8,21 +8,21 @@
 
         <div class="p-6 space-y-4">
             <div>
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Título de la tarea</label>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Título de la tarea <x-help-tip text="Nombre corto y claro de la actividad. Ej: «Instalar 4 luminarias oficina 201»." /></label>
                 <input wire:model="title" type="text" placeholder="Ej: Instalar luminarias piso 1"
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 @error('title') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Descripción</label>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Descripción <x-help-tip text="Detalle de qué hay que hacer, cómo hacerlo y cualquier indicación especial para el trabajador." /></label>
                 <textarea wire:model="description" rows="3" placeholder="Detalle de la actividad..."
                     class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Departamento</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Departamento <x-help-tip text="Área responsable de ejecutar la tarea: Laboratorio, Instalaciones o Adecuaciones." /></label>
                     <select wire:model="departmentId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         <option value="">Selecciona...</option>
                         @foreach($departments as $dept)
@@ -32,7 +32,7 @@
                     @error('departmentId') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Prioridad</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Prioridad <x-help-tip text="P1 Urgente: va antes que todo. P2 Alta: compromiso que no debería moverse. P3 Normal. P4 Baja: se puede mover si entra algo más importante." /></label>
                     <select wire:model="priority" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         @foreach(\App\Models\Tenant\TaskPlanner\Task::PRIORITIES as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
@@ -43,7 +43,7 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Duración estimada</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Duración estimada <x-help-tip text="Cuánto tiempo tomará hacerla. El sistema reserva ese espacio en la agenda del trabajador." /></label>
                     <div class="flex items-center gap-2">
                         <input wire:model="estimatedHours" type="number" min="0" placeholder="Horas"
                             class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
@@ -54,25 +54,25 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Fecha sugerida</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Fecha sugerida <x-help-tip text="Día en que te gustaría que se haga (opcional). No obliga: es solo una guía al momento de programarla." /></label>
                     <input wire:model="suggestedDate" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Fecha límite</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Fecha límite <x-help-tip text="Fecha máxima en la que la tarea debe estar terminada. El sistema avisa si la programación se pasa de aquí." /></label>
                     <input wire:model="deadlineDate" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                     @error('deadlineDate') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hora límite</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hora límite <x-help-tip text="Hora tope de ese último día. Por defecto 5:00 p.m." /></label>
                     <input wire:model="deadlineTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Responsables</label>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Responsables <x-help-tip text="Trabajador(es) que ejecutan la tarea. Si eliges varios, solo se puede programar en un horario donde todos estén libres." /></label>
                 <div x-data="taskPlannerChoices()" x-init="init($el)">
                     <select x-ref="select" wire:model="assignedUserIds" multiple
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm">
@@ -86,7 +86,7 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ubicación</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ubicación <x-help-tip text="Dónde se realiza la tarea: en la empresa, donde el cliente u otra dirección." /></label>
                     <select wire:model="locationType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         <option value="empresa">Instalaciones de la empresa</option>
                         <option value="cliente">Cliente</option>
@@ -94,7 +94,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Dirección / referencia</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Dirección / referencia <x-help-tip text="Dirección exacta o punto de referencia del lugar (cuando no es en la empresa)." /></label>
                     <input wire:model="location" type="text" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                 </div>
             </div>
@@ -102,11 +102,11 @@
             @if($locationType !== 'empresa')
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Desplazamiento ida (min)</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Desplazamiento ida (min) <x-help-tip text="Minutos de viaje hasta el lugar. Se suman al tiempo ocupado para no encimar otra tarea justo después." /></label>
                     <input wire:model="travelBefore" type="number" min="0" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Desplazamiento regreso (min)</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Desplazamiento regreso (min) <x-help-tip text="Minutos de viaje de vuelta. También se reservan en la agenda del trabajador." /></label>
                     <input wire:model="travelAfter" type="number" min="0" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                 </div>
             </div>
@@ -114,7 +114,7 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Origen (opcional)</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Origen (opcional) <x-help-tip text="De dónde nace la tarea (cliente, proyecto, mantenimiento, exhibición…). Sirve para los reportes." /></label>
                     <select wire:model="originType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         <option value="">Sin origen específico</option>
                         @foreach(\App\Models\Tenant\TaskPlanner\Task::ORIGIN_TYPES as $value => $label)
@@ -124,7 +124,7 @@
                 </div>
                 @if($originType === 'proyecto')
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Proyecto relacionado</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Proyecto relacionado <x-help-tip text="Proyecto del módulo Proyectos al que pertenece esta tarea." /></label>
                     <select wire:model="originProjectId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         <option value="">Selecciona...</option>
                         @foreach($projectsForOrigin as $project)
@@ -140,7 +140,7 @@
             <!-- RECURRENCIA -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Repetir</label>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Repetir <x-help-tip text="Si se repite, esta tarea queda como plantilla y el sistema crea una copia nueva (sin programar) cada día, semana o mes, de forma automática." /></label>
                     <select wire:model.live="recurrenceType" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                         <option value="none">No se repite</option>
                         <option value="daily">Cada día laboral</option>
@@ -175,14 +175,7 @@
                 <div class="flex items-center justify-between mb-2">
                     <label class="flex items-center text-xs font-semibold text-gray-600 dark:text-gray-300">
                         Checklist (Paso a paso)
-                        <div x-data="{ show: false }" class="relative ml-1 flex items-center">
-                            <button type="button" @mouseenter="show = true" @mouseleave="show = false" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </button>
-                            <div x-show="show" x-cloak class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 w-48 p-2 bg-gray-800 text-white text-[10px] rounded shadow-lg z-50">
-                                Lista de pasos que el trabajador deberá ir marcando mientras ejecuta la tarea.
-                            </div>
-                        </div>
+                        <x-help-tip text="Lista de pasos que el trabajador irá marcando mientras ejecuta la tarea. Marca «Obligatorio» los imprescindibles: sin ellos no podrá dar por terminada la tarea." />
                     </label>
                     <button wire:click="addChecklistItem" type="button" class="px-2 py-1 bg-white border border-gray-300 text-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 rounded hover:bg-gray-50 text-xs flex items-center">
                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
@@ -210,14 +203,7 @@
                 <div class="flex items-center justify-between mb-2">
                     <label class="flex items-center text-xs font-semibold text-gray-600 dark:text-gray-300">
                         Materiales y Herramientas requeridas
-                        <div x-data="{ show: false }" class="relative ml-1 flex items-center">
-                            <button type="button" @mouseenter="show = true" @mouseleave="show = false" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </button>
-                            <div x-show="show" x-cloak class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 w-48 p-2 bg-gray-800 text-white text-[10px] rounded shadow-lg z-50">
-                                Busca insumos del inventario o anota texto libre para herramientas.
-                            </div>
-                        </div>
+                        <x-help-tip text="Insumos que el trabajador debe llevar. Búscalos del inventario (con código) o escribe texto libre para herramientas." />
                     </label>
                 </div>
                 
@@ -274,7 +260,7 @@
 
             <!-- ADJUNTOS -->
             <div class="mt-6">
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Archivos Adjuntos</label>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Archivos Adjuntos <x-help-tip text="Planos, fotos o documentos de apoyo. El trabajador los verá en su pantalla al ejecutar la tarea." /></label>
                 <input wire:model="tempAttachments" type="file" multiple class="block w-full text-xs text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-2">
                 
                 @if(count($existingAttachments) > 0)
