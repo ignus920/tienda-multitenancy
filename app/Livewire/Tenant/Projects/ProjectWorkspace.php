@@ -124,6 +124,10 @@ class ProjectWorkspace extends Component
         $this->ensureTenantConnection();
         $project = Project::findOrFail($id);
 
+        // Los perfiles sin acceso total solo pueden abrir proyectos donde
+        // son creador, "dirigido a" o participante del chat.
+        abort_unless($project->canBeViewedBy(\Illuminate\Support\Facades\Auth::user()), 403);
+
         // Inicializar campos de la orden
         $this->qty = $project->qty;
         $this->price_unit = $project->price_unit;

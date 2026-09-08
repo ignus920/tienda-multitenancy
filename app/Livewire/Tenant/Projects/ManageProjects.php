@@ -271,8 +271,8 @@ class ManageProjects extends Component
             ->where('status', 'pendiente')
             ->count();
 
-        // Todos los proyectos disponibles para el filtro del panel
-        $myMentionProjects = Project::orderBy('title')->get(['id', 'title']);
+        // Proyectos disponibles para el filtro del panel (respeta la visibilidad)
+        $myMentionProjects = Project::visibleTo(Auth::user())->orderBy('title')->get(['id', 'title']);
 
         // Usuarios a mostrar en el filtro "Cualquier persona" (Depende del proyecto seleccionado)
         if ($this->pendientesProjectFilter) {
@@ -294,7 +294,11 @@ class ManageProjects extends Component
             ->get();
 
         // 2. Consulta de Proyectos
-        $query = Project::with(['customer', 'creator', 'assignedUser'])
+        //    Los perfiles sin acceso total solo ven los proyectos donde son
+        //    creador, "dirigido a" o participante del chat.
+        $query = Project::query()
+            ->visibleTo(Auth::user())
+            ->with(['customer', 'creator', 'assignedUser'])
             ->withCount(['questions' => function ($q) {
                 $q->where('status', 'pendiente');
             }]);
