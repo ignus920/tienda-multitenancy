@@ -172,7 +172,7 @@ class TimeTrackingService
 
         TaskHistory::log($task->id, $userId, 'solicito_mas_tiempo', null, $extraMinutes . ' min', $reason);
 
-        TaskNotification::push(
+        TaskNotification::notify(
             [$task->created_by],
             $task->id,
             'mas_tiempo',
@@ -204,7 +204,7 @@ class TimeTrackingService
         $task->update(['status' => 'bloqueada', 'blocked_reason' => $reason]);
         TaskHistory::log($task->id, $userId, 'bloqueada', $previousStatus, 'bloqueada', $reason);
 
-        TaskNotification::push(
+        TaskNotification::notify(
             $task->assignments()->pluck('user_id')->toArray(),
             $task->id,
             'bloqueo',
@@ -219,7 +219,7 @@ class TimeTrackingService
         $task->update(['status' => $newStatus, 'blocked_reason' => null]);
         TaskHistory::log($task->id, $userId, 'desbloqueada', 'bloqueada', $newStatus);
 
-        TaskNotification::push(
+        TaskNotification::notify(
             $task->assignments()->pluck('user_id')->toArray(),
             $task->id,
             'desbloqueo',
