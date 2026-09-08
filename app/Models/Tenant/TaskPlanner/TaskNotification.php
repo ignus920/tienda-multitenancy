@@ -4,6 +4,7 @@ namespace App\Models\Tenant\TaskPlanner;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Auth\User;
+use App\Events\Tenant\TaskPlanner\NewTaskPlannerNotification;
 use Illuminate\Support\Facades\Schema;
 
 class TaskNotification extends Model
@@ -53,12 +54,21 @@ class TaskNotification extends Model
             if (!$uid || $uid === $exceptUserId) {
                 continue;
             }
-            static::create([
+
+            $row = static::create([
                 'user_id' => $uid,
                 'task_id' => $taskId,
                 'type' => $type,
                 'message' => $message,
             ]);
+
+            // Aviso en tiempo real por WebSocket (Reverb). Si Reverb está caído
+            // NO debe romper el guardado de la tarea.
+            try {
+                broadcast(new NewTaskPlannerNotification($uid, $row->id, $taskId, $type, $message));
+            } catch (\Throwable $e) {
+                // se ignora: la notificación queda en BD y aparece al recargar / poll
+            }
         }
     }
 }
