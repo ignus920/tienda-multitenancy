@@ -1637,13 +1637,18 @@
                     <label class="block text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Sucursal de envío</label>
                     <select wire:model.live="selectedBranchId"
                             class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                        <option value="">Selecciona una sucursal</option>
+                        <option value="">— Seleccioná la sucursal de envío —</option>
                         @foreach($branches as $branch)
                             <option value="{{ $branch['id'] }}">
                                 {{ $branch['name'] }} ({{ $branch['city']['name'] ?? 'Sin ciudad' }}) — {{ $branch['address'] ?? 'Sin dirección' }} — Tel: {{ $branch['phone'] ?? 'Sin teléfono' }}
                             </option>
                         @endforeach
                     </select>
+                    @if(!$selectedBranchId && count($branches) > 1)
+                        <p class="mt-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                            Este cliente tiene varias direcciones. Elegí a cuál se despacha este pedido.
+                        </p>
+                    @endif
                 </div>
 
                 @if($selectedBranchId)
@@ -1857,7 +1862,9 @@
                 <button wire:click="proceedWithRemissionCreation"
                         wire:loading.attr="disabled"
                         wire:target="proceedWithRemissionCreation"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center transition-colors disabled:opacity-50">
+                        @disabled(!$selectedBranchId)
+                        title="{{ !$selectedBranchId ? 'Seleccioná primero la sucursal de envío' : '' }}"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg wire:loading.remove wire:target="proceedWithRemissionCreation" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -2288,7 +2295,8 @@
     @endteleport
 
     <!-- Modal de Confirmación de OP -->
-    <div x-data="{ show: @entangle('showOPConfirmationModal') }"
+    <div x-data="{ show: @entangle('showOPConfirmationModal'), confirmed: false }"
+         x-effect="if (!show) confirmed = false"
          x-show="show"
          class="fixed inset-0 z-[100] flex items-center justify-center p-4"
          style="display: none;"
@@ -2327,6 +2335,20 @@
 
             <!-- Body -->
             <div class="p-6 space-y-4">
+                @php
+                    $__selBranch = ($selectedBranchId && !empty($branches)) ? collect($branches)->firstWhere('id', $selectedBranchId) : null;
+                    $__isMainBranch = $__selBranch && (($__selBranch['main'] ?? 0) == 1);
+                @endphp
+                @if($__isMainBranch)
+                <div class="flex items-start gap-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-3">
+                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                        Estás despachando a la sucursal <strong>PRINCIPAL</strong> del cliente. Si este pedido va a otra dirección, hacé clic en «Corregir» y cambiá la sucursal de envío.
+                    </p>
+                </div>
+                @endif
                 <!-- Sticker de envío -->
                 <div class="border-2 border-gray-800 dark:border-slate-300 rounded-lg p-6 bg-white dark:bg-slate-800 text-center space-y-3">
                     <p class="text-sm font-semibold uppercase tracking-widest text-gray-600 dark:text-slate-400">Destinatario:</p>
@@ -2362,7 +2384,7 @@
                         <p class="text-base font-bold text-gray-900 dark:text-white uppercase">
                             {{ $selectedCustomer['address'] ?? 'N/A' }}
                         </p>
-                        <p class="text-base font-bold text-gray-900 dark:text-white uppercase">
+                        <p class="text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">
                             {{ $selectedCustomer['cityName'] ?? 'N/A' }}
                         </p>
                     </div>
@@ -2380,9 +2402,12 @@
                     @endif
                 </div>
 
-                <p class="text-xs text-gray-500 dark:text-slate-400 italic text-center">
-                    Por favor verifique que los datos de entrega correspondan a la sucursal seleccionada.
-                </p>
+                <label class="flex items-start gap-2 cursor-pointer bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <input type="checkbox" x-model="confirmed" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                    <span class="text-xs font-medium text-gray-700 dark:text-slate-300">
+                        Verifiqué que la <strong>dirección y la ciudad</strong> de arriba corresponden a la entrega de este pedido.
+                    </span>
+                </label>
             </div>
 
             <!-- Footer -->
@@ -2394,6 +2419,8 @@
                 <button wire:click="confirmOPFinal"
                         wire:loading.attr="disabled"
                         wire:target="confirmOPFinal"
+                        :disabled="!confirmed"
+                        :class="{ 'opacity-50 cursor-not-allowed': !confirmed }"
                         class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center transition-colors shadow-md hover:shadow-lg disabled:opacity-50">
                     <svg wire:loading.remove wire:target="confirmOPFinal" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />

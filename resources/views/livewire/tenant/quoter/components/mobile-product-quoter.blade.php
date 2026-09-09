@@ -545,17 +545,23 @@ $header = 'Seleccionar productos';
                             </svg>
                             Confirmar Sede del Cliente
                         </label>
-                        <select 
+                        <select
                             wire:model.live="selectedBranchId"
                             wire:change="selectBranch($event.target.value)"
                             class="block w-full text-base font-bold border-yellow-300 rounded-lg bg-white text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 shadow-sm py-3"
                         >
+                            <option value="">— Elegí la sucursal de envío —</option>
                             @foreach($branches as $branch)
                                 <option value="{{ $branch['id'] }}">
                                     {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
                                 </option>
                             @endforeach
                         </select>
+                        @if(!$selectedBranchId)
+                            <p class="mt-2 text-xs font-black text-red-600 uppercase">
+                                Este cliente tiene varias direcciones. Elegí a cuál se despacha este pedido.
+                            </p>
+                        @endif
                     </div>
                     @endif
 
@@ -614,7 +620,12 @@ $header = 'Seleccionar productos';
 
 
 
-                <button wire:click="proceedWithRemissionCreation" class="w-full py-3 bg-blue-600 text-white rounded-lg font-medium">Crear Remisión</button>
+                @if(count($branches) > 1 && !$selectedBranchId)
+                    <p class="text-xs font-black text-red-600 uppercase text-center mb-2">Falta elegir la sucursal de envío</p>
+                @endif
+                <button wire:click="proceedWithRemissionCreation"
+                        @disabled(count($branches) > 1 && !$selectedBranchId)
+                        class="w-full py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed">Crear Remisión</button>
                 <button wire:click="closeDeliveryModal" class="w-full py-3 mt-2 text-gray-700 dark:text-gray-300">Cancelar</button>
             </div>
         </div>
@@ -667,7 +678,8 @@ $header = 'Seleccionar productos';
     @livewire('tenant.components.product-quarantine-modal')
 
     <!-- Modal de Confirmación de OP -->
-    <div x-data="{ show: @entangle('showOPConfirmationModal') }"
+    <div x-data="{ show: @entangle('showOPConfirmationModal'), confirmed: false }"
+         x-effect="if (!show) confirmed = false"
          x-show="show"
          class="fixed inset-0 z-[130] flex items-end justify-center"
          style="display: none;"
@@ -699,6 +711,20 @@ $header = 'Seleccionar productos';
 
             <!-- Body -->
             <div class="p-5 space-y-4 overflow-y-auto">
+                @php
+                    $__selBranch = ($selectedBranchId && !empty($branches)) ? collect($branches)->firstWhere('id', $selectedBranchId) : null;
+                    $__isMainBranch = $__selBranch && (($__selBranch['main'] ?? 0) == 1);
+                @endphp
+                @if($__isMainBranch)
+                <div class="flex items-start gap-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-3">
+                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                        Estás despachando a la sucursal <strong>PRINCIPAL</strong>. Si el pedido va a otra dirección, tocá «Corregir».
+                    </p>
+                </div>
+                @endif
                 <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 p-4 rounded-xl space-y-3">
                     <div>
                         <span class="block text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Cliente</span>
@@ -731,7 +757,7 @@ $header = 'Seleccionar productos';
                         </div>
                         <div>
                             <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Ciudad</span>
-                            <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                            <span class="block text-lg font-extrabold text-indigo-700 dark:text-indigo-300 uppercase">
                                 {{ $selectedCustomer['cityName'] ?? 'N/A' }}
                             </span>
                         </div>
@@ -756,9 +782,12 @@ $header = 'Seleccionar productos';
                         </div>
                     </div>
                 </div>
-                <p class="text-2xs text-gray-500 dark:text-slate-400 italic text-center">
-                    Por favor verifique que los datos de entrega correspondan a la sucursal seleccionada.
-                </p>
+                <label class="flex items-start gap-2 cursor-pointer bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <input type="checkbox" x-model="confirmed" class="mt-0.5 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                    <span class="text-xs font-medium text-gray-700 dark:text-slate-300">
+                        Verifiqué que la <strong>dirección y la ciudad</strong> corresponden a la entrega de este pedido.
+                    </span>
+                </label>
             </div>
 
             <!-- Footer -->
@@ -770,6 +799,8 @@ $header = 'Seleccionar productos';
                 <button wire:click="confirmOPFinal"
                         wire:loading.attr="disabled"
                         wire:target="confirmOPFinal"
+                        :disabled="!confirmed"
+                        :class="{ 'opacity-50 cursor-not-allowed': !confirmed }"
                         class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center justify-center transition-colors shadow-md disabled:opacity-50">
                     <svg wire:loading wire:target="confirmOPFinal" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

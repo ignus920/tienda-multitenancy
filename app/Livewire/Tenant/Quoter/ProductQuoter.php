@@ -1505,17 +1505,15 @@ class ProductQuoter extends Component
             $this->showCreateCustomerButton = false;
 
             if (count($this->branches) > 1) {
-                // Buscar la sucursal principal
-                $mainBranch = collect($this->branches)->firstWhere('main', 1);
-
-                if ($mainBranch) {
-                    $this->selectBranch($mainBranch['id']);
-                } else {
-                    // Si no hay principal, seleccionar la primera por defecto
-                    $this->selectBranch($this->branches[0]['id']);
-                }
+                // NO auto-seleccionar cuando el cliente tiene varias sucursales:
+                // el comercial DEBE elegir conscientemente la sucursal de envío.
+                // Dejar la principal por defecto hacía que, por el afán, los pedidos
+                // salieran a la dirección equivocada.
+                $this->selectedBranchId = null;
+                $this->deliveryPhone = '';
+                $this->finalizeCustomerSelection();
             } elseif (count($this->branches) === 1) {
-                // Si tiene solo una, seleccionarla automáticamente
+                // Si tiene solo una, seleccionarla automáticamente (no hay ambigüedad)
                 $this->selectBranch($this->branches[0]['id']);
             } else {
                 // Si no tiene sucursales, intentar buscar un contacto directo
