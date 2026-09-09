@@ -1148,7 +1148,9 @@ class ProductQuoter extends Component
                 'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
                 'observations' => $this->observaciones,
-                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
+                // Si el cliente tiene varias sucursales y el comercial aún no eligió,
+                // se deja NULL para forzar la selección consciente antes de crear la OP.
+                'branchId' => $this->selectedBranchId ?: (count($this->branches) > 1 ? null : $contact->warehouseId),
                 'flete' => $this->appliedFreight, // Guardar el flete aplicado
                 'empaque' => $this->appliedPacking // Guardar el empaque especial aplicado
             ]);
@@ -2355,6 +2357,16 @@ class ProductQuoter extends Component
                 if ($company) {
                     $this->branches = $company->warehouses()->where('status', 1)->with('city')->get()->toArray();
                     $this->selectedBranchId = $quote->branchId;
+
+                    // Si el cliente tiene varias sucursales y el branchId guardado es el
+                    // valor por defecto (igual al customerId, no una elección real),
+                    // forzar que el comercial vuelva a elegir la sucursal de envío.
+                    if (count($this->branches) > 1
+                        && $quote->branchId
+                        && (int) $quote->branchId === (int) $quote->customerId) {
+                        $this->selectedBranchId = null;
+                        $this->deliveryPhone = '';
+                    }
                 }
 
                 Log::info('🔄 Cliente cargado para edición', [
@@ -2580,7 +2592,9 @@ class ProductQuoter extends Component
                 'observations' => $this->observaciones,
                 'warehouseId' => session('warehouse_id', $userStoreId), // Sucursal logueada del sistema
                 'userId' => auth()->id(),
-                'branchId' => $this->selectedBranchId ?: $contact->warehouseId, // Sucursal de entrega seleccionada
+                // Si el cliente tiene varias sucursales y el comercial aún no eligió,
+                // se deja NULL para forzar la selección consciente antes de crear la OP.
+                'branchId' => $this->selectedBranchId ?: (count($this->branches) > 1 ? null : $contact->warehouseId),
                 'flete' => $this->appliedFreight, // Guardar el flete aplicado
                 'empaque' => $this->appliedPacking // Guardar el empaque especial aplicado
             ];
