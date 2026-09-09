@@ -1,4 +1,4 @@
-<div class="py-4"
+<div class="pb-8"
      x-data="{ 
         cart: [],
         viewMode: localStorage.getItem('portal_view_mode') || 'list',
@@ -108,7 +108,7 @@
 
     <!-- Layout con sidebar sticky -->
     <div class="flex gap-0">
-        <div class="flex-1 min-w-0 px-4 sm:px-6">
+        <div class="flex-1 min-w-0 px-4 sm:px-6 pt-6">
 
 
 
@@ -289,12 +289,13 @@
             @endif
 
             <!-- Barra de búsqueda -->
-            <div class="flex items-center gap-2 mb-4">
-                <div class="relative flex-1">
+            <div class="flex flex-wrap items-center gap-2 mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-sm">
+                <div class="relative flex-1 min-w-[200px]">
+                    <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"/></svg>
                     <input wire:model.live.debounce.300ms="search"
                         type="text"
-                        placeholder="Buscar productos..."
-                        class="block w-full pl-5 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm transition-colors">
+                        placeholder="Buscar por nombre o SKU…"
+                        class="block w-full pl-10 pr-4 py-2.5 border-0 rounded-xl bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 text-sm">
                 </div>
                 
                 <!-- Filtro de stock -->
@@ -383,18 +384,16 @@
                 </div>
             @endif
 
-            <!-- TABLA DE PRODUCTOS (estilo cotizador) -->
-            <div x-show="viewMode === 'list'" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <!-- Encabezado de la tabla -->
-                <div class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        <div class="w-12 flex-shrink-0"></div>
-                        <div class="w-14 flex-shrink-0"></div>
-                        <div class="flex-1 min-w-0 pl-4">NOMBRE</div>
-                        <div class="w-20 text-center flex-shrink-0">DISP.</div>
-                        <div class="w-28 text-center flex-shrink-0">CONTADO</div>
-                        <div class="w-28 text-center flex-shrink-0">CRÉDITO</div>
-                    </div>
+            <!-- LISTA DE PRODUCTOS -->
+            <div x-show="viewMode === 'list'" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <!-- Encabezado -->
+                <div class="hidden sm:flex items-center gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/60 text-[10px] font-bold uppercase tracking-[.08em] text-gray-400 dark:text-gray-500">
+                    <div class="w-9 flex-shrink-0"></div>
+                    <div class="w-11 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">Producto</div>
+                    <div class="w-16 text-center flex-shrink-0">Disp.</div>
+                    <div class="w-24 text-right flex-shrink-0">Contado</div>
+                    <div class="w-24 text-right flex-shrink-0">Crédito</div>
                 </div>
 
                 <!-- Filas de productos -->
@@ -443,14 +442,14 @@
                             $boxQty = $product->dimensions ? $product->dimensions->quntityxbox : 0;
                             $boxDiscount = $product->dimensions ? $product->dimensions->box_discount : 0;
                         @endphp
-                        <div class="flex items-center px-4 py-3 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group"
+                        <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors group"
                              x-data="{ showDetail: false }">
-                            
+
                             <!-- Menú de acciones (columna izquierda) -->
-                            <div class="w-12 flex-shrink-0 relative flex items-center justify-start pr-2" x-data="{ open: false }">
-                                <button @click.stop="open = !open" @click.away="open = false" title="Ver opciones disponibles para este producto" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all flex items-center justify-center">
-                                    <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                            <div class="w-9 flex-shrink-0 relative flex items-center justify-start" x-data="{ open: false }">
+                                <button @click.stop="open = !open" @click.away="open = false" title="Ver opciones disponibles para este producto" class="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                                     </svg>
                                 </button>
                                 <div x-show="open" x-transition class="absolute left-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1" style="display: none;">
@@ -470,74 +469,67 @@
                             </div>
                             
                             <!-- Miniatura -->
-                            <div class="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
+                            <div class="w-11 h-11 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
                                  @click="$dispatch('openImageModal', { productId: {{ $product->id }}, context: 'COMERCIAL' })">
-                                <img src="{{ $imageUrl }}" 
-                                     alt="{{ $product->name }}" 
-                                     class="w-full h-full object-cover"
-                                     loading="lazy">
+                                <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover" loading="lazy">
                             </div>
 
                             <!-- Nombre y código -->
-                            <div class="flex-1 min-w-0 pl-4 flex flex-col justify-center">
-                                <div class="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase truncate">{{ $product->name }}</div>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    @if($product->sku)
-                                        <span class="text-[11px] font-mono font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-700">SKU: {{ $product->sku }}</span>
-                                    @endif
-                                </div>
+                            <div class="flex-1 min-w-0 flex flex-col justify-center">
+                                <div class="text-[13.5px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-2">{{ $product->name }}</div>
+                                @if($product->sku)
+                                    <div class="text-[11px] font-mono text-gray-400 dark:text-gray-500 mt-0.5">SKU {{ $product->sku }}</div>
+                                @endif
                             </div>
 
                             <!-- Stock disponible -->
-                            <div class="w-20 text-center flex-shrink-0">
+                            <div class="w-16 flex-shrink-0 flex justify-center">
                                 @if($visibleStock > 0)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                                        {{ $visibleStock }}
+                                    <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>{{ $visibleStock }}
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
-                                        0
+                                    <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 dark:text-gray-500">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>Agotado
                                     </span>
                                 @endif
                             </div>
 
                             <!-- Precio Contado -->
-                            <div class="w-28 text-center flex-shrink-0 px-1">
+                            <div class="w-24 flex-shrink-0 flex justify-end">
                                 @if($priceCash > 0)
                                     @if($paymentFilter === 'contado')
-                                        <button 
+                                        <button
                                             @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
-                                            class="w-full py-1.5 px-2 rounded-lg border border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/15 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 active:scale-95 transition-all"
-                                        >
-                                            <div class="text-[11px] font-black text-emerald-700 dark:text-emerald-300">${{ number_format($priceCash, 0, ',', '.') }}</div>
+                                            class="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 transition-all"
+                                            title="Agregar a tu pedido">
+                                            <span class="text-[12px] font-extrabold">${{ number_format($priceCash, 0, ',', '.') }}</span>
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
                                         </button>
                                     @else
-                                        <div class="w-full py-1.5 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-40 cursor-not-allowed">
-                                            <div class="text-[11px] font-black text-gray-400 dark:text-gray-500">${{ number_format($priceCash, 0, ',', '.') }}</div>
-                                        </div>
+                                        <span class="text-[12px] font-bold text-gray-400 dark:text-gray-500">${{ number_format($priceCash, 0, ',', '.') }}</span>
                                     @endif
                                 @else
-                                    <span class="text-[10px] text-gray-400">N/A</span>
+                                    <span class="text-[11px] text-gray-300 dark:text-gray-600">N/A</span>
                                 @endif
                             </div>
 
                             <!-- Precio Crédito -->
-                            <div class="w-28 text-center flex-shrink-0 px-1">
+                            <div class="w-24 flex-shrink-0 flex justify-end">
                                 @if($priceCredit && $priceCredit > 0)
                                     @if($paymentFilter === 'credito')
-                                        <button 
+                                        <button
                                             @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
-                                            class="w-full py-1.5 px-2 rounded-lg border border-yellow-400/40 bg-yellow-50 dark:bg-yellow-900/15 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 transition-all"
-                                        >
-                                            <div class="text-[11px] font-black text-yellow-700 dark:text-yellow-300">${{ number_format($priceCredit, 0, ',', '.') }}</div>
+                                            class="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white active:scale-95 transition-all"
+                                            title="Agregar a tu pedido">
+                                            <span class="text-[12px] font-extrabold">${{ number_format($priceCredit, 0, ',', '.') }}</span>
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
                                         </button>
                                     @else
-                                        <div class="w-full py-1.5 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-40 cursor-not-allowed">
-                                            <div class="text-[11px] font-black text-gray-400 dark:text-gray-500">${{ number_format($priceCredit, 0, ',', '.') }}</div>
-                                        </div>
+                                        <span class="text-[12px] font-bold text-gray-400 dark:text-gray-500">${{ number_format($priceCredit, 0, ',', '.') }}</span>
                                     @endif
                                 @else
-                                    <span class="text-[10px] text-gray-400">N/A</span>
+                                    <span class="text-[11px] text-gray-300 dark:text-gray-600">N/A</span>
                                 @endif
                             </div>
                         </div>
@@ -702,7 +694,7 @@
         </div>
 
         <!-- SIDEBAR (estilo cotizador) -->
-        <div class="hidden lg:block w-[28rem] flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto self-start">
+        <div class="hidden lg:block w-[28rem] flex-shrink-0 sticky top-[112px] h-[calc(100vh-112px)] bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto self-start">
             <div class="p-5">
                 <!-- Header -->
                 <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3 mb-4">

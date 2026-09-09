@@ -46,10 +46,10 @@
   /* ---- tabs bar ---- */
   .fp-tabsbar{
     position:sticky; top:64px; z-index:30;
-    background:color-mix(in srgb, var(--fp-surface) 92%, transparent);
-    backdrop-filter:blur(10px); border-bottom:1px solid var(--fp-line);
+    background:var(--fp-surface);
+    border-bottom:1px solid var(--fp-line);
   }
-  .fp-tabs{max-width:1120px; margin:0 auto; padding:0 20px; display:flex; gap:2px; overflow-x:auto}
+  .fp-tabs{margin:0 auto; padding:0 22px; display:flex; gap:2px; overflow-x:auto}
   .fp-tab{
     display:flex; align-items:center; gap:8px; padding:12px 15px 14px; font-weight:600; font-size:13.5px;
     color:var(--fp-ink-3); border-bottom:2px solid transparent; white-space:nowrap; text-decoration:none; transition:color .12s;
