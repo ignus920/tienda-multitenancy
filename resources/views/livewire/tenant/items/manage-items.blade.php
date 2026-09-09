@@ -1257,11 +1257,19 @@
     @endif
 
     <!-- Modal Values -->
-    <div wire:key="values-modal-slot-{{ $showValuesModal ? 'open-'.$item_id : 'closed' }}">
-        @if($showValuesModal)
-            @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key('values-'.$item_id))
-        @endif
+    {{-- El componente se monta SIEMPRE (mientras exista item) y solo se muestra/oculta.
+         Montarlo condicionalmente hacía que Livewire no lo renderizara hasta el
+         siguiente request (cambio de pestaña). --}}
+    @if($item_id)
+    <div wire:key="values-modal-slot"
+         x-data="{ open: @js((bool) $showValuesModal) }"
+         x-init="$wire.$watch('showValuesModal', v => open = v)"
+         x-show="open"
+         x-cloak
+         style="display:none">
+        @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key('values-'.$item_id))
     </div>
+    @endif
 
     <!-- Modal Ubicaciones -->
     <div wire:key="locations-modal-slot-{{ $showLocationsModal ? 'open-'.$selectedItemId : 'closed' }}">
