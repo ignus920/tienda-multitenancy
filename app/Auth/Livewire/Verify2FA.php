@@ -27,7 +27,7 @@ class Verify2FA extends Component
         }
 
         // Verificar si el usuario está bloqueado
-        $user = \App\Models\User::find(Session::get('2fa_user_id'));
+        $user = \App\Models\Auth\User::find(Session::get('2fa_user_id'));
         if ($user && $user->isTwoFactorLocked()) {
             $this->errorMessage = 'Cuenta bloqueada temporalmente. Intente nuevamente en 15 minutos.';
         }
@@ -38,7 +38,7 @@ class Verify2FA extends Component
         $this->validate();
 
         $userId = Session::get('2fa_user_id');
-        $user = \App\Models\User::find($userId);
+        $user = \App\Models\Auth\User::find($userId);
 
         if (!$user) {
             $this->errorMessage = 'Sesión expirada. Por favor inicie sesión nuevamente.';
@@ -76,7 +76,7 @@ class Verify2FA extends Component
     public function resendCode()
     {
         $userId = Session::get('2fa_user_id');
-        $user = \App\Models\User::find($userId);
+        $user = \App\Models\Auth\User::find($userId);
 
         if (!$user) {
             return redirect()->route('login');
