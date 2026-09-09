@@ -37,14 +37,11 @@ new class extends Component
 
 <div class="flex h-full flex-col" :class="sidebarCollapsed ? 'overflow-visible' : 'overflow-y-auto'">
     <!-- Logo -->
-    <div class="flex shrink-0 items-center px-4 py-4 border-b border-gray-200 dark:border-gray-700"
-        :class="sidebarCollapsed ? 'justify-center' : 'justify-start'">
-        <div class="flex items-center">
-            {{-- Menú contraído: solo el círculo --}}
-            <img x-show="sidebarCollapsed" class="h-9 w-9 object-contain" src="{{ asset('images/Logo.png') }}" alt="Fervicom">
-            {{-- Menú expandido: logo completo --}}
-            <img x-show="!sidebarCollapsed" class="h-9 w-auto max-w-[190px] object-contain" src="{{ asset('images/fervicom-full-color.png') }}" alt="Fervicom Iluminación LED">
-        </div>
+    <div class="flex shrink-0 items-center justify-center px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        {{-- Menú contraído: solo el círculo --}}
+        <img x-show="sidebarCollapsed" class="h-9 w-9 object-contain" src="{{ asset('images/Logo.png') }}" alt="Fervicom">
+        {{-- Menú expandido: logo completo --}}
+        <img x-show="!sidebarCollapsed" class="h-10 w-auto max-w-[200px] object-contain" src="{{ asset('images/fervicom-full-color.png') }}" alt="Fervicom Iluminación LED">
     </div>
 
     <!-- Navigation -->
