@@ -8,7 +8,7 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Favicon -->
-        <link rel="icon" type="image/png" href="{{ asset('images/logofervi.png') }}">
+        <link rel="icon" type="image/png" href="{{ asset('images/Logo.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -97,7 +97,7 @@
                         @if (Auth::user()?->profile_id == 18)
                             <img src="{{ asset('images/logofervi.png') }}" alt="Fervicom" class="h-8 w-auto mr-1">
                         @endif
-                        @if (isset($header))
+                        @if (isset($header) && Auth::user()?->profile_id != 18)
                             <h1 class="hidden md:block text-lg md:text-xl font-semibold text-gray-900 dark:text-white truncate" title="{{ strip_tags($header) }}">{{ $header }}</h1>
                         @endif
                         <!-- Contenedor para Teleport del Buscador de Cliente (solo en el cotizador) -->

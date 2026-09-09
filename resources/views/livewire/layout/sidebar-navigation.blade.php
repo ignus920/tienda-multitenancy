@@ -40,18 +40,10 @@ new class extends Component
     <div class="flex shrink-0 items-center px-4 py-4 border-b border-gray-200 dark:border-gray-700"
         :class="sidebarCollapsed ? 'justify-center' : 'justify-start'">
         <div class="flex items-center">
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
-                <img class="h-10 w-10 object-contain" src="{{ asset('images/logofervi.png') }}" alt="Logo Fervi">
-            </div>
-            <div x-show="!sidebarCollapsed" x-transition:enter="transition ease-out duration-200"
-                x-transition:enter-start="opacity-0 transform scale-95"
-                x-transition:enter-end="opacity-100 transform scale-100"
-                x-transition:leave="transition ease-in duration-150"
-                x-transition:leave-start="opacity-100 transform scale-100"
-                x-transition:leave-end="opacity-0 transform scale-95">
-                <span class="ml-3 text-lg font-semibold text-gray-900 dark:text-white">{{ config('app.name', 'Laravel')
-                    }}</span>
-            </div>
+            {{-- Menú contraído: solo el círculo --}}
+            <img x-show="sidebarCollapsed" class="h-9 w-9 object-contain" src="{{ asset('images/Logo.png') }}" alt="Fervicom">
+            {{-- Menú expandido: logo completo --}}
+            <img x-show="!sidebarCollapsed" class="h-9 w-auto max-w-[190px] object-contain" src="{{ asset('images/fervicom-full-color.png') }}" alt="Fervicom Iluminación LED">
         </div>
     </div>
 
