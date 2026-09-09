@@ -547,9 +547,12 @@ class Remissions extends Component
                                 ->first();
 
                             $stockDisponible = $itemStore ? (float) $itemStore->stock_items_store : 0;
-                            if ($stockDisponible < $detail->quantity) {
+                            // La remisión ya descontó el stock al crearse.
+                            // Por lo tanto, el stock real antes de esta remisión era ($stockDisponible + $detail->quantity).
+                            // Si ($stockDisponible + $detail->quantity) < $detail->quantity, es matemáticamente igual a decir $stockDisponible < 0.
+                            if ($stockDisponible < 0) {
                                 $sku = $item->sku ?: 'Sin SKU';
-                                $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Disponible: {$stockDisponible}, Requerido: {$detail->quantity})</span></li>";
+                                $productosSinStock[] = "<li style='margin-bottom: 8px;'><strong>SKU: {$sku}</strong> - {$item->name} <span style='color: #ef4444;'>(Faltante en bodega para cumplir todas las OPs: " . abs($stockDisponible) . ")</span></li>";
                             }
                         }
                     }
@@ -1434,12 +1437,21 @@ class Remissions extends Component
             $facturacionService = FacturacionService::forTenant($tenant);
 
             // Construir datos de la factura usando el InvoiceDataBuilder
-            // Para remisiones: establecer como CRÉDITO (no CASH)
+            // Se usa el método de pago real registrado en la remisión (vnt_method_payments),
+            // no un valor fijo: el campo `type` (1=Crédito, 2=Contado) define la Forma de Pago
+            // y el `name` (ej. "NEQUI", "EFECTIVO") permite a InvoiceDataBuilder inferir el
+            // Medio de Pago correcto para Alegra.
+            if (!$remission->relationLoaded('methodPayment')) {
+                $remission->load('methodPayment');
+            }
+            $methodPayment = $remission->methodPayment;
+
             $paymentMethods = [
                 [
-                    'descriptionFormaPago' => 'CREDITO',
-                    'nombre' => 'CREDITO',
-                    'valor' => $this->calculateRemissionTotal($remission) // Valor total de la remisión
+                    'descriptionFormaPago' => ($methodPayment && (int) $methodPayment->type === 1) ? 'CREDIT' : 'CASH',
+                    'nombre' => $methodPayment->name ?? 'EFECTIVO',
+                    'valor' => $this->calculateRemissionTotal($remission), // Valor total de la remisión
+                    'method' => $methodPayment->method ?? null,
                 ]
             ];
             $retentions = [];     // Sin retenciones
@@ -1821,12 +1833,21 @@ class Remissions extends Component
             $totalValue += $this->calculateRemissionTotal($remission);
         }
 
-        // Construir array de métodos de pago para CRÉDITO
+        // Construir array de métodos de pago usando el método de pago real de la
+        // primera remisión (igual criterio que ya se usa para los demás datos del
+        // cliente en esta función agrupada). `type` (1=Crédito, 2=Contado) define
+        // la Forma de Pago y `name` el Medio de Pago que infiere InvoiceDataBuilder.
+        if (!$firstRemission->relationLoaded('methodPayment')) {
+            $firstRemission->load('methodPayment');
+        }
+        $methodPayment = $firstRemission->methodPayment;
+
         $paymentMethods = [
             [
-                'descriptionFormaPago' => 'CREDITO',
-                'nombre' => 'CREDITO',
-                'valor' => $totalValue
+                'descriptionFormaPago' => ($methodPayment && (int) $methodPayment->type === 1) ? 'CREDIT' : 'CASH',
+                'nombre' => $methodPayment->name ?? 'EFECTIVO',
+                'valor' => $totalValue,
+                'method' => $methodPayment->method ?? null,
             ]
         ];
 
@@ -2463,6 +2484,9 @@ class Remissions extends Component
             }
 
             $customerName = $quote ? $quote->customer_name : 'N/A';
+            if ($branch && $branch->branch_type === \App\Models\Tenant\Customer\VntWarehouse::BRANCH_TYPE_DESPACHO) {
+                $customerName = $branch->name;
+            }
             $contactName = $contact ? ($contact->firstName . ' ' . $contact->lastName) : '';
             $phone = $branch ? $branch->phone : ($contact ? ($contact->business_phone ?? $contact->personal_phone ?? 'N/A') : 'N/A');
             $email = ($contact && $contact->company) ? $contact->company->billingEmail : ($contact ? $contact->email : 'N/A');

@@ -81,6 +81,16 @@ class WordPressService
 
                 if (count($products) > 0) {
                     $product = $products[0];
+                    
+                    // Solo considerar si el producto tiene estado 'publish'
+                    if (($product['status'] ?? 'publish') !== 'publish') {
+                        Log::warning('⚠️ [WP] Producto encontrado pero no está publicado (está en borrador o papelera)', [
+                            'sku' => $sku,
+                            'status' => $product['status'] ?? 'N/A'
+                        ]);
+                        return null;
+                    }
+
                     Log::info('✅ [WP] Producto encontrado en paso 1', [
                         'sku'        => $sku,
                         'wp_id'      => $product['id'],
@@ -157,6 +167,99 @@ class WordPressService
         }
 
         return null;
+    }
+
+    public function getAllProductSkus(): array
+    {
+        if (!$this->isConfigured()) {
+            return [];
+        }
+
+        $skus = [];
+        $page = 1;
+        $perPage = 100;
+        $variableProductIds = [];
+        
+        Log::info('🔍 [WP] Obteniendo SKUs de WooCommerce de forma concurrente...');
+
+        try {
+            // 1. Obtener productos principales
+            do {
+                $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                    ->get($this->baseUrl . 'products', [
+                        'per_page' => $perPage,
+                        'page' => $page,
+                        '_fields' => 'id,sku,type',
+                    ]);
+
+                if (!$response->successful()) {
+                    Log::error('❌ [WP] Error al obtener SKUs en la página ' . $page, [
+                        'http_status' => $response->status(),
+                    ]);
+                    break;
+                }
+
+                $products = $response->json();
+                if (empty($products)) {
+                    break;
+                }
+
+                foreach ($products as $product) {
+                    if (!empty($product['sku'])) {
+                        $skus[] = trim($product['sku']);
+                    }
+                    if (isset($product['type']) && $product['type'] === 'variable') {
+                        $variableProductIds[] = $product['id'];
+                    }
+                }
+
+                $page++;
+            } while (count($products) == $perPage);
+
+            // 2. Obtener variaciones en paralelo usando HTTP Pool si hay productos variables
+            if (!empty($variableProductIds)) {
+                Log::info('⚡ [WP] Consultando variaciones de productos variables en paralelo...', [
+                    'count' => count($variableProductIds)
+                ]);
+
+                // Dividir en grupos de 15 para no saturar al servidor de WooCommerce
+                $chunks = array_chunk($variableProductIds, 15);
+                foreach ($chunks as $chunk) {
+                    $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($chunk) {
+                        $requests = [];
+                        foreach ($chunk as $id) {
+                            $requests[] = $pool->withBasicAuth($this->auth[0], $this->auth[1])
+                                ->get($this->baseUrl . "products/{$id}/variations", [
+                                    'per_page' => 100,
+                                    '_fields' => 'id,sku',
+                                ]);
+                        }
+                        return $requests;
+                    });
+
+                    foreach ($responses as $res) {
+                        if ($res->successful()) {
+                            $variations = $res->json();
+                            foreach ($variations as $variation) {
+                                if (!empty($variation['sku'])) {
+                                    $skus[] = trim($variation['sku']);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            $skus = array_values(array_unique(array_filter($skus)));
+            Log::info('✅ [WP] SKUs de WooCommerce recuperados con éxito (incluyendo variantes)', ['total_skus' => count($skus)]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ [WP] Excepción al obtener SKUs de WooCommerce', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $skus;
     }
 
     public function reconcileImageIds(int $itemId, string $productSku): array
@@ -252,12 +355,25 @@ class WordPressService
         Log::info('📤 [WP] Iniciando uploadMedia', ['local_path' => $localPath]);
 
         try {
-            if (!Storage::disk('public')->exists($localPath)) {
-                Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
-                throw new Exception("Archivo local no encontrado: $localPath");
-            }
+            $isUrl = str_starts_with($localPath, 'http');
+            $tempFile = null;
 
-            $absolutePath = Storage::disk('public')->path($localPath);
+            if ($isUrl) {
+                Log::info('📥 [WP] Archivo es una URL, descargando temporalmente...', ['url' => $localPath]);
+                $urlResponse = Http::get($localPath);
+                if (!$urlResponse->successful()) {
+                    throw new Exception("No se pudo descargar la imagen desde la URL: $localPath");
+                }
+                $tempFile = tempnam(sys_get_temp_dir(), 'wp_img_');
+                file_put_contents($tempFile, $urlResponse->body());
+                $absolutePath = $tempFile;
+            } else {
+                if (!Storage::disk('public')->exists($localPath)) {
+                    Log::error('❌ [WP] Archivo local no encontrado', ['path' => $localPath]);
+                    throw new Exception("Archivo local no encontrado: $localPath");
+                }
+                $absolutePath = Storage::disk('public')->path($localPath);
+            }
             $originalSize = filesize($absolutePath);
 
             Log::info('📁 [WP] Archivo local encontrado', [
@@ -298,6 +414,9 @@ class WordPressService
             if ($finalPath !== $absolutePath && file_exists($finalPath)) {
                 unlink($finalPath);
             }
+            if ($isUrl && $tempFile && file_exists($tempFile)) {
+                unlink($tempFile);
+            }
 
             Log::info('📡 [WP] Respuesta uploadMedia', [
                 'http_status' => $response->status(),
@@ -331,20 +450,24 @@ class WordPressService
         return null;
     }
 
-    public function setFeaturedImage($productId, $mediaId)
+    public function setFeaturedImage($productId, $mediaId, $parentId = null)
     {
         if (!$this->isConfigured()) return false;
 
         Log::info('🖼️ [WP] Asignando imagen principal', [
             'wp_product_id' => $productId,
             'wp_media_id'   => $mediaId,
+            'parent_id'     => $parentId
         ]);
 
         try {
+            $endpoint = $parentId ? "products/$parentId/variations/$productId" : "products/$productId";
+            $payload = $parentId 
+                ? ['image' => ['id' => (int)$mediaId]] 
+                : ['images' => [['id' => (int)$mediaId]]];
+
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", [
-                    'images' => [['id' => (int)$mediaId]]
-                ]);
+                ->put($this->baseUrl . $endpoint, $payload);
 
             Log::info('📡 [WP] Respuesta setFeaturedImage', [
                 'wp_product_id' => $productId,
@@ -370,18 +493,22 @@ class WordPressService
         return false;
     }
 
-    public function addToGallery($productId, $mediaId)
+    public function addToGallery($productId, $mediaId, $parentId = null)
     {
         if (!$this->isConfigured()) return false;
+
+        // En WooCommerce, la galería siempre pertenece al producto Padre
+        $targetId = $parentId ? $parentId : $productId;
 
         Log::info('🖼️ [WP] Agregando imagen a galería', [
             'wp_product_id' => $productId,
             'wp_media_id'   => $mediaId,
+            'target_wp_id'  => $targetId
         ]);
 
         try {
             $currentProduct = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->get($this->baseUrl . "products/$productId")
+                ->get($this->baseUrl . "products/$targetId")
                 ->json();
 
             $images = $currentProduct['images'] ?? [];
@@ -404,7 +531,7 @@ class WordPressService
             $images[] = ['id' => (int)$mediaId];
 
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
-                ->put($this->baseUrl . "products/$productId", ['images' => $images]);
+                ->put($this->baseUrl . "products/$targetId", ['images' => $images]);
 
             Log::info('📡 [WP] Respuesta addToGallery', [
                 'wp_product_id'   => $productId,
@@ -555,8 +682,11 @@ class WordPressService
         }
 
         // 1. Stock en bodega PRINCIPAL (storeId=2)
+        // Orden determinístico por si existiera más de un registro para el mismo item+bodega
+        // (dato heredado/manual): siempre se toma el más reciente, igual que en ManageItems.
         $storeStock = InvItemsStore::where('itemId', $item->id)
             ->where('storeId', 2)
+            ->orderByDesc('id')
             ->first();
 
         if (!$storeStock) {
@@ -566,6 +696,7 @@ class WordPressService
         }
 
         $stockBruto = (float) $storeStock->stock_items_store;
+        $cuarentena = (float) $item->quarantine_stock;
         $stockMin   = (float) ($storeStock->wp_min_stock ?? 0);
 
         // 2. Reservas activas (Omitido: se usa 0 para no restar remisiones registradas globales)
@@ -573,8 +704,8 @@ class WordPressService
 
         $reservas = (float) $reservas;
 
-        // 3. Stock disponible neto (igual al stock bruto del almacén)
-        $stockNeto = max(0, $stockBruto - $reservas);
+        // 3. Stock disponible neto (igual al stock bruto del almacén - cuarentena)
+        $stockNeto = max(0, $stockBruto - $cuarentena - $reservas);
 
         // 4. Gate de mínimo + aplicar porcentaje (igual que sistema anterior)
         $porcentaje = (float) ($storeStock->wp_stock_percentage ?? 100);
@@ -591,6 +722,7 @@ class WordPressService
         Log::info('📊 [WP-Stock] Cálculo de stock', [
             'item_id'     => $item->id,
             'stock_bruto' => $stockBruto,
+            'cuarentena'  => $cuarentena,
             'reservas'    => $reservas,
             'stock_neto'  => $stockNeto,
             'stock_min'   => $stockMin,
@@ -879,10 +1011,10 @@ class WordPressService
 
         if ($image->type === 'PRINCIPAL') {
             Log::info('🌟 [WP] Asignando como imagen PRINCIPAL del producto');
-            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId);
+            $result = $this->setFeaturedImage($wpProduct['id'], $mediaId, $wpProduct['parent_id'] ?? null);
         } else {
             Log::info('📷 [WP] Agregando a GALERÍA del producto');
-            $result = $this->addToGallery($wpProduct['id'], $mediaId);
+            $result = $this->addToGallery($wpProduct['id'], $mediaId, $wpProduct['parent_id'] ?? null);
         }
 
         if (!$result) {

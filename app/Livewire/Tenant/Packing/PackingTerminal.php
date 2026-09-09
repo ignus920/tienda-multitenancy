@@ -134,7 +134,9 @@ class PackingTerminal extends Component
             'cant_cajas' => $this->cant_cajas,
             'tipo' => 1, // Detallado
             'impresora' => $this->config->printer_name,
-            'cliente' => $this->remission->quote?->customer?->name ?? 'SIN CLIENTE',
+            'cliente' => ($sucursal && $sucursal->branch_type === \App\Models\Tenant\Customer\VntWarehouse::BRANCH_TYPE_DESPACHO) 
+                            ? $sucursal->name 
+                            : ($this->remission->quote?->customer?->name ?? 'SIN CLIENTE'),
             'nit' => $this->remission->quote?->customer?->document ?? '',
             'telefono' => $sucursal?->phone ?? $this->remission->quote?->customer?->phone ?? '',
             'direccion' => $sucursal?->address ?? $this->remission->quote?->customer?->address ?? '',

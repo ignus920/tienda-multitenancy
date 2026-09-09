@@ -827,14 +827,23 @@ class MovementForm extends Component
                         ->where('storeId', $this->selectedStoreId)
                         ->first();
 
+                    $unitMeasurement = UnitMeasurements::find($detail['unitMeasurementId']);
+                    $multiplier = $unitMeasurement ? $unitMeasurement->quantity : 1;
+                    $netQuantity = $detail['quantity'] * $multiplier;
+
                     if ($itemStore) {
-                        $itemStore->stock_items_store = $detail['adjustedQuantity'];
+                        if ($selectedType === 'entrada') {
+                            $itemStore->stock_items_store += $netQuantity;
+                        } else {
+                            $itemStore->stock_items_store -= $netQuantity;
+                        }
                         $itemStore->save();
                     } else {
+                        $initialStock = $selectedType === 'entrada' ? $netQuantity : -$netQuantity;
                         InvItemsStore::create([
                             'itemId'            => $detail['itemId'],
                             'storeId'           => $this->selectedStoreId,
-                            'stock_items_store' => $detail['adjustedQuantity'],
+                            'stock_items_store' => $initialStock,
                         ]);
                     }
                 }

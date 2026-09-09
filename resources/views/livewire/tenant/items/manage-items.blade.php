@@ -91,13 +91,13 @@
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <!-- Búsqueda y Filtro de Proveedor -->
-                    <div class="flex-1 max-w-2xl flex flex-col sm:flex-row items-center gap-3">
+                    <div class="flex-1 max-w-3xl flex flex-col sm:flex-row items-center gap-3">
                         <div class="relative flex-1 w-full">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                             </div>
                             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar registros..."
@@ -114,6 +114,18 @@
                                 </select>
                             </div>
                         @endif
+                        <div class="w-full sm:w-64">
+                            <select wire:model.live="productFilter"
+                                class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="todo">Todo</option>
+                                <option value="bajo_stock">Bajo stock</option>
+                                <option value="nuevos">Productos nuevos</option>
+                                <option value="sin_venta">Productos que no se están vendiendo</option>
+                                <option value="poca_venta">Productos con poca venta</option>
+                                <option value="sin_imagen">Sin imagen</option>
+                                <option value="no_en_ecommerce">No se encuentra en ecommerce</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Controles -->
@@ -131,6 +143,21 @@
                             </select>
                         </div>
                         <x-export-buttons />
+                        <!-- Botón Exportación Especial (Vitrina/Cuarentena) -->
+                        <button wire:click="exportSpecialStocks"
+                            title="Exportar Excel (Vitrina y cuarentena)"
+                            class="inline-flex items-center justify-center p-2 border border-blue-300 dark:border-blue-750 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors focus:outline-none"
+                            wire:loading.attr="disabled">
+                            <span wire:loading wire:target="exportSpecialStocks" class="inline-block mr-1">
+                                <svg class="animate-spin h-4 w-4 text-blue-700 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                            <svg class="w-4 h-4 text-blue-700 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -427,6 +454,11 @@
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                             {{ $item_id ? 'Editar Item' : 'Crear Item' }}
                         </h3>
+                        @if($item_id)
+                            <div class="mt-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                                {{ $sku ?: $internal_code ?: 'N/A' }} - {{ $name ?: 'N/A' }}
+                            </div>
+                        @endif
                     </div>
                     <button wire:click="cancel"
                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -441,6 +473,7 @@
                             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
@@ -453,6 +486,7 @@
                                 <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
                                 @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
@@ -466,6 +500,7 @@
                                 <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
                                 @if($type == 'PRODUCIDO')
                                 <button type="button" wire:click="$set('showProductionSection', true)"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
@@ -479,6 +514,7 @@
                                 <!-- Pestaña Accesorios - No visible para items tipo INSUMO -->
                                 @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
@@ -492,6 +528,7 @@
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
                                 @if ($inventoriable === 1)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
@@ -520,7 +557,12 @@
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
+<<<<<<< HEAD
                 @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
+=======
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
+                <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
+>>>>>>> test
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -780,7 +822,77 @@
                                 @error('inventoriable') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
 
+<<<<<<< HEAD
 
+=======
+                            @if($inventoriable == 1)
+                            <div class="col-span-2 grid grid-cols-2 gap-4 border p-4 rounded-xl border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 mt-2">
+                                <div class="col-span-2">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                        </svg>
+                                        Parámetros de Página Web (WooCommerce)
+                                    </h4>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                        % Stock WordPress
+                                        <!-- Tooltip -->
+                                        <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                            <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                Porcentaje del stock neto disponible que se publicará en la página web. Ej: 50% de 10 unidades publicará 5.
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" wire:model="wpStockPercentage"
+                                            min="0" max="100" step="1"
+                                            class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="100">
+                                        <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                                    </div>
+                                    @error('wpStockPercentage') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                        Can Mínima WordPress
+                                        <!-- Tooltip -->
+                                        <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                            <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0). Para que se publique el 100% del stock (ej: Stock=1, WP=1), se debe dejar en 0 y % Stock WordPress en 100.
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <input type="number" wire:model="wpMinStock"
+                                        min="0" step="any"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="0">
+                                    @error('wpMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                                @if($item_id)
+                                    <div class="col-span-2 flex justify-end">
+                                        <button type="button" wire:click="saveWordPressParams" wire:loading.attr="disabled" wire:target="saveWordPressParams"
+                                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                            <span wire:loading.remove wire:target="saveWordPressParams">Guardar parámetros WordPress</span>
+                                            <span wire:loading wire:target="saveWordPressParams">Guardando...</span>
+                                        </button>
+                                    </div>
+                                    <p class="col-span-2 text-2xs text-gray-400 -mt-2">Este botón guarda y sincroniza solo estos dos campos, sin necesidad de guardar el resto del formulario.</p>
+                                @endif
+                            </div>
+                            @endif
+>>>>>>> test
                         </div>
 
                         <div class="mb-3">
@@ -859,6 +971,25 @@
                                         <span>{{ session('sync_error') }}</span>
                                     </div>
                                     <button wire:click="cancel" class="ml-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Mensaje de advertencia de sincronización con WordPress -->
+                            @if (session()->has('wp_sync_warning'))
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-lg mb-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"></path>
+                                        </svg>
+                                        <span>{{ session('wp_sync_warning') }}</span>
+                                    </div>
+                                    <button wire:click="cancel" class="ml-3 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -988,8 +1119,18 @@
                         </div>
                     </div>
                 </form>
+<<<<<<< HEAD
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showWebB2bSection))
                     <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
+=======
+                </div>
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
+                    @php
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : 'acc');
+                    @endphp
+                    <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
+                    <!-- PESTAÑA 2: Contenido según el tipo del item -->
+>>>>>>> test
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                             @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
@@ -1063,7 +1204,7 @@
                                 </div>
 
                                 <div class="flex flex-col items-end pt-2">
-                                    <button type="button" wire:click="saveWordpressParams"
+                                    <button type="button" wire:click="saveWordPressParams"
                                         class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
                                         Guardar parámetros WordPress
                                     </button>
@@ -1390,4 +1531,35 @@
     @endif
 
     @livewire('tenant.components.product-image-modal-cargar')
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.hook('request', ({ respond, fail }) => {
+                const selectFilter = document.querySelector('select[wire\\:model\\.live="productFilter"]');
+                
+                // Si el filtro de productos está configurado en 'no_en_ecommerce' o está cambiando en esta petición
+                if (selectFilter && selectFilter.value === 'no_en_ecommerce') {
+                    Swal.fire({
+                        title: 'Procesando datos...',
+                        text: 'Por favor espere un momento.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                }
+
+                respond(() => {
+                    if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+                        Swal.close();
+                    }
+                });
+                fail(() => {
+                    if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+                        Swal.close();
+                    }
+                });
+            });
+        });
+    </script>
 </div>

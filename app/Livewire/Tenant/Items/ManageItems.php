@@ -23,6 +23,7 @@ use App\Services\Tenant\Inventory\CommandsServices;
 use App\Livewire\Tenant\Items\Services\InvValuesService;
 use App\Services\Facturacion\DatabaseConfigService;
 use App\Services\Facturacion\ApiClient;
+use App\Services\Tenant\WordPress\WordPressService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -96,9 +97,20 @@ class ManageItems extends Component
 
     // Propiedades para la tabla
     public $search = '';
+    public $productFilter = 'todo';
     public $sortField = 'name';
     public $sortDirection = 'asc';
     public $showModal = false;
+
+    public function updatingProductFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSelectedSupplierId()
+    {
+        $this->resetPage();
+    }
     public $confirmingItemDeletion = false;
     public $perPage = 10;
 
@@ -147,6 +159,7 @@ class ManageItems extends Component
         'PROYECTADOS'     => 'Proyectados',
         'DESCONTINUADOS'  => 'Descontinuados',
         'CZCL'            => 'CZCL',
+        'SERVICIO'        => 'Servicio',
     ];
 
     public $allLabelsValues = [
@@ -243,7 +256,8 @@ class ManageItems extends Component
 
     public function updatingSearch()
     {
-        $this->resetPage();
+        // No resetear página para mantener el usuario en la página actual mientras busca
+        // $this->resetPage();
     }
 
     public function updatingPerPage()
@@ -354,7 +368,7 @@ class ManageItems extends Component
         $this->handles_serial = $item->handles_serial;
         $this->inventoriable = $item->inventoriable;
 
-        $storeRecord = InvItemsStore::where('itemId', $item->id)->first();
+        $storeRecord = InvItemsStore::where('itemId', $item->id)->orderByDesc('id')->first();
         $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
         $this->wpMinStock = $storeRecord?->wp_min_stock ?? 0;
 
@@ -378,7 +392,8 @@ class ManageItems extends Component
         $this->ensureTenantConnection();
         $this->loadWarehouses();
 
-        $items = Items::query()
+        $query = Items::query()
+            ->select('inv_items.*')
             ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
             ->when($this->selectedSupplierId, function ($query) {
                 $query->whereHas('importSetup', function ($q) {
@@ -389,14 +404,128 @@ class ManageItems extends Component
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
                     $query->where(function ($q) use ($word) {
-                        $q->where('name', 'like', '%' . $word . '%')
-                            ->orWhere('sku', 'like', '%' . $word . '%')
-                            ->orWhere('internal_code', 'like', '%' . $word . '%')
-                            ->orWhere('type', 'like', '%' . $word . '%');
+                        $q->where('inv_items.name', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
                     });
                 }
+            });
+
+        // Excluir inactivos, servicios y genéricos para los filtros de sin_imagen y no_en_ecommerce
+        if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
+            $query->where('inv_items.status', '!=', 0)
+                  ->where('inv_items.type', '!=', 'SERVICIO')
+                  ->where('inv_items.generic', '!=', 1);
+        }
+
+        // Filtros específicos para sin_imagen y no_en_ecommerce
+        if ($this->productFilter === 'sin_imagen') {
+            $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
+                ->whereNull('inv_image_gallery.id')
+                ->distinct('inv_items.id');
+        } elseif ($this->productFilter === 'no_en_ecommerce') {
+            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $wpSkus = [];
+            if ($wpService->isConfigured()) {
+                $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_' . session('tenant_id'), 300, function () use ($wpService) {
+                    return $wpService->getAllProductSkus();
+                });
+            }
+            $query->where(function ($q) use ($wpSkus) {
+                $q->whereNull('inv_items.sku')
+                  ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                  ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+            });
+        } elseif ($this->productFilter !== 'todo') {
+            // Filtros originales de stock y venta
+            $centralDbName = config('database.connections.central.database');
+
+            $query->addSelect(DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses'));
+
+            $query->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+                ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+                ->leftJoin("{$centralDbName}.vnt_warehouses as central_warehouses", 'inv_store.warehouseId', '=', 'central_warehouses.id')
+                ->leftJoin(DB::raw('
+                    (
+                        SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                        FROM (
+                            SELECT idr.itemId, idr.quantity as qty
+                            FROM inv_detail_remissions idr
+                            INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                            WHERE ir.status != \'ANULADO\'
+                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+
+                            UNION ALL
+
+                            SELECT item_sub.id as itemId, lsh.quantity as qty
+                            FROM legacy_sales_history lsh
+                            INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        ) sub
+                        GROUP BY sub.itemId
+                    ) s7m
+                '), 's7m.itemId', '=', 'inv_items.id');
+
+            $query->when($this->productFilter === 'bajo_stock', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END < 15
+                ');
             })
-            ->orderBy($this->sortField, $this->sortDirection)
+            ->when($this->productFilter === 'nuevos', function ($query) {
+                $query->where('inv_items.name', 'like', '%NVP%');
+            })
+            ->when($this->productFilter === 'sin_venta', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END > 60
+                ');
+            })
+            ->when($this->productFilter === 'poca_venta', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END BETWEEN 50 AND 60
+                ');
+            });
+
+            $query->groupBy(
+                'inv_items.id',
+                'inv_items.api_data_id',
+                'inv_items.categoryId',
+                'inv_items.name',
+                'inv_items.internal_code',
+                'inv_items.sku',
+                'inv_items.description',
+                'inv_items.type',
+                'inv_items.taxId',
+                'inv_items.commandId',
+                'inv_items.brandId',
+                'inv_items.houseId',
+                'inv_items.inventoriable',
+                'inv_items.purchasing_unit',
+                'inv_items.consumption_unit',
+                'inv_items.handles_serial',
+                'inv_items.status',
+                'inv_items.generic',
+                'inv_items.created_at',
+                'inv_items.updated_at',
+                'inv_items.deleted_at',
+                's7m.salidas_7_meses'
+            );
+        }
+
+        $items = $query->orderBy('inv_items.' . $this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
         return view('livewire.tenant.items.manage-items', [
@@ -489,39 +618,34 @@ class ManageItems extends Component
 
         try {
             if ($this->item_id) { // Existing item
-                $existsValue = InvValues::where('itemId', $this->item_id)->exists();
+                $item = Items::findOrFail($this->item_id);
+                $wasInventoriable = $item->inventoriable;
+                $item->update($itemData);
 
-                if (!$existsValue) {
-                    $this->messageValues = 'Tiene que registrar al menos un valor.';
-                } else {
-                    $item = Items::findOrFail($this->item_id);
-                    $wasInventoriable = $item->inventoriable;
-                    $item->update($itemData);
-
-                    // Verificar si cambió a inventoriable y crear registro en inv_items_store si es necesario
-                    if ($item->inventoriable == 1 && $wasInventoriable != 1) {
-                        Log::info('Item actualizado a inventoriable - creando registro en inv_items_store', [
-                            'item_id' => $item->id,
-                            'was_inventoriable' => $wasInventoriable,
-                            'now_inventoriable' => $item->inventoriable
+                // Verificar si cambió a inventoriable y crear registro en inv_items_store si es necesario
+                if ($item->inventoriable == 1 && $wasInventoriable != 1) {
+                    Log::info('Item actualizado a inventoriable - creando registro en inv_items_store', [
+                        'item_id' => $item->id,
+                        'was_inventoriable' => $wasInventoriable,
+                        'now_inventoriable' => $item->inventoriable
+                    ]);
+                    $this->createItemStore($item);
+                } elseif ($item->inventoriable == 1) {
+                    // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
+                    $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
+                    if (!$existingRecord) {
+                        Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
+                            'item_id' => $item->id
                         ]);
                         $this->createItemStore($item);
-                    } elseif ($item->inventoriable == 1) {
-                        // Ya era inventoriable, verificar si ya tiene registro (por si acaso)
-                        $existingRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->first();
-                        if (!$existingRecord) {
-                            Log::warning('Item inventoriable sin registro en inv_items_store - creando', [
-                                'item_id' => $item->id
-                            ]);
-                            $this->createItemStore($item);
-                        } else {
-                            // Actualizar wp_stock_percentage y wp_min_stock
-                            $existingRecord->update([
-                                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
-                                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
-                            ]);
-                        }
+                    } else {
+                        // Actualizar wp_stock_percentage y wp_min_stock
+                        $existingRecord->update([
+                            'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+                            'wp_min_stock'        => max(0, (float) $this->wpMinStock),
+                        ]);
                     }
+                }
 
                     // Sincronizar con API de facturación (con timeout)
                     try {
@@ -547,6 +671,9 @@ class ManageItems extends Component
                         // NO cerrar modal para que el usuario vea el mensaje de error
                     }
 
+                    // Sincronizar stock/precio con WordPress (WooCommerce) inmediatamente
+                    $this->syncItemWithWordPress($item);
+
                     $this->clearTemporaryMessage();
 
                     // Solo cerrar modal si no hay errores de sincronización
@@ -558,7 +685,6 @@ class ManageItems extends Component
                     } else {
                         session()->flash('message', 'Item actualizado correctamente.');
                     }
-                }
             } else { // New item
                 // Validar precios según si es inventoriable o no
                 if ($this->inventoriable == 1) {
@@ -611,6 +737,9 @@ class ManageItems extends Component
                         session()->flash('sync_error', '❌ Item creado localmente, pero falló la sincronización con API de facturación. Error: ' . $e->getMessage());
                         // NO cerrar modal para que el usuario vea el mensaje de error
                     }
+
+                    // Sincronizar stock/precio con WordPress (WooCommerce) inmediatamente
+                    $this->syncItemWithWordPress($newItem);
 
                     // Solo proceder a editar si no hay errores de sincronización
                     if (!session()->has('sync_warning') && !session()->has('sync_error')) {
@@ -747,26 +876,31 @@ class ManageItems extends Component
         }
     }
 
+    /**
+     * Los componentes anidados de las pestañas (Importado, Medidas) disparan este mismo
+     * evento global al guardar, pensado originalmente para cerrar SU propio modal cuando
+     * se usan de forma independiente en otras pantallas. Aquí, dentro del modal de Editar
+     * Item, "cerrarse" no debe tumbar todo el modal — solo se vuelve a Información General.
+     * Si no hay ninguna pestaña anidada activa, sí se comporta como el cierre real (cancel()).
+     */
     #[On('closeItemsModal')]
+    public function handleNestedTabClosed()
+    {
+        if ($this->showProductionSection || $this->showDimensionSection || $this->showAccesoriosSection) {
+            $this->showGeneralInfo();
+            return;
+        }
+
+        $this->cancel();
+    }
+
     public function cancel()
     {
         $this->ensureTenantConnection();
-        if ($this->item_id) {
-            $existsValue = InvValues::where('itemId', $this->item_id)->exists();
-            if (!$existsValue) {
-                $this->messageValues = 'Tiene que registrar al menos un valor.';
-            } else {
-                $this->resetValidation();
-                $this->resetForm();
-                $this->showModal = false;
-                $this->confirmingItemDeletion = false;
-            }
-        } else {
-            $this->resetValidation();
-            $this->resetForm();
-            $this->showModal = false;
-            $this->confirmingItemDeletion = false;
-        }
+        $this->resetValidation();
+        $this->resetForm();
+        $this->showModal = false;
+        $this->confirmingItemDeletion = false;
     }
 
     public function onCategorySelected($value)
@@ -802,20 +936,140 @@ class ManageItems extends Component
     public function getExportData()
     {
         $this->ensureTenantConnection();
-        $items = Items::query()
+        $query = Items::query()
+            ->select('inv_items.*')
             ->with(['brand', 'tax', 'purchasingUnit', 'consumptionUnit', 'invItemsStore', 'locations.store', 'invValues', 'importSetup', 'dimensions'])
+            ->when($this->selectedSupplierId, function ($query) {
+                $query->whereHas('importSetup', function ($q) {
+                    $q->where('supplier_id', $this->selectedSupplierId);
+                });
+            })
             ->when($this->search, function ($query) {
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
                     $query->where(function ($q) use ($word) {
-                        $q->where('name', 'like', '%' . $word . '%')
-                            ->orWhere('sku', 'like', '%' . $word . '%')
-                            ->orWhere('internal_code', 'like', '%' . $word . '%');
+                        $q->where('inv_items.name', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
                     });
                 }
+            });
+
+        // Aplicar exclusiones en los filtros correspondientes
+        if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
+            $query->where('inv_items.status', '!=', 0)
+                  ->where('inv_items.type', '!=', 'SERVICIO')
+                  ->where('inv_items.generic', '!=', 1);
+        }
+
+        // Filtros específicos
+        if ($this->productFilter === 'sin_imagen') {
+            $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
+                ->whereNull('inv_image_gallery.id')
+                ->distinct('inv_items.id');
+        } elseif ($this->productFilter === 'no_en_ecommerce') {
+            $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $wpSkus = [];
+            if ($wpService->isConfigured()) {
+                $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_' . session('tenant_id'), 300, function () use ($wpService) {
+                    return $wpService->getAllProductSkus();
+                });
+            }
+            $query->where(function ($q) use ($wpSkus) {
+                $q->whereNull('inv_items.sku')
+                  ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                  ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+            });
+        } elseif ($this->productFilter !== 'todo') {
+            // Filtros originales de stock y venta
+            $centralDbName = config('database.connections.central.database');
+
+            $query->addSelect(DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses'));
+
+            $query->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
+                ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
+                ->leftJoin("{$centralDbName}.vnt_warehouses as central_warehouses", 'inv_store.warehouseId', '=', 'central_warehouses.id')
+                ->leftJoin(DB::raw('
+                    (
+                        SELECT sub.itemId, SUM(sub.qty) as salidas_7_meses
+                        FROM (
+                            SELECT idr.itemId, idr.quantity as qty
+                            FROM inv_detail_remissions idr
+                            INNER JOIN inv_remissions ir ON ir.id = idr.remissionId
+                            WHERE ir.status != \'ANULADO\'
+                            AND COALESCE(ir.created_at, ir.updated_at) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                            AND COALESCE(ir.created_at, ir.updated_at) >= \'2026-06-01\'
+
+                            UNION ALL
+
+                            SELECT item_sub.id as itemId, lsh.quantity as qty
+                            FROM legacy_sales_history lsh
+                            INNER JOIN inv_items item_sub ON item_sub.sku = lsh.sku
+                            WHERE DATE(CONCAT(lsh.year, \'-\', lsh.month, \'-01\')) >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), \'%Y-%m-01\')
+                        ) sub
+                        GROUP BY sub.itemId
+                    ) s7m
+                '), 's7m.itemId', '=', 'inv_items.id');
+
+            $query->when($this->productFilter === 'bajo_stock', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END < 15
+                ');
             })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->get();
+            ->when($this->productFilter === 'nuevos', function ($query) {
+                $query->where('inv_items.name', 'like', '%NVP%');
+            })
+            ->when($this->productFilter === 'sin_venta', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END > 60
+                ');
+            })
+            ->when($this->productFilter === 'poca_venta', function ($query) {
+                $query->havingRaw('
+                    CASE 
+                        WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0))) > 0 
+                        THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + MAX(COALESCE(s7m.salidas_7_meses, 0)))
+                        ELSE 0 
+                    END BETWEEN 50 AND 60
+                ');
+            });
+
+            $query->groupBy(
+                'inv_items.id',
+                'inv_items.api_data_id',
+                'inv_items.categoryId',
+                'inv_items.name',
+                'inv_items.internal_code',
+                'inv_items.sku',
+                'inv_items.description',
+                'inv_items.type',
+                'inv_items.taxId',
+                'inv_items.commandId',
+                'inv_items.brandId',
+                'inv_items.houseId',
+                'inv_items.inventoriable',
+                'inv_items.purchasing_unit',
+                'inv_items.consumption_unit',
+                'inv_items.handles_serial',
+                'inv_items.status',
+                'inv_items.generic',
+                'inv_items.created_at',
+                'inv_items.updated_at',
+                'inv_items.deleted_at',
+                's7m.salidas_7_meses'
+            );
+        }
+
+        $items = $query->orderBy('inv_items.' . $this->sortField, $this->sortDirection)->get();
 
         // Calcular el número máximo de ubicaciones asignadas a cualquier ítem
         $this->maxLocationsCount = $items->map(fn($item) => $item->locations->count())->max() ?? 0;
@@ -926,7 +1180,7 @@ class ManageItems extends Component
             $item->tax->name ?? 'Sin impuesto',
             $item->status ? 'Activo' : 'Inactivo',
             $item->inventoriable == 1 ? 'Sí' : 'No',
-            $item->inventoriable == 1 ? ($item->invItemsStore->firstWhere('storeId', 2)->wp_stock_percentage ?? 100) . '%' : 'N/A',
+            $item->inventoriable == 1 ? ($item->invItemsStore->where('storeId', 2)->sortByDesc('id')->first()->wp_stock_percentage ?? 100) . '%' : 'N/A',
             $precios['Precio Base'],
             $precios['Precio Regular'],
             $precios['Precio Crédito'],
@@ -976,7 +1230,24 @@ class ManageItems extends Component
 
     public function getExportFilename(): string
     {
-        return 'items_' . date('Y-m-d_His');
+        $timestamp = date('Ymd_His');
+        
+        switch ($this->productFilter) {
+            case 'sin_imagen':
+                return 'Productos_sin_Imagen_' . $timestamp;
+            case 'no_en_ecommerce':
+                return 'Productos_que_no_estan_en_Ecommerce_' . $timestamp;
+            case 'bajo_stock':
+                return 'Productos_con_Bajo_Stock_' . $timestamp;
+            case 'nuevos':
+                return 'Productos_Nuevos_' . $timestamp;
+            case 'sin_venta':
+                return 'Productos_Sin_Venta_' . $timestamp;
+            case 'poca_venta':
+                return 'Productos_con_Poca_Venta_' . $timestamp;
+            default:
+                return 'Todos_los_Productos_' . $timestamp;
+        }
     }
 
     public function getTaxesProperty()
@@ -1912,6 +2183,83 @@ class ManageItems extends Component
     }
 
     /**
+     * Guarda % Stock WordPress y Cant Mínima WordPress de forma independiente
+     * al resto del formulario del item, para que un dato inválido en otro campo
+     * (marca, casa, categoría, etc.) no bloquee silenciosamente este guardado.
+     */
+    public function saveWordPressParams()
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->item_id) {
+            return;
+        }
+
+        $this->validate([
+            'wpStockPercentage' => 'required|numeric|min:0|max:100',
+            'wpMinStock' => 'required|numeric|min:0',
+        ], [], [
+            'wpStockPercentage' => '% Stock WordPress',
+            'wpMinStock' => 'Cant Mínima WordPress',
+        ]);
+
+        $item = Items::findOrFail($this->item_id);
+
+        $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
+
+        if (!$storeRecord) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Este item no tiene registro de stock en la bodega principal.']);
+            return;
+        }
+
+        $storeRecord->update([
+            'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
+            'wp_min_stock' => max(0, (float) $this->wpMinStock),
+        ]);
+
+        $this->syncItemWithWordPress($item);
+
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Parámetros de WordPress guardados y sincronizados con éxito.']);
+    }
+
+    /**
+     * Sincroniza stock y precio del item con WordPress/WooCommerce inmediatamente
+     * (en vez de esperar al cron nocturno o a la sincronización manual).
+     * No bloquea el guardado del item si falla: solo deja una advertencia.
+     */
+    private function syncItemWithWordPress(Items $item): void
+    {
+        if ($item->inventoriable != 1) {
+            return;
+        }
+
+        try {
+            $wpService = app(WordPressService::class);
+
+            if (!$wpService->isConfigured()) {
+                return;
+            }
+
+            $item->load(['tax', 'invItemsStore']);
+            $result = $wpService->syncItemStock($item);
+
+            if (!$result['success']) {
+                Log::warning('Item guardado, pero falló la sincronización inmediata con WordPress', [
+                    'item_id' => $item->id,
+                    'message' => $result['message']
+                ]);
+                session()->flash('wp_sync_warning', '⚠️ Item guardado, pero no se pudo sincronizar con la página web: ' . $result['message']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Excepción sincronizando item con WordPress', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage()
+            ]);
+            session()->flash('wp_sync_warning', '⚠️ Item guardado, pero no se pudo sincronizar con la página web. Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Crear registro en inv_items_store para el item (solo si es inventoriable)
      */
     private function createItemStore(Items $item): void
@@ -1939,15 +2287,15 @@ class ManageItems extends Component
 
             // Verificar si ya existe el registro
             $existingRecord = InvItemsStore::where('itemId', $item->id)
-                ->where('storeId', $principalStore->id)
+                ->where('storeId', 2)
                 ->first();
 
             if ($existingRecord) {
                 Log::info('Registro en inv_items_store ya existe', [
                     'item_id' => $item->id,
                     'item_name' => $item->name,
-                    'store_id' => $principalStore->id,
-                    'store_name' => $principalStore->name
+                    'store_id' => 2,
+                    'store_name' => 'Principal (Forzada a 2)'
                 ]);
                 return;
             }
@@ -1955,7 +2303,7 @@ class ManageItems extends Component
             // Crear nuevo registro
             InvItemsStore::create([
                 'itemId'              => $item->id,
-                'storeId'             => $principalStore->id,
+                'storeId'             => 2,
                 'initial_stock'       => 0,
                 'stock_items_store'   => 0,
                 'stock_min'           => 0,
@@ -2118,35 +2466,7 @@ class ManageItems extends Component
         }
     }
 
-    public function saveWordpressParams()
-    {
-        if (!$this->item_id) {
-            return;
-        }
 
-        $this->ensureTenantConnection();
-        $storeRecord = InvItemsStore::where('itemId', $this->item_id)->first();
-
-        if ($storeRecord) {
-            $storeRecord->update([
-                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
-                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
-            ]);
-        } else {
-            InvItemsStore::create([
-                'itemId'              => $this->item_id,
-                'storeId'             => 2,
-                'initial_stock'       => 0,
-                'stock_items_store'   => 0,
-                'stock_min'           => 0,
-                'stock_max'           => 0,
-                'wp_stock_percentage' => max(0, min(100, (float) $this->wpStockPercentage)),
-                'wp_min_stock'        => max(0, (float) $this->wpMinStock),
-            ]);
-        }
-
-        session()->flash('sync_message', 'Parámetros de WordPress guardados y sincronizados exitosamente.');
-    }
 
     public function saveB2bScales()
     {
@@ -2168,5 +2488,122 @@ class ManageItems extends Component
         );
 
         session()->flash('message', 'Configuración de escalas B2B guardada exitosamente.');
+    }
+
+    public function exportSpecialStocks()
+    {
+        $this->ensureTenantConnection();
+
+        if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
+            $query = Items::query()
+                ->select('inv_items.*')
+                ->with(['brand', 'purchasingUnit', 'consumptionUnit', 'tax'])
+                ->where('inv_items.status', '!=', 0)
+                ->where('inv_items.type', '!=', 'SERVICIO')
+                ->where('inv_items.generic', '!=', 1);
+
+            if ($this->productFilter === 'sin_imagen') {
+                $query->leftJoin('inv_image_gallery', 'inv_items.id', '=', 'inv_image_gallery.itemId')
+                    ->whereNull('inv_image_gallery.id')
+                    ->distinct('inv_items.id');
+                $filename = 'Productos_sin_Imagen_' . now()->format('Ymd_His') . '.xlsx';
+            } else {
+                $wpService = app(\App\Services\Tenant\WordPress\WordPressService::class);
+                $wpSkus = [];
+                if ($wpService->isConfigured()) {
+                    $wpSkus = \Illuminate\Support\Facades\Cache::remember('wp_active_skus_' . session('tenant_id'), 300, function () use ($wpService) {
+                        return $wpService->getAllProductSkus();
+                    });
+                }
+                $query->where(function ($q) use ($wpSkus) {
+                    $q->whereNull('inv_items.sku')
+                      ->orWhere(DB::raw('TRIM(inv_items.sku)'), '')
+                      ->orWhereNotIn(DB::raw('TRIM(inv_items.sku)'), $wpSkus);
+                });
+                $filename = 'Productos_que_no_estan_en_Ecommerce_' . now()->format('Ymd_His') . '.xlsx';
+            }
+
+            if ($this->search) {
+                $words = array_filter(explode(' ', trim($this->search)));
+                foreach ($words as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('inv_items.name', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
+                    });
+                }
+            }
+
+            $items = $query->orderBy('inv_items.name')->get();
+
+            $headings = [
+                'Código Interno',
+                'SKU',
+                'Descripción / Nombre',
+                'Tipo',
+                'Marca',
+                'Casa',
+                'Stock',
+                'Impuesto'
+            ];
+
+            $mapping = function($item) {
+                return [
+                    $item->internal_code,
+                    $item->sku,
+                    $item->name,
+                    $item->type,
+                    $item->brand?->name ?? 'N/A',
+                    $item->house?->name ?? 'N/A',
+                    (int)$item->showroom_stock + (int)$item->quarantine_stock,
+                    $item->tax?->name ?? 'N/A'
+                ];
+            };
+
+            $data = $items->map($mapping)->toArray();
+
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\GenericExport($data, $headings),
+                $filename
+            );
+        }
+
+        $data = Items::with(['quarantineMovements', 'showroomMovements', 'brand'])
+            ->get()
+            ->filter(function($item) {
+                return $item->quarantine_stock > 0 || $item->showroom_stock > 0;
+            })
+            ->sortBy('name');
+
+        $headings = [
+            'Código',
+            'Descripción',
+            'Cant. en Cuarentena',
+            'Ultima obsevación',
+            'Cant. en Vitrina',
+            'Observación Última Vitrina / Exhibición'
+        ];
+
+        $mapping = function($item) {
+            $lastQuarantine = $item->quarantineMovements->sortByDesc('created_at')->first();
+            $lastShowroom = $item->showroomMovements->sortByDesc('created_at')->first();
+
+            return [
+                $item->internal_code ?? $item->sku,
+                $item->name,
+                (int) ($item->quarantine_stock ?? 0),
+                $lastQuarantine ? $lastQuarantine->justification : '',
+                (int) ($item->showroom_stock ?? 0),
+                $lastShowroom ? $lastShowroom->justification : ''
+            ];
+        };
+
+        $filename = 'Informe_de_Vitrina_y_Cuarentena_' . now()->format('Ymd_His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\SpecialStockExport($data),
+            $filename
+        );
     }
 }

@@ -88,18 +88,15 @@
                 @error('selectedLabel') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Botón Productos Críticos -->
-            <button wire:click="$toggle('filterCritical')"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all duration-200
-                           {{ $filterCritical 
-                              ? 'bg-red-600 hover:bg-red-700 text-white shadow ring-2 ring-red-300 dark:ring-red-900' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600' 
-                           }}">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-                {{ $filterCritical ? 'Ver Todos' : 'Prod. Críticos' }}
-            </button>
+            <!-- Filtro de Productos Críticos -->
+            <div class="w-full sm:w-64">
+                <select wire:model.live="filterCritical" 
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="ninguno">Todos los Productos</option>
+                    <option value="importados">Productos críticos importados</option>
+                    <option value="compra_nacional">Productos críticos compra nacional</option>
+                </select>
+            </div>
 
             <!-- Selector de Columnas (Alpine.js + LocalStorage) -->
             <div class="relative w-full sm:w-auto">
@@ -150,7 +147,7 @@
                     </label>
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
                         <input type="checkbox" :checked="visibleColumns.porcentaje" @change="toggleColumn('porcentaje')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
-                        <span>Porcentaje</span>
+                        <span>% Stock</span>
                     </label>
                     <label class="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 p-1.5 rounded transition-colors">
                         <input type="checkbox" :checked="visibleColumns.salida" @change="toggleColumn('salida')" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
@@ -175,10 +172,34 @@
             <select wire:model.live="perPage" 
                     class="block w-full sm:w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                 <option value="5">5</option>
+                <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
             </select>
+
+            <!-- Export and Clear Buttons -->
+            <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <button wire:click="clearFilters" class="inline-flex items-center justify-center p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title="Limpiar Filtros">
+                    <!-- Trash Icon -->
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+                
+                <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div> <!-- Separador -->
+
+                <button wire:click="exportExcel" class="inline-flex items-center justify-center p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title="Exportar a Excel">
+                    <!-- Table/Grid Icon -->
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+                <button wire:click="exportCsv" class="inline-flex items-center justify-center p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title="Exportar a CSV">
+                    <!-- Document Blank Icon -->
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                </button>
+                <button wire:click="exportPdf" class="inline-flex items-center justify-center p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm" title="Exportar a PDF">
+                    <!-- Document Text Icon -->
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -191,19 +212,31 @@
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">ítems seleccionados. Definir prioridad en lote:</span>
             </div>
              <div class="flex items-center gap-2">
+                 @php
+                     $asapDisabled = in_array('asap', $this->occupiedPriorities);
+                     $secondDisabled = in_array('second', $this->occupiedPriorities);
+                     $thirdDisabled = in_array('third', $this->occupiedPriorities);
+                     $expressDisabled = in_array('express', $this->occupiedPriorities);
+                     $express2Disabled = in_array('express 2', $this->occupiedPriorities);
+                     $express3Disabled = in_array('express 3', $this->occupiedPriorities);
+                 @endphp
+
                  <button wire:click="assignPriorityToSelected('ASAP')" 
+                         {{ $asapDisabled ? 'disabled' : '' }}
                          style="background-color: #dc2626; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $asapDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      ASAP
                  </button>
                  <button wire:click="assignPriorityToSelected('Second')" 
+                         {{ $secondDisabled ? 'disabled' : '' }}
                          style="background-color: #d97706; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $secondDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Second
                  </button>
                  <button wire:click="assignPriorityToSelected('Third')" 
+                         {{ $thirdDisabled ? 'disabled' : '' }}
                          style="background-color: #2563eb; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $thirdDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Third
                  </button>
                  
@@ -211,18 +244,21 @@
                  <span class="text-gray-300 mx-1">|</span>
                  
                  <button wire:click="assignPriorityToSelected('Express')" 
+                         {{ $expressDisabled ? 'disabled' : '' }}
                          style="background-color: #dc2626; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $expressDisabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express
                  </button>
                  <button wire:click="assignPriorityToSelected('Express 2')" 
+                         {{ $express2Disabled ? 'disabled' : '' }}
                          style="background-color: #d97706; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $express2Disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express 2
                  </button>
                  <button wire:click="assignPriorityToSelected('Express 3')" 
+                         {{ $express3Disabled ? 'disabled' : '' }}
                          style="background-color: #2563eb; color: #ffffff;"
-                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-90 shadow">
+                         class="px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity shadow {{ $express3Disabled ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:opacity-90' }}">
                      Express 3
                  </button>
 
@@ -239,7 +275,7 @@
 
     <!-- Vista Desktop (tabla) - oculta en móvil -->
     <div class="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="overflow-x-auto max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div class="overflow-x-auto max-h-[70vh] overflow-y-auto custom-scrollbar blue-scrollbar">
             <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
                 <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm">
                     <tr>
@@ -256,7 +292,6 @@
                             </div>
                         </th>
                         <th scope="col" x-show="visibleColumns.descripcion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                        <th scope="col" x-show="visibleColumns.programacion" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Programación</th>
                         <th scope="col" x-show="visibleColumns.existencias" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('stock_items_store')">
                             <div class="flex items-center space-x-1">
@@ -272,7 +307,7 @@
                         <th scope="col" x-show="visibleColumns.porcentaje" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" 
                             wire:click="sortBy('percentage')">
                             <div class="flex items-center space-x-1">
-                                <span>Porcentaje</span>
+                                <span>% Stock</span>
                                 @if($sortField === 'percentage')
                                     <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'transform rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -309,8 +344,7 @@
                                 tooltipPosition = rect.top < 100 ? 'bottom' : 'top';
                             "
                         @mouseleave="showTooltip = false"
-                        class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700' }} cursor-pointer transition-colors relative group"
-                        wire:click="selectItem({{ $item->id }}, {{ $item->quantity ?? 0 }})">
+                        class="{{ $selectedLabelId ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700' }} transition-colors relative group">
 
                         <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                                 @php
@@ -324,7 +358,26 @@
                                 >
                             </td>
                             <td x-show="visibleColumns.codigo" class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-3">
+                                <!-- Menú 3 puntos -->
+                                <div x-data="{ open: false }" class="relative flex-shrink-0">
+                                    <button @click.stop="open = !open"
+                                        class="p-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800">
+                                        <svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                                        </svg>
+                                    </button>
+                                    <div x-show="open" @click.away="open = false" @click.stop x-cloak
+                                        class="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[60] py-1">
+                                        <button @click.stop="$dispatch('openTicketModal', { productId: {{ $item->id ?? 'null' }} }); open = false"
+                                            class="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2.5 transition-colors whitespace-nowrap">
+                                            <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                            </svg>
+                                            Solicitud Soporte
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
                                      @click.stop="$dispatch('openImageModal', { productId: {{ $item->id }}, context: 'COMERCIAL' })">
                                     @php
@@ -341,12 +394,10 @@
                         </td>
                         <td x-show="visibleColumns.descripcion" class="px-6 py-4">
                             <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $item->description ?? $item->name }}</div>
-                        </td>
-                        <td x-show="visibleColumns.programacion" class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
-                            <div class="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto custom-scrollbar">
+                            <!-- Programación Compacta debajo de la Descripción -->
+                            <div x-show="visibleColumns.programacion" class="flex flex-wrap items-center gap-1 mt-1" onclick="event.stopPropagation()">
                                 @forelse($item->programaciones ?? [] as $prog)
                                     @php
-                                        // Traducir el estado al español de forma segura
                                         $estadoTraducido = match(strtolower($prog->status_name ?? '')) {
                                             'requested' => 'Solicitado',
                                             'pending' => 'Pendiente',
@@ -356,36 +407,58 @@
                                             default => $prog->status_name ?? 'Solicitado'
                                         };
 
-                                        // Definir clases de colores distintivos según la prioridad
                                         $prioridadLower = strtolower($prog->priority ?? '');
                                         $badgeClasses = match(true) {
-                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
-                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1.5 py-0.5 rounded text-[10px] font-semibold'
+                                            in_array($prioridadLower, ['asap', 'express']) => 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            in_array($prioridadLower, ['second', 'express 2']) => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            in_array($prioridadLower, ['third', 'express 3']) => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-1 py-0.5 rounded text-[8px] font-black uppercase',
+                                            default => 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-800/50 px-1 py-0.5 rounded text-[8px] font-semibold'
                                         };
                                     @endphp
-                                    <div class="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-[11px] min-w-[150px] max-w-[180px] shadow-sm">
-                                        @if($prog->status_id == 7 || !empty($prog->shipment_number))
-                                            <!-- En Tránsito (Shipment) -->
-                                            <div class="flex justify-between items-center font-bold text-gray-800 dark:text-gray-200">
-                                                <span class="text-blue-600 dark:text-blue-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="text-gray-600 dark:text-gray-400">{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                    
+                                    <div x-data="{ show: false }" class="relative inline-block" @click.away="show = false">
+                                        <div class="bg-gray-50 dark:bg-gray-800/80 rounded-lg p-1.5 border border-gray-200 dark:border-gray-700 shadow-sm text-[10px] w-auto max-w-xs flex flex-col gap-0.5 cursor-help whitespace-nowrap"
+                                             @mouseenter="show = true"
+                                             @mouseleave="show = false">
+                                            
+                                            <!-- Fila 1: Cantidad | Estado -->
+                                            <div class="flex items-center gap-1 font-bold text-gray-700 dark:text-gray-300">
+                                                @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                                    <span class="text-blue-600 dark:text-blue-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                @else
+                                                    <span class="text-indigo-600 dark:text-indigo-400 font-extrabold">{{ number_format($prog->qty_requested, 0) }}</span>
+                                                    <span class="text-gray-300 dark:text-gray-600">|</span>
+                                                    <span>{{ $estadoTraducido }}</span>
+                                                @endif
                                             </div>
-                                        @else
-                                            <!-- Solicitado, Producción, etc. -->
-                                            <div class="flex justify-between items-center font-bold mb-0.5 text-gray-800 dark:text-gray-200">
-                                                <span class="text-indigo-600 dark:text-indigo-400 text-xs">{{ number_format($prog->qty_requested, 0) }}</span>
-                                                <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
+
+                                            <!-- Fila 2: Prioridad / Shipment | Fecha -->
+                                            <div class="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400 font-semibold">
+                                                @if($prog->status_id == 7 || !empty($prog->shipment_number))
+                                                    <span>{{ $prog->shipment_number ?? 'Shipment' }}</span>
+                                                @else
+                                                    <span class="{{ $badgeClasses }}">{{ $prog->priority }}</span>
+                                                    @if($prog->due_date)
+                                                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                                                        <span class="text-[9px] text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }}</span>
+                                                    @endif
+                                                @endif
                                             </div>
-                                            <div class="flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px]">
-                                                <span>{{ $estadoTraducido }}</span>
-                                                <span>{{ $prog->due_date ? \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') : '' }}</span>
-                                            </div>
-                                        @endif
+                                        </div>
+                                        
+                                        <!-- Tooltip en hover -->
+                                        <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case select-none pointer-events-none">
+                                            {{ number_format($prog->qty_requested, 0) }} unidades {{ $estadoTraducido }}
+                                            @if(!empty($prog->priority))
+                                                 - Prioridad: {{ $prog->priority }}
+                                            @endif
+                                            @if($prog->due_date)
+                                                 (Entrega: {{ \Carbon\Carbon::parse($prog->due_date)->format('d/m/y') }})
+                                            @endif
+                                        </div>
                                     </div>
                                 @empty
-                                    <span class="text-gray-400 text-xs italic">Sin programar</span>
+                                    <span class="text-gray-400 text-[9px] italic select-none">Sin programar</span>
                                 @endforelse
                             </div>
                         </td>
@@ -421,15 +494,11 @@
                         <td x-show="visibleColumns.cantidad" class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
                             <input type="number" 
                                 min="0" 
-                                step="1" 
+                                step="{{ (isset($item->quntityxbox) && (int)$item->quntityxbox > 0) ? (int)$item->quntityxbox : 1 }}" 
                                 value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                                 @if($selectedLabelId) disabled @endif
-                                @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
-                                @change="
-            $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
-                $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
-            });
-        "
+                                @focus="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
+                                @change="$wire.updateQuantity({{ $item->id }}, $event.target.value)"
                                 title="{{ !empty($item->label_assignments) ? "Cantidades pedidas por etiqueta:\n" . $item->label_assignments : 'Sin etiquetas programadas' }}"
                                 class="block w-24 px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                 placeholder="0">
@@ -559,7 +628,7 @@
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ number_format($item->stock_items_store ?? 0, 0) }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Porcentaje</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">% Stock</p>
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $item->percentage ?? 0 }}%</p>
                 </div>
                 <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
@@ -577,15 +646,11 @@
                     <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Cantidad</label>
                     <input type="number" 
                         min="0" 
-                        step="1" 
+                        step="{{ (isset($item->quntityxbox) && (int)$item->quntityxbox > 0) ? (int)$item->quntityxbox : 1 }}" 
                         value="{{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }}"
                         @if($selectedLabelId) disabled @endif
                         @click="$wire.selectItem({{ $item->id }}, {{ $selectedQuantities[$item->id] ?? $item->quantity ?? 0 }})"
-                        @change="
-                $wire.updateQuantity({{ $item->id }}, $event.target.value).then(() => {
-                    $wire.selectItem({{ $item->id }}, parseInt($event.target.value) || 0);
-                });
-            "
+                        @change="$wire.updateQuantity({{ $item->id }}, $event.target.value)"
                         title="{{ !empty($item->label_assignments) ? "Cantidades pedidas por etiqueta:\n" . $item->label_assignments : 'Sin etiquetas programadas' }}"
                         class="block w-full px-3 py-2 text-sm font-semibold {{ $selectedLabelId ? 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' }} border {{ $selectedLabelId ? 'border-gray-300 dark:border-gray-600' : 'border-blue-200 dark:border-blue-800' }} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                         placeholder="0">
@@ -630,4 +695,74 @@
     <!-- Modales Compartidos -->
     @livewire('tenant.components.product-image-modal')
     {{-- @livewire('tenant.components.item-accessories-modal') --}}
+
+    <style>
+        .blue-scrollbar {
+            scrollbar-width: auto !important;
+            scrollbar-color: #2563eb #f1f5f9 !important;
+        }
+        .blue-scrollbar::-webkit-scrollbar {
+            width: 10px !important;
+            height: 10px !important;
+            display: block !important;
+        }
+        .blue-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-radius: 10px !important;
+        }
+        .blue-scrollbar::-webkit-scrollbar-thumb {
+            background: #2563eb !important;
+            border-radius: 10px !important;
+        }
+        .blue-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #1d4ed8 !important;
+        }
+        .dark .blue-scrollbar {
+            scrollbar-color: #3b82f6 #1e293b !important;
+        }
+        .dark .blue-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b !important;
+            border-radius: 10px !important;
+        }
+        .dark .blue-scrollbar::-webkit-scrollbar-thumb {
+            background: #3b82f6 !important;
+            border-radius: 10px !important;
+        }
+        .dark .blue-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #2563eb !important;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            window.addEventListener('show-supplier-select-swal', event => {
+                const data = event.detail[0];
+                
+                Swal.fire({
+                    title: 'Falta Proveedor',
+                    text: 'Este producto no tiene un proveedor asignado. Por favor selecciona uno para registrar la cantidad:',
+                    input: 'select',
+                    inputOptions: data.suppliers,
+                    inputPlaceholder: '-- Seleccione un proveedor --',
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'Guardar y Continuar',
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'Debes seleccionar un proveedor';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Livewire.dispatch('assign-supplier-and-quantity', { 
+                            itemId: data.itemId, 
+                            quantity: data.quantity, 
+                            supplierId: result.value 
+                        });
+                    }
+                });
+            });
+        });
+    </script>
 </div>

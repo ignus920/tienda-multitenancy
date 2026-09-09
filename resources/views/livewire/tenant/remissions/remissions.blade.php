@@ -512,11 +512,20 @@
                                             </button>
                                             @endif
                                             @if($remission->status !== 'ANULADO' && !in_array(auth()->user()?->profile_id, [4, 6, 7]))
-                                            <button @click="window.confirmAnnulment({{ $remission->id }}, '{{ $remission->consecutive }}')"
-                                                class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                Anular Pedido
-                                            </button>
+                                                @if($remission->invoice && $remission->invoice->status === 'FACTURADO')
+                                                <button disabled
+                                                    title="No se puede anular un pedido que ya está facturado"
+                                                    class="w-full text-left px-4 py-2 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Anular Pedido
+                                                </button>
+                                                @else
+                                                <button @click="window.confirmAnnulment({{ $remission->id }}, '{{ $remission->consecutive }}')"
+                                                    class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Anular Pedido
+                                                </button>
+                                                @endif
                                             @endif
                                             @if($remission->status !== 'ANULADO')
                                             <button wire:click="openReturnRegistration({{ $remission->id }})" 
@@ -526,6 +535,15 @@
                                                 </svg>
                                                 Devolución
                                             </button>
+                                            @endif
+                                            @if($remission->status !== 'ANULADO')
+                                            <a href="{{ route('tenant.warranties.create', $remission->id) }}" 
+                                               class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                </svg>
+                                                Garantía
+                                            </a>
                                             @endif
                                             @if($remission->invoice && !in_array(auth()->user()?->profile_id, [6, 7]))
                                             <button wire:click="printInvoice({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center">
@@ -1135,7 +1153,7 @@
             });
         });
     </script>
-    @livewire('tenant.returns.return-registration-modal')
+
 
     <!-- Modal: Completar datos del cliente antes de facturar desde remisiones -->
     @if($showCompleteCustomerModal && $completingCustomerId)

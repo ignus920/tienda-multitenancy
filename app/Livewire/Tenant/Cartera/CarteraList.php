@@ -142,12 +142,21 @@ class CarteraList extends Component
 
     private function saveAuth($remissionId, $type, $status)
     {
-        VntOrderAuthorization::create([
-            'remission_id' => $remissionId,
-            'auth_type' => $type,
-            'status' => $status,
-            'user_id' => auth()->id()
-        ]);
+        // Evitar insertar un nuevo registro si el estado actual ya es igual al que queremos guardar.
+        // Esto preserva el 'created_at' original del evento sin "sobreescribirlo" con la hora actual.
+        $lastAuth = VntOrderAuthorization::where('remission_id', $remissionId)
+            ->where('auth_type', $type)
+            ->latest()
+            ->first();
+
+        if (!$lastAuth || (bool)$lastAuth->status !== (bool)$status) {
+            VntOrderAuthorization::create([
+                'remission_id' => $remissionId,
+                'auth_type' => $type,
+                'status' => $status,
+                'user_id' => auth()->id()
+            ]);
+        }
     }
 
     public function setFilter($filter)

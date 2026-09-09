@@ -79,10 +79,12 @@
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                     @forelse($items as $index => $item)
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                        <td class="px-4 py-3">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $item['description'] }}</div>
-                                            <div class="text-[10px] text-gray-500">{{ $item['codigo'] }}</div>
-                                        </td>
+                                         <td class="px-4 py-3">
+                                             <div class="text-sm text-gray-900 dark:text-white">
+                                                 <span class="text-gray-500 dark:text-gray-400 font-semibold mr-2">{{ $item['codigo'] }}</span>
+                                                 <span>{{ $item['description'] }}</span>
+                                             </div>
+                                         </td>
                                         <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300 font-bold">
                                             {{ number_format($item['original_qty'], 2) }}
                                         </td>

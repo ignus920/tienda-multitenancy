@@ -29,11 +29,12 @@
                     <div class="flex items-center gap-3 shrink-0">
                         @if(!empty($branches) && count($branches) > 1 && !$isEditing)
                             <div class="flex items-center gap-1.5">
-                                <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
+                                <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0 hidden sm:inline">Sucursal:</span>
                                 <select 
                                     wire:model.live="selectedBranchId"
                                     wire:change="selectBranch($event.target.value)"
                                     class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                                    style="max-width: 150px;"
                                   >
                                     <option value="">-- Seleccionar --</option>
                                     @foreach($branches as $branch)
@@ -182,46 +183,48 @@
 
     <!-- Modal flotante para crear o editar cliente -->
     @if($showCreateCustomerForm || $showCreateCustomerButton)
-    <div x-data="{ show: true }" x-show="show" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <h3 class="text-sm font-bold text-gray-900 dark:text-white">
-                    {{ $editingCustomerId ? 'Editar Cliente' : 'Crear Cliente' }}
-                </h3>
-                <button @click="show = false; $wire.cancelCreateCustomer()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Contenedor con cargando / cargado -->
-            <div class="p-6 max-h-[75vh] overflow-y-auto relative">
-                <!-- Indicador de Carga Agradable -->
-                <div wire:loading wire:target="editCustomer, cancelCreateCustomer" class="w-full py-12 flex flex-col items-center justify-center space-y-4">
-                    <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Cargando información del cliente...</p>
-                    
-                    <!-- Esqueleto de Carga Simulado -->
-                    <div class="w-full space-y-3 pt-4">
-                        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
-                        <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
-                        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
-                        <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
-                    </div>
+    <template x-teleport="body">
+        <div x-data="{ show: true }" x-show="show" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                        {{ $editingCustomerId ? 'Editar Cliente' : 'Crear Cliente' }}
+                    </h3>
+                    <button @click="show = false; $wire.cancelCreateCustomer()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
+                
+                <!-- Contenedor con cargando / cargado -->
+                <div class="p-6 max-h-[75vh] overflow-y-auto relative">
+                    <!-- Indicador de Carga Agradable -->
+                    <div wire:loading wire:target="editCustomer, cancelCreateCustomer" class="w-full py-12 flex flex-col items-center justify-center space-y-4">
+                        <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Cargando información del cliente...</p>
+                        
+                        <!-- Esqueleto de Carga Simulado -->
+                        <div class="w-full space-y-3 pt-4">
+                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                            <div class="h-10 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                    </div>
 
-                <!-- Formulario cuando no está cargando -->
-                <div wire:loading.remove wire:target="editCustomer, cancelCreateCustomer">
-                    <livewire:tenant.vnt-company.vnt-company-form
-                        :reusable="true"
-                        :simplified="true"
-                        :companyId="$editingCustomerId"
-                        key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
+                    <!-- Formulario cuando no está cargando -->
+                    <div wire:loading.remove wire:target="editCustomer, cancelCreateCustomer">
+                        <livewire:tenant.vnt-company.vnt-company-form
+                            :reusable="true"
+                            :simplified="true"
+                            :companyId="$editingCustomerId"
+                            key="customer-form-{{ $editingCustomerId ?? 'new' }}" />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
     @endif
     <div class="flex {{ $hideQuoter ? 'flex-col' : 'pr-96' }}" x-data @product-copied.window="
         const data = Array.isArray($event.detail) ? $event.detail[0] : $event.detail;
@@ -301,6 +304,18 @@
                                     @click.away="open = false"
                                     x-cloak
                                     class="absolute left-0 mt-2 w-56 rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-[60] border border-gray-100 dark:border-gray-700 py-1 overflow-hidden">
+                                     
+                                     <!-- Exportar especial -->
+                                     <button @click="open = false; $wire.exportSpecialStocks()"
+                                         class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors group">
+                                         <div class="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                             <svg class="w-4 h-4 text-blue-700 dark:text-blue-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                             </svg>
+                                         </div>
+                                         <span class="font-medium">Exportar Especial (V/C)</span>
+                                     </button>
+
                                      @if(!$hideQuoter)
                                      <!-- Producto generico -->
                                     <button @click="open = false; $wire.openGenericProductModal()"
@@ -479,6 +494,19 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                         </svg>
                                         Accesorios
+                                    </button>
+                                    @else
+                                    <button disabled title="Este producto no tiene accesorios"
+                                        class="w-full text-left px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed flex items-center justify-between gap-2.5 transition-colors whitespace-nowrap">
+                                        <div class="flex items-center gap-2.5">
+                                            <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                            </svg>
+                                            Accesorios
+                                        </div>
+                                        <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                        </svg>
                                     </button>
                                     @endif
  
@@ -845,6 +873,19 @@
                                                                 </svg>
                                                                 Accesorios
                                                             </button>
+                                                            @else
+                                                            <button disabled title="Este producto no tiene accesorios"
+                                                                class="w-full text-left px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed flex items-center justify-between gap-2.5 transition-colors whitespace-nowrap">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                                                    </svg>
+                                                                    Accesorios
+                                                                </div>
+                                                                <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                                                </svg>
+                                                            </button>
                                                             @endif
 
                                                             <button @click.stop="$dispatch('openCalculationModal', { productId: {{ $product->id }} }); open = false"
@@ -991,11 +1032,11 @@
                                                                      $physStock = (int) ($product->stock_bodega ?? 0);
                                                                      $resStock = (int) ($product->reserved_stock ?? 0);
                                                                      
-                                                                     // Disponibles = Stock - Cuarentena - Vitrina
-                                                                     $dispStock = max(0, $physStock - $quarantineStock - $showroomStock);
+                                                                     // Disponibles = Stock - Cuarentena
+                                                                     $dispStock = max(0, $physStock - $quarantineStock);
                                                                      
-                                                                     // Reservas visuales = Reservas físicas + Cuarentena + Vitrina
-                                                                     $visualReservations = $resStock + $quarantineStock + $showroomStock;
+                                                                     // Reservas visuales = Reservas físicas de clientes únicamente
+                                                                     $visualReservations = $resStock;
                                                                      
                                                                      $hasSpecialStock = ($quarantineStock > 0 || $showroomStock > 0);
                                                                  @endphp
@@ -1010,7 +1051,7 @@
                                                                      </td>
                                                                      <!-- Celda Reservas (Columna derecha, clic abre reservas) -->
                                                                      <td @click.stop="$dispatch('openReservationModal', { productId: {{ $product->id }} })"
-                                                                         title="Reservas Físicas: {{ $resStock }}{{ $quarantineStock > 0 ? ' | En Cuarentena: ' . $quarantineStock : '' }}{{ $showroomStock > 0 ? ' | En Vitrina: ' . $showroomStock : '' }}. Haga clic para gestionar reservas."
+                                                                         title="Reservas Físicas: {{ $resStock }}. Haga clic para gestionar reservas."
                                                                          class="px-3 py-1 bg-gray-50 dark:bg-gray-700 text-red-500 font-bold w-12 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                                                                          {{ $visualReservations > 0 ? number_format($visualReservations, 0) : '' }}
                                                                      </td>
@@ -1924,7 +1965,40 @@
         @livewire('tenant.vnt-company.warehouse-management-modal', ['companyId' => $selectedCustomer['id'], 'isSelectionMode' => true], key('warehouse-modal-' . $selectedCustomer['id']))
     @endif
 
-    <!-- Modal: Completar datos del cliente antes de facturar -->
+    <!-- Modal de Advertencia de Campos Faltantes -->
+    @if($showMissingFieldsModal)
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-[70] overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg my-8 overflow-hidden">
+            <div class="bg-amber-500 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Faltan Datos del Cliente
+                </h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 dark:text-gray-300 text-base mb-4">
+                    Para poder continuar, necesitas completar obligatoriamente la siguiente información del cliente:
+                </p>
+                <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-6 border-l-4 border-amber-500">
+                    <p class="font-medium text-gray-800 dark:text-white">
+                        {{ $missingFieldsMessage }}
+                    </p>
+                </div>
+                <div class="flex justify-end gap-3 mt-4">
+                    <button wire:click="$set('showMissingFieldsModal', false)" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    <button wire:click="proceedToCompleteCustomer" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-sm">
+                        Completar Datos
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal: Completar datos del cliente -->
     @if($showCompleteCustomerModal && $editingCustomerId)
     <div class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-start justify-center p-4 z-[60] overflow-y-auto">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl my-8">
@@ -1935,7 +2009,11 @@
                         📋 Completar datos del cliente
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Para facturar electrónicamente necesitas completar el régimen y la responsabilidad fiscal del cliente.
+                        @if($pendingInvoiceAfterCustomerCompletion)
+                            Para facturar electrónicamente necesitas completar los datos del cliente.
+                        @else
+                            Ingresa los datos faltantes para poder crear la OP.
+                        @endif
                     </p>
                 </div>
                 <button wire:click="closeCompleteCustomerModal"
@@ -1952,7 +2030,11 @@
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                 </svg>
                 <span class="text-sm text-amber-800 dark:text-amber-200">
-                    Este cliente fue creado de forma rápida. Completa el régimen y responsabilidad fiscal para poder facturar electrónicamente. Los cambios se sincronizarán con Alegra automáticamente.
+                    @if($pendingInvoiceAfterCustomerCompletion)
+                        Este cliente fue creado de forma rápida. Completa el régimen y responsabilidad fiscal para poder facturar electrónicamente. Los cambios se sincronizarán con Alegra automáticamente.
+                    @else
+                        Asegúrate de llenar el teléfono con 10 dígitos numéricos y todos los datos obligatorios marcados con (*).
+                    @endif
                 </span>
             </div>
 
@@ -2249,7 +2331,20 @@
                 <div class="border-2 border-gray-800 dark:border-slate-300 rounded-lg p-6 bg-white dark:bg-slate-800 text-center space-y-3">
                     <p class="text-sm font-semibold uppercase tracking-widest text-gray-600 dark:text-slate-400">Destinatario:</p>
                     <p class="text-xl font-extrabold text-gray-900 dark:text-white uppercase">
-                        @if($selectedCustomer)
+                        @php
+                            $isDespacho = false;
+                            $branchName = null;
+                            if ($selectedBranchId && !empty($branches)) {
+                                $branch = collect($branches)->firstWhere('id', $selectedBranchId);
+                                if ($branch && isset($branch['branch_type']) && $branch['branch_type'] === \App\Models\Tenant\Customer\VntWarehouse::BRANCH_TYPE_DESPACHO) {
+                                    $isDespacho = true;
+                                    $branchName = $branch['name'];
+                                }
+                            }
+                        @endphp
+                        @if($isDespacho && $branchName)
+                            {{ $branchName }}
+                        @elseif($selectedCustomer)
                             {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '')) }}
                         @endif
                     </p>

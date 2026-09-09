@@ -14,9 +14,9 @@
 
     <!-- Barra de Herramientas -->
     <div class="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
-        <div style="display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;">
+        <div class="flex flex-wrap items-end gap-3 w-full">
             <!-- Búsqueda Rápida -->
-            <div style="flex: 1.5; min-width: 200px;">
+            <div class="flex-1 min-w-[150px] max-w-xs">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">Búsqueda rápida</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -30,43 +30,112 @@
             </div>
 
             <!-- Desde -->
-            <div style="flex: 1; min-width: 150px;">
+            <div class="w-36">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">desde:</label>
                 <input type="date" wire:model.live="filterDateFrom"
                     class="block w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
             </div>
 
             <!-- Hasta -->
-            <div style="flex: 1.2; min-width: 250px;">
+            <div class="w-36">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">hasta:</label>
-                <div class="flex items-center gap-2">
-                    <input type="date" wire:model.live="filterDateTo"
-                        class="block w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
-                    <button wire:click="clearFilters" title="Limpiar filtros"
-                        class="p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                <input type="date" wire:model.live="filterDateTo"
+                    class="block w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center gap-2 ml-auto shrink-0">
+                <button wire:click="clearFilters" title="Limpiar filtros"
+                    class="p-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+                <button wire:click="exportToExcel" wire:loading.attr="disabled" title="Exportar a Excel"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm whitespace-nowrap">
+                    <!-- Icono normal de Excel (se oculta al cargar) -->
+                    <svg wire:loading.remove wire:target="exportToExcel" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <!-- Spinner de carga (se muestra al cargar) -->
+                    <svg wire:loading wire:target="exportToExcel" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span wire:loading.remove wire:target="exportToExcel">Excel</span>
+                    <span wire:loading wire:target="exportToExcel">Exportando...</span>
+                </button>
+                <div x-data="{
+                    async emitir() {
+                        let selected = $wire.selectedInvoices;
+                        if (!selected || selected.length === 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Atención',
+                                text: 'Por favor, selecciona al menos una factura para emitir.'
+                            });
+                            return;
+                        }
+
+                        let chunks = [];
+                        for (let i = 0; i < selected.length; i += 5) {
+                            chunks.push(selected.slice(i, i + 5));
+                        }
+
+                        let total = selected.length;
+                        let processed = 0;
+                        let successTotal = 0;
+                        let failTotal = 0;
+
+                        Swal.fire({
+                            title: 'Enviando facturas a la DIAN',
+                            html: `
+                                <div class=\'mb-2 text-sm text-gray-600 dark:text-gray-400\' id=\'swal-progress-text\'>Procesando 0 de ${total} facturas</div>
+                                <div class=\'w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700\'>
+                                    <div class=\'bg-indigo-600 h-3 rounded-full transition-all duration-300\' style=\'width: 0%\' id=\'swal-progress-bar\'></div>
+                                </div>
+                            `,
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            didOpen: async () => {
+                                for (let chunk of chunks) {
+                                    let result = await $wire.processEmitChunk(chunk);
+                                    successTotal += result.success || 0;
+                                    failTotal += result.fails || 0;
+                                    processed += chunk.length;
+
+                                    let percent = Math.round((processed / total) * 100);
+                                    document.getElementById('swal-progress-bar').style.width = percent + '%';
+                                    document.getElementById('swal-progress-text').innerText = `Procesando ${processed} de ${total} facturas`;
+                                }
+
+                                await $wire.clearSelection();
+
+                                setTimeout(() => {
+                                    Swal.fire({
+                                        title: 'Proceso finalizado',
+                                        html: `Se enviaron <b>${successTotal}</b> facturas a procesar.<br> ${failTotal > 0 ? `<span class=\'text-red-500\'><b>${failTotal}</b> fallaron o no eran válidas.</span>` : ''}`,
+                                        icon: failTotal > 0 ? 'warning' : 'success'
+                                    });
+                                }, 500);
+                            }
+                        });
+                    }
+                }">
+                    <button @click="emitir" title="Emitir Facturas Seleccionadas"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                    </button>
-                    <button wire:click="exportToExcel" wire:loading.attr="disabled" title="Exportar a Excel"
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-sm">
-                        <!-- Icono normal de Excel (se oculta al cargar) -->
-                        <svg wire:loading.remove wire:target="exportToExcel" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <!-- Spinner de carga (se muestra al cargar) -->
-                        <svg wire:loading wire:target="exportToExcel" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span wire:loading.remove wire:target="exportToExcel">Excel</span>
-                        <span wire:loading wire:target="exportToExcel">Exportando...</span>
+                        <span>
+                            Emitir Masivo @if(count($selectedInvoices) > 0) ({{ count($selectedInvoices) }}) @endif
+                        </span>
                     </button>
                 </div>
             </div>
 
             <!-- Mostrar -->
-            <div class="ml-auto">
+            <div class="w-20">
                 <label class="block text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-1">MOSTRAR</label>
                 <select wire:model.live="perPage"
                     class="block px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all">
@@ -85,6 +154,9 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-slate-700">
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            <!-- Checkbox general opcional -->
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
                             <div class="flex items-center space-x-1">
                                 <span>FECHA</span>
@@ -226,6 +298,14 @@
                 <tbody>
                     @forelse ($invoices as $invoice)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                            <td class="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                                @if($invoice->status === 'SIN EMITIR' && !empty($invoice->api_data_id))
+                                    <input type="checkbox" wire:model.live="selectedInvoices" value="{{ $invoice->id }}" 
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 cursor-pointer">
+                                @else
+                                    <input type="checkbox" disabled class="rounded border-gray-300 text-gray-300 shadow-sm opacity-50 cursor-not-allowed" title="No se puede emitir">
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                 {{ $invoice->created_at->format('d/m/Y') }}
                             </td>
@@ -240,7 +320,8 @@
                                     @if($invoice->status === 'FACTURADO') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                                     @elseif($invoice->status === 'ANULADO') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
                                     @elseif($invoice->status === 'SIN EMITIR') bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
-                                    @else bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 @endif">
+                                    @elseif($invoice->status === 'EN PROCESO DIAN') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 animate-pulse
+                                    @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
                                     {{ $invoice->status }}
                                 </span>
                             </td>

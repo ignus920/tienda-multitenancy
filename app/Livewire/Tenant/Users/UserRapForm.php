@@ -40,6 +40,7 @@ class UserRapForm extends Component
     public $perPage = 10;
     public $sortField = 'id';
     public $sortDirection = 'desc';
+    public $activeTab = 'fervicom';
 
     // Modal control properties
     public $showModal = false;
@@ -711,6 +712,15 @@ class UserRapForm extends Component
             ->whereHas('tenants', function ($query) use ($sessionTenant) {
                 $query->where('tenants.id', $sessionTenant);
             })
+            ->when($this->activeTab === 'fervicom', function ($query) {
+                $query->whereNotIn('users.profile_id', [17, 18]);
+            })
+            ->when($this->activeTab === 'proveedores', function ($query) {
+                $query->where('users.profile_id', 17);
+            })
+            ->when($this->activeTab === 'clientes', function ($query) {
+                $query->where('users.profile_id', 18);
+            })
             ->with(['profile', 'contact.warehouse.company'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -734,6 +744,11 @@ class UserRapForm extends Component
      * Reset pagination when search is updated
      */
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingActiveTab(): void
     {
         $this->resetPage();
     }

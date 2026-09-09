@@ -553,6 +553,15 @@ class ApiClient
         return $this->makeRequest('post', "invoices/stamp", ['ids' => [(string)$id]]);
     }
 
+    /**
+     * Emitir (stamp) múltiples facturas masivamente (máximo 10)
+     */
+    public function stampInvoicesMassive(array $ids): array
+    {
+        $stringIds = array_map(function($id) { return (string)$id; }, $ids);
+        return $this->makeRequest('post', "invoices/stamp", ['ids' => $stringIds]);
+    }
+
     // =================== AJUSTES DE INVENTARIO ===================
 
     /**
@@ -662,4 +671,6 @@ class ApiClient
     {
         return $this->delete("sellers/{$sellerId}");
     }
+
+
 }

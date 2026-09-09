@@ -447,4 +447,47 @@ class FacturacionService
     {
         return $this->apiClient;
     }
+
+    /**
+     * Timbrar (emitir) facturas masivamente a través del ApiClient
+     *
+     * @param array $apiDataIds Arreglo de IDs de las facturas en Alegra
+     * @return array
+     */
+    public function stampInvoicesMassive(array $apiDataIds): array
+    {
+        try {
+            Log::info('📄 Enviando petición masiva a ApiClient', [
+                'count' => count($apiDataIds)
+            ]);
+
+            $response = $this->apiClient->stampInvoicesMassive($apiDataIds);
+
+            if ($response['success'] ?? false) {
+                Log::info('✅ Emisión masiva de facturas completada en Alegra');
+                return [
+                    'success' => true,
+                    'data'    => $response['data'] ?? [],
+                    'message' => 'Facturas emitidas exitosamente',
+                ];
+            }
+
+            Log::error('❌ Error en emisión masiva de facturas', ['response' => $response]);
+            return [
+                'success' => false,
+                'message' => $response['message'] ?? 'Error desconocido',
+                'data'    => $response['data'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('❌ Excepción emitiendo facturas masivamente', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Error al conectar con Alegra: ' . $e->getMessage()
+            ];
+        }
+    }
 }

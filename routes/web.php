@@ -194,6 +194,12 @@ require __DIR__ . '/tenants/packing.php';
 // Incluir rutas del módulo de gestión
 require __DIR__ . '/tenants/gestion.php';
 
+// Incluir rutas del módulo de proyectos
+require __DIR__ . '/tenants/projects.php';
+
+// Incluir rutas del módulo de planeación de tareas operativas
+require __DIR__ . '/tenants/task_planner.php';
+
 // Incluir rutas del módulo de informes
 require __DIR__ . '/tenants/reports.php';
 
@@ -202,6 +208,9 @@ require __DIR__ . '/tenants/inventory_confirmations.php';
 
 // Incluir rutas del módulo de devoluciones
 require __DIR__ . '/tenants/returns.php';
+
+// Incluir rutas del módulo de garantías
+require __DIR__ . '/tenants/warranties.php';
 
 // Incluir rutas del módulo de despachos
 require __DIR__ . '/tenants/dispatches.php';

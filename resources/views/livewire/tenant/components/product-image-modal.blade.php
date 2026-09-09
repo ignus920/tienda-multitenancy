@@ -53,7 +53,7 @@
                 $isAdmin = in_array($userProfileId, [1, 2]);
             @endphp
 
-            @if($isAdmin && !$isContextForced)
+            @if(($isAdmin || $userProfileId == 6) && !$isContextForced)
                 <div class="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl mb-6">
                     <button wire:click="$set('activeTab', 'COMERCIAL')" 
                             class="flex-1 py-2 text-sm font-bold rounded-lg transition-all {{ $activeTab === 'COMERCIAL' ? 'bg-white dark:bg-gray-800 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300' }}">

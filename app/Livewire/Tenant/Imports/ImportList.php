@@ -13,6 +13,8 @@ use App\Models\Tenant\Imports\ImpImports;
 use App\Models\Tenant\Items\InvStore;
 use App\Models\Tenant\Imports\InvUnconfirmedQty;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
+use Livewire\Attributes\Renderless;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +41,12 @@ class ImportList extends Component
     // Property to track selected label for filtering
     public $selectedLabelId = null; // null = show all, number = filter by label
     public $selectedLabelName = 'Programación'; // Nombre a mostrar en el dropdown
-    public $filterCritical = false; // Filtrar por productos críticos
+    public $filterCritical = 'ninguno'; // Filtrar por productos críticos
+
+    public function updatingFilterCritical()
+    {
+        $this->resetPage();
+    }
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -170,6 +177,7 @@ class ImportList extends Component
 
     public function updatingSearch()
     {
+        // Resetear página para evitar que la tabla quede vacía si los resultados no alcanzan la página actual
         $this->resetPage();
     }
 
@@ -182,31 +190,44 @@ class ImportList extends Component
         }
 
         $this->sortField = $field;
-        $this->resetPage();
+        // No resetear página para mantener el usuario en la página actual al ordenar
+        // $this->resetPage();
     }
 
-    public function getItemsProperty()
+    public function clearFilters()
+    {
+        $this->search = '';
+        $this->selectedLabelId = null;
+        $this->selectedLabelName = 'Programación';
+        $this->filterCritical = 'ninguno';
+        $this->selectedItems = [];
+        $this->resetPage();
+        
+        $this->dispatch('clear-item-selection');
+    }
+
+    public function getOccupiedPrioritiesProperty()
+    {
+        if (empty($this->selectedItems)) {
+            return [];
+        }
+
+        $this->ensureTenantConnection();
+
+        return ImpImports::whereIn('item_id', $this->selectedItems)
+            ->whereNotIn('status', [8, 11])
+            ->whereNotNull('priority')
+            ->whereNull('deleted_at')
+            ->pluck('priority')
+            ->map(fn($p) => strtolower($p))
+            ->unique()
+            ->toArray();
+    }
+
+    public function getBaseQuery()
     {
         $this->ensureTenantConnection();
         $principalStore = $this->getPrincipalStore();
-
-        Log::info("=== GET ITEMS - selectedLabelId: " . ($this->selectedLabelId ?? 'null') . " ===");
-
-        // Debug: Si hay label seleccionado, verificar qué items existen en imp_imports
-        if ($this->selectedLabelId) {
-            $importsCheck = DB::connection('tenant')
-                ->table('imp_imports')
-                ->where('label_id', $this->selectedLabelId)
-                ->where('status', '<', 8) // Filtrar status < 8
-                ->whereNull('deleted_at')
-                ->get(['id', 'item_id', 'qty_requested', 'label_id', 'status']);
-
-            Log::info('DEBUG - Items en imp_imports para label ' . $this->selectedLabelId . ': ' . $importsCheck->count());
-            if ($importsCheck->count() > 0) {
-                Log::info('DEBUG - Primer registro imp_imports: ' . json_encode($importsCheck->first(), JSON_PRETTY_PRINT));
-                Log::info('DEBUG - Item IDs en imp_imports: ' . $importsCheck->pluck('item_id')->implode(', '));
-            }
-        }
 
         $query = Items::query()
             ->select([
@@ -228,17 +249,19 @@ class ImportList extends Component
                         ELSE 0 
                     END AS percentage
                 '),
+                DB::raw('COALESCE(inv_items_dimensions.quntityxbox, 1) AS quntityxbox'),
                 DB::raw('SUM(CASE WHEN inv_inventory_adjustments.type = "entrada" THEN COALESCE(inv_detail_inv_adjustments.quantity, 0) ELSE 0 END) AS insideMovement'),
                 DB::raw('COALESCE(s7m.salidas_7_meses, 0) AS outsideMovement'),
                 DB::raw('COALESCE(imp_items_setup.exw, 0) AS exw'),
-                DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
-                DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status < 8 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at'),
-                DB::raw("(SELECT GROUP_CONCAT(CONCAT(il.name, ': ', ii.qty_requested, ' uds') SEPARATOR ' \n ') FROM imp_imports ii JOIN imp_labels il ON ii.label_id = il.id WHERE ii.item_id = inv_items.id AND ii.status < 8 AND ii.deleted_at IS NULL) AS label_assignments")
+                DB::raw('(SELECT priority FROM imp_imports WHERE item_id = inv_items.id AND status NOT IN (8, 11) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority'),
+                DB::raw('(SELECT priority_assigned_at FROM imp_imports WHERE item_id = inv_items.id AND status NOT IN (8, 11) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AS priority_assigned_at'),
+                DB::raw("(SELECT GROUP_CONCAT(CONCAT(il.name, ': ', ii.qty_requested, ' uds') SEPARATOR ' \n ') FROM imp_imports ii JOIN imp_labels il ON ii.label_id = il.id WHERE ii.item_id = inv_items.id AND ii.status NOT IN (8, 11) AND ii.deleted_at IS NULL) AS label_assignments")
             ])
             ->leftJoin('inv_items_store', function ($join) use ($principalStore) {
                 $join->on('inv_items_store.itemId', '=', 'inv_items.id')
                      ->where('inv_items_store.storeId', '=', $principalStore->id);
             })
+            ->leftJoin('inv_items_dimensions', 'inv_items_dimensions.item_id', '=', 'inv_items.id')
             ->leftJoin('imp_items_setup', 'imp_items_setup.item_id', '=', 'inv_items.id')
             ->leftJoin('inv_detail_inv_adjustments', 'inv_detail_inv_adjustments.itemId', '=', 'inv_items.id')
             ->leftJoin('inv_inventory_adjustments', 'inv_inventory_adjustments.id', '=', 'inv_detail_inv_adjustments.inventoryAdjustmentId')
@@ -268,21 +291,18 @@ class ImportList extends Component
                 ) s7m
             '), 's7m.itemId', '=', 'inv_items.id')
             ->when($this->selectedLabelId, function ($query) {
-                // INNER JOIN imp_imports to filter only items with this label
                 $query->join('imp_imports', function ($join) {
                     $join->on('imp_imports.item_id', '=', 'inv_items.id')
                         ->where('imp_imports.label_id', '=', $this->selectedLabelId)
-                        ->where('imp_imports.status', '<', 8) // Filtrar status < 8
+                        ->whereNotIn('imp_imports.status', [8, 11])
                         ->whereNull('imp_imports.deleted_at');
                 });
-                // INNER JOIN imp_labels (optional, for additional label data if needed)
                 $query->join('imp_labels', function ($join) {
                     $join->on('imp_labels.id', '=', 'imp_imports.label_id')
-                        ->where('imp_labels.status', 1); // Solo etiquetas con status = 1
+                        ->where('imp_labels.status', 1);
                 });
             })
             ->where('inv_items.status', 1)
-            // ->where('inv_items.type', '!=', 'DESCONTINUADOS')
             ->when($this->selectedSupplierId, function ($query) {
                 return $query->where('imp_items_setup.supplier_id', $this->selectedSupplierId);
             })
@@ -292,13 +312,21 @@ class ImportList extends Component
                     $query->where(function ($q) use ($word) {
                         $q->where('inv_items.name', 'like', '%' . $word . '%')
                             ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
-                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%');
+                            ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
+                            ->orWhere('inv_items.description', 'like', '%' . $word . '%');
                     });
                 }
             })
-            ->when($this->filterCritical, function ($query) {
-                $query->whereIn('inv_items.type', ['IMPORTADO', 'COMPRA NACIONAL'])
-                    ->where(DB::raw('
+            ->when($this->filterCritical !== 'ninguno', function ($query) {
+                if ($this->filterCritical === 'importados') {
+                    $query->where('inv_items.type', 'IMPORTADO');
+                } elseif ($this->filterCritical === 'compra_nacional') {
+                    $query->where('inv_items.type', 'COMPRA NACIONAL');
+                } else {
+                    $query->whereIn('inv_items.type', ['IMPORTADO', 'COMPRA NACIONAL']);
+                }
+
+                $query->where(DB::raw('
                         CASE 
                             WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
                             THEN (COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0))
@@ -309,7 +337,7 @@ class ImportList extends Component
                         $subQuery->select(DB::raw(1))
                             ->from('imp_imports as iim')
                             ->whereColumn('iim.item_id', 'inv_items.id')
-                            ->where('iim.status', '<', 8)
+                            ->whereNotIn('iim.status', [8, 11])
                             ->whereNull('iim.deleted_at')
                             ->whereIn('iim.priority', ['ASAP', 'Second', 'Third']);
                     });
@@ -323,9 +351,38 @@ class ImportList extends Component
                 'inv_items_store.stock_items_store',
                 'imp_items_setup.exw',
                 's7m.salidas_7_meses',
+                'inv_items_dimensions.quntityxbox',
                 $this->selectedLabelId ? 'imp_imports.qty_requested' : null,
             ]))
             ->orderBy($this->sortField, $this->sortDirection);
+            
+        return $query;
+    }
+
+    public function getItemsProperty()
+    {
+        $query = $this->getBaseQuery();
+        $principalStore = $this->getPrincipalStore();
+
+        Log::info("=== GET ITEMS - selectedLabelId: " . ($this->selectedLabelId ?? 'null') . " ===");
+
+        // Debug: Si hay label seleccionado, verificar qué items existen en imp_imports
+        if ($this->selectedLabelId) {
+            $importsCheck = DB::connection('tenant')
+                ->table('imp_imports')
+                ->where('label_id', $this->selectedLabelId)
+                ->whereNotIn('status', [8, 11]) // Filtrar excluyendo 8 y 11
+                ->whereNull('deleted_at')
+                ->get(['id', 'item_id', 'qty_requested', 'label_id', 'status']);
+
+            Log::info('DEBUG - Items en imp_imports para label ' . $this->selectedLabelId . ': ' . $importsCheck->count());
+            if ($importsCheck->count() > 0) {
+                Log::info('DEBUG - Primer registro imp_imports: ' . json_encode($importsCheck->first(), JSON_PRETTY_PRINT));
+                Log::info('DEBUG - Item IDs en imp_imports: ' . $importsCheck->pluck('item_id')->implode(', '));
+            }
+        }
+
+        // La consulta y construcción ya se realiza en getBaseQuery
 
         // Log del SQL generado
         Log::info('=== IMPORT ITEMS QUERY ===');
@@ -354,7 +411,7 @@ class ImportList extends Component
                 ->leftJoin('imp_packing as pk', 'ii.packing_id', '=', 'pk.id')
                 ->leftJoin('imp_shippments as s', 'pk.shipping_id', '=', 's.id')
                 ->whereIn('ii.item_id', $itemIds)
-                ->where('ii.status', '<', 8)
+                ->whereNotIn('ii.status', [8, 11])
                 ->whereNull('ii.deleted_at')
                 ->get()
                 ->groupBy('item_id');
@@ -392,8 +449,8 @@ class ImportList extends Component
         // Limpiar el cache de items
         unset($this->items);
 
-        // Resetear paginación
-        $this->resetPage();
+        // No resetear paginación cuando se actualiza la cantidad para mantener el usuario en la página actual
+        // $this->resetPage();
 
         // Limpiar cantidades seleccionadas
         $this->selectedQuantities = [];
@@ -423,6 +480,39 @@ class ImportList extends Component
 
             // Convertir a entero y asegurar que no sea negativo
             $quantity = max(0, (int) $quantity);
+
+            // Validar que el ítem tenga proveedor si la cantidad es > 0
+            if ($quantity > 0) {
+                $setup = \App\Models\Tenant\Imports\ImpItemsSetup::where('item_id', $itemId)->first();
+                if (!$setup || !$setup->supplier_id) {
+                    // Proveedor faltante, consultar lista de usuarios (perfil 17 = Proveedor) para el Swal
+                    $tenantId = session('tenant_id');
+                    $suppliers = \Illuminate\Support\Facades\DB::table('users')
+                        ->join('vnt_contacts', 'users.contact_id', '=', 'vnt_contacts.id')
+                        ->join('user_tenants', 'users.id', '=', 'user_tenants.user_id')
+                        ->where('user_tenants.tenant_id', $tenantId)
+                        ->where('users.profile_id', 17)
+                        ->where('vnt_contacts.status', 1)
+                        ->whereNull('vnt_contacts.deleted_at')
+                        ->distinct()
+                        ->select('users.id', 'users.name')
+                        ->get()
+                        ->mapWithKeys(function ($supplier) {
+                            return [$supplier->id => $supplier->name];
+                        })
+                        ->toArray();
+                    
+                    $this->dispatch('show-supplier-select-swal', [
+                        'itemId' => $itemId,
+                        'quantity' => $quantity,
+                        'suppliers' => $suppliers
+                    ]);
+                    
+                    // Refrescar para devolver el input a su valor original mientras selecciona
+                    $this->dispatch('$refresh');
+                    return; 
+                }
+            }
 
             $unconfirmedQty = InvUnconfirmedQty::withTrashed()->where('item_id', $itemId)->first();
 
@@ -461,19 +551,33 @@ class ImportList extends Component
                 $this->selectedItems = array_values(array_filter($this->selectedItems, fn($id) => $id != $itemId));
             }
 
-            $this->dispatch('quantity-updated', itemId: $itemId, quantity: $quantity);
-            $this->dispatch('refresh-import-list');
+            $this->dispatch('$refresh');
         } catch (\Exception $e) {
-            Log::error('Error al actualizar cantidad: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error actualizando cantidad: ' . $e->getMessage());
+        }
+    }
 
-            session()->flash('error', 'Error al actualizar la cantidad: ' . $e->getMessage());
+    #[On('assign-supplier-and-quantity')]
+    public function assignSupplierAndQuantity($itemId, $quantity, $supplierId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            \App\Models\Tenant\Imports\ImpItemsSetup::updateOrCreate(
+                ['item_id' => $itemId],
+                ['supplier_id' => $supplierId]
+            );
+            
+            // Reintentar la actualización de cantidad ahora que tiene proveedor
+            $this->updateQuantity($itemId, $quantity);
+        } catch (\Exception $e) {
+            Log::error('Error en assignSupplierAndQuantity: ' . $e->getMessage());
         }
     }
 
     /**
      * Método que se ejecuta cuando se hace clic en un item
      */
+    #[Renderless]
     public function selectItem($itemId, $quantity)
     {
         try {
@@ -737,6 +841,101 @@ class ImportList extends Component
         $tenantManager->setConnection($tenant);
         // Inicializar tenancy
         tenancy()->initialize($tenant);
+    }
+
+    private function getExportFileName($extension)
+    {
+        $name = ($extension === 'xlsx') ? 'Gestion_de_importaciones' : 'Importaciones';
+        
+        if ($this->filterCritical === 'importados') {
+            $name .= '_Productos_Criticos_Importados';
+        } elseif ($this->filterCritical === 'compra_nacional') {
+            $name .= '_Productos_Criticos_Compra_Nacional';
+        } elseif ($this->filterCritical === 'ninguno' && $this->selectedLabelId) {
+            $name .= '_Programacion_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $this->selectedLabelName);
+        }
+
+        if ($this->search) {
+            $name .= '_Busqueda_' . preg_replace('/[^A-Za-z0-9_-]/', '_', trim($this->search));
+        }
+
+        if ($extension === 'xlsx') {
+            return str_replace('_', ' ', $name) . '.' . $extension;
+        }
+
+        return $name . '_' . date('Y-m-d_H-i-s') . '.' . $extension;
+    }
+
+    public function exportExcel()
+    {
+        $filename = $this->getExportFileName('xlsx');
+        
+        $query = $this->getBaseQuery();
+        $items = $query->get();
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Tenant\ImportsExport($items), $filename);
+    }
+
+    public function exportCsv()
+    {
+        return $this->generateCsvExport();
+    }
+
+    public function exportPdf()
+    {
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => 'Exportación a PDF - En desarrollo'
+        ]);
+    }
+
+    private function generateCsvExport()
+    {
+        $filename = $this->getExportFileName('csv');
+        $query = $this->getBaseQuery();
+        
+        $items = $query->get(); // Extraemos todos sin paginar
+        
+        $callback = function() use ($items) {
+            $file = fopen('php://output', 'w');
+            
+            // BOM for Excel compatibility with UTF-8
+            fputs($file, "\xEF\xBB\xBF");
+            
+            // Columnas del CSV
+            fputcsv($file, [
+                'ID', 
+                'Código SKU', 
+                'Descripción', 
+                'Existencias ERP', 
+                'Cantidad Solicitada', 
+                '% Stock', 
+                'Salidas ERP', 
+                'Entradas ERP', 
+                'EXW', 
+                'Prioridad'
+            ]);
+
+            foreach ($items as $item) {
+                fputcsv($file, [
+                    $item->id,
+                    $item->sku,
+                    $item->description ?? $item->name,
+                    $item->stock_items_store,
+                    $item->quantity,
+                    $item->percentage . '%',
+                    $item->outsideMovement,
+                    $item->insideMovement,
+                    $item->exw,
+                    $item->priority ?? 'Sin asignar'
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->streamDownload($callback, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function assignPriorityToSelected($priority)

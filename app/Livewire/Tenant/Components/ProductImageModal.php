@@ -72,7 +72,7 @@ class ProductImageModal extends Component
     public $wpProductUrl = null;
 
     #[On('openImageModal')]
-    public function open($productId, $context = null)
+    public function open($productId, $context = null, \App\Services\Tenant\WordPress\WordPressService $wpService = null)
     {
         $this->ensureTenantConnection();
         $this->productId = $productId;
@@ -82,8 +82,18 @@ class ProductImageModal extends Component
             $this->productName = $product->name;
             $this->productCode = $product->internal_code;
             $this->isOpen = true;
-            $this->hasWpProduct = false; // Se cargará de forma asíncrona mediante wire:init
-            $this->wpProductUrl = null;
+            
+            // Cargar estado de WooCommerce interactivamente en la apertura
+            $wpService = $wpService ?: app(\App\Services\Tenant\WordPress\WordPressService::class);
+            $wpProduct = !empty($product->sku) ? $wpService->findProductBySku($product->sku) : null;
+            $this->hasWpProduct = $wpProduct !== null;
+            $this->wpProductUrl = $wpProduct ? ($wpProduct['permalink'] ?? null) : null;
+
+            \Illuminate\Support\Facades\Log::info('DEBUG WP PRODUCT MODAL', [
+                'item_sku' => $product->sku,
+                'found_in_wp' => $this->hasWpProduct,
+                'wp_product_data' => $wpProduct
+            ]);
             
             // Perfil del usuario
             $this->userProfileId = auth()->user()->profile_id;
@@ -91,7 +101,11 @@ class ProductImageModal extends Component
             // Si se pasa un contexto explícito (desde el botón), lo usamos
             if ($context) {
                 $this->activeTab = strtoupper($context);
-                $this->isContextForced = true;
+                if ($this->activeTab === 'BODEGA') {
+                    $this->isContextForced = false; // Permitimos cambiar a Comercial si estamos en bodega
+                } else {
+                    $this->isContextForced = true;
+                }
             } else {
                 $this->isContextForced = false;
                 // Lógica por defecto según perfil si no hay contexto

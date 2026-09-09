@@ -40,7 +40,12 @@
                 <div class="space-y-3">
                     <button wire:click="loadVentasVendedor" 
                         class="w-full text-left px-4 py-3 {{ $activeReport == 'ventas_vendedor' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }} rounded-lg text-sm font-semibold transition-all flex items-center group">
-                        <span class="flex-1">Informe de ventas por vendedor</span>
+                        <span class="flex-1">Informe detallado por vendedor</span>
+                    </button>
+                    
+                    <button wire:click="loadVentasVendedorResumido" 
+                        class="w-full text-left px-4 py-3 {{ $activeReport == 'ventas_vendedor_resumido' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }} rounded-lg text-sm font-semibold transition-all flex items-center group">
+                        <span class="flex-1">Informe resumido por Vendedor</span>
                     </button>
 
                     <button wire:click="loadCotizacionesProducto" 
@@ -69,7 +74,7 @@
                     <h2 class="text-gray-800 font-bold text-sm uppercase tracking-widest">{{ $reportTitle ?: 'Seleccione un informe' }}</h2>
                     @if($activeReport)
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400 font-medium">{{ $reportData->total() }} registros encontrados</span>
+                            <span class="text-xs text-gray-400 font-medium">@if(isset($reportData) && method_exists($reportData, 'total')) {{ $reportData->total() }} @else {{ count($reportData ?? []) }} @endif registros encontrados</span>
                         </div>
                     @endif
                 </div>
@@ -124,7 +129,7 @@
                     </div>
                 @endif
 
-                @if($activeReport == 'ventas_vendedor')
+                @if($activeReport == 'ventas_vendedor' || $activeReport == 'ventas_vendedor_resumido')
                     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <div class="max-w-xs">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Filtrar Vendedor:</label>
@@ -192,6 +197,13 @@
                                         <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total</th>
                                         <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Clasif.</th>
                                         <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pago</th>
+                                    @elseif($activeReport == 'ventas_vendedor_resumido')
+                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Vendedor</th>
+                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Remisión</th>
+                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Factura</th>
+                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
+                                        <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Subtotal</th>
                                     @elseif($activeReport == 'cotizaciones_producto')
                                         <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Producto</th>
                                         <th class="px-4 py-3 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider">Cotiz.</th>
@@ -241,6 +253,17 @@
                                             <td class="px-4 py-3 text-[11px] text-right font-bold text-gray-900">${{ number_format($row->total, 2) }}</td>
                                             <td class="px-4 py-3 text-[10px] text-gray-500 uppercase">{{ $row->clasificacion ?: '---' }}</td>
                                             <td class="px-4 py-3 text-[10px] text-gray-500">{{ $row->forma_pago ?: '---' }}</td>
+                                        @elseif($activeReport == 'ventas_vendedor_resumido')
+                                            <td class="px-4 py-3 text-[11px] text-gray-700 font-medium">{{ $row->vendedor }}</td>
+                                            <td class="px-4 py-3 text-[10px]">
+                                                <span class="px-2 py-0.5 rounded {{ str_contains(strtoupper($row->estado_texto), 'ENTREGADO') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }} font-bold">
+                                                    {{ $row->estado_texto }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-[11px] text-gray-600 font-mono">{{ $row->remission }}</td>
+                                            <td class="px-4 py-3 text-[11px] text-gray-900 font-bold">{{ $row->factura ?: '---' }}</td>
+                                            <td class="px-4 py-3 text-[11px] text-gray-500">{{ \Carbon\Carbon::parse($row->fecha)->format('Y-m-d') }}</td>
+                                            <td class="px-4 py-3 text-[11px] text-right font-mono font-bold text-gray-900">${{ number_format($row->subtotal, 2) }}</td>
                                         @elseif($activeReport == 'cotizaciones_producto')
                                             <td class="px-4 py-3 text-[11px] text-gray-700">{{ $row->codigo }} - {{ $row->producto }}</td>
                                             <td class="px-4 py-3 text-[11px] text-center font-bold text-gray-900">{{ $row->cotizaciones }}</td>
