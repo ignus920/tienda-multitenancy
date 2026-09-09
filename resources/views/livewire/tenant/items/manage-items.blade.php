@@ -1257,14 +1257,18 @@
     @endif
 
     <!-- Modal Values -->
-    @if($showValuesModal)
-    @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key($item_id))
-    @endif
+    <div wire:key="values-modal-slot">
+        @if($showValuesModal)
+            @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key('values-'.$item_id))
+        @endif
+    </div>
 
     <!-- Modal Ubicaciones -->
-    @if($showLocationsModal)
-    @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
-    @endif
+    <div wire:key="locations-modal-slot">
+        @if($showLocationsModal)
+            @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
+        @endif
+    </div>
 
     <!-- Modal Stock por Sucursales y Bodegas -->
     @if($showStockModal)
