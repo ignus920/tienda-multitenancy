@@ -28,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Register Livewire components
         Livewire::component('auth.enable2-f-a', \App\Auth\Livewire\Enable2FA::class);
+        Livewire::component('auth.verify2-f-a', \App\Auth\Livewire\Verify2FA::class);
+        Livewire::component('auth.select-tenant', \App\Auth\Livewire\SelectTenant::class);
 
         // Event listeners for global auditing
         \Illuminate\Support\Facades\Event::listen('eloquent.created: *', function ($eventName, array $data) {
