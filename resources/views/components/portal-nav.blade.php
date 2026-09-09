@@ -41,7 +41,8 @@
   }
   .fp h1,.fp h2,.fp h3,.fp h4{font-family:"Archivo", system-ui, sans-serif; font-weight:800; letter-spacing:-.02em; line-height:1.14; color:var(--fp-ink)}
   .fp .mono{font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums}
-  .fp-wrap{max-width:1120px; margin:0 auto; padding:0 20px 80px}
+  .fp-wrap{max-width:1120px; margin:0 auto; padding:20px 20px 80px}
+  @media (max-width:640px){ .fp-wrap{padding:14px 14px 72px} }
 
   /* ---- tabs bar ---- */
   .fp-tabsbar{
@@ -49,12 +50,18 @@
     background:var(--fp-surface);
     border-bottom:1px solid var(--fp-line);
   }
-  .fp-tabs{max-width:1120px; margin:0 auto; padding:0 22px; display:flex; justify-content:center; gap:2px; overflow-x:auto}
+  .fp-tabs{max-width:1120px; margin:0 auto; padding:0 16px; display:flex; justify-content:center; gap:2px; overflow-x:auto;
+    scrollbar-width:none; -ms-overflow-style:none}
+  .fp-tabs::-webkit-scrollbar{display:none}
   .fp-tab{
-    display:flex; align-items:center; gap:8px; padding:12px 15px 14px; font-weight:600; font-size:13.5px;
+    display:flex; align-items:center; gap:7px; padding:12px 13px 13px; font-weight:600; font-size:13px;
     color:var(--fp-ink-3); border-bottom:2px solid transparent; white-space:nowrap; text-decoration:none; transition:color .12s;
   }
-  .fp-tab svg{width:16px;height:16px}
+  .fp-tab svg{width:16px;height:16px; flex:none}
+  @media (max-width:640px){
+    .fp-tabs{justify-content:flex-start; padding:0 12px}
+    .fp-tab{padding:11px 11px 12px; font-size:12.5px}
+  }
   .fp-tab:hover{color:var(--fp-ink-2)}
   .fp-tab[aria-current="page"]{color:var(--fp-accent); border-color:var(--fp-accent)}
 
@@ -161,7 +168,8 @@
   .fp-railcta p{font-size:12.5px; color:var(--fp-ink-2); margin-bottom:9px}
 
   /* ---- order detail ---- */
-  .fp-back{display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--fp-ink-2); margin-bottom:16px; text-decoration:none}
+  .fp-back{display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--fp-ink-2); margin:6px 0 16px; text-decoration:none}
+  @media (max-width:640px){ .fp-back{margin:2px 0 14px} }
   .fp-back:hover{color:var(--fp-ink)}
   .fp-back svg{width:15px;height:15px}
   .fp-odhead{display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:14px; padding:20px 22px}

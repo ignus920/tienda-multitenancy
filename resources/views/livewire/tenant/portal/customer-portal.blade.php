@@ -107,7 +107,7 @@
     </div>
 
     <!-- Layout con sidebar sticky -->
-    <div class="flex gap-0">
+    <div class="flex gap-0 mx-auto max-w-[1480px]">
         <div class="flex-1 min-w-0 px-4 sm:px-6 pt-6">
 
 
@@ -288,7 +288,6 @@
                 </div>
             @endif
 
-            <div class="max-w-5xl">
             <!-- Barra de búsqueda + filtros -->
             @php
                 $fpPillOn  = 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm';
@@ -687,7 +686,6 @@
             <div class="mt-4">
                 {{ $products->links() }}
             </div>
-            </div>{{-- /max-w-5xl --}}
         </div>
 
         <!-- SIDEBAR (estilo cotizador) -->
