@@ -62,19 +62,16 @@ class Task extends Model
 
     const STATUSES = [
         'sin_programar' => 'Sin programar',
-        'programada' => 'Programada',
         'pendiente' => 'Pendiente',
-        'disponible' => 'Disponible',
         'en_proceso' => 'En proceso',
         'pausada' => 'Pausada',
         'bloqueada' => 'Bloqueada',
         'terminada' => 'Terminada',
         'vencida' => 'Vencida',
-        'reprogramada' => 'Reprogramada',
         'cancelada' => 'Cancelada',
     ];
 
-    const OPEN_STATUSES = ['sin_programar', 'programada', 'pendiente', 'disponible', 'en_proceso', 'pausada', 'bloqueada', 'reprogramada'];
+    const OPEN_STATUSES = ['sin_programar', 'pendiente', 'en_proceso', 'pausada', 'bloqueada'];
 
     const ORIGIN_TYPES = [
         'cliente' => 'Cliente',
@@ -122,18 +119,23 @@ class Task extends Model
     public function currentSchedule()
     {
         return $this->hasOne(TaskSchedule::class, 'task_id')
-            ->whereIn('schedule_status', ['programada', 'en_proceso', 'pausada'])
+            ->whereIn('schedule_status', ['pendiente', 'en_proceso', 'pausada'])
             ->orderBy('scheduled_start');
     }
 
-    public function dependencies()
+    public function materials()
     {
-        return $this->hasMany(TaskDependency::class, 'task_id');
+        return $this->hasMany(TaskMaterial::class, 'task_id');
     }
 
-    public function dependentTasks()
+    public function checklists()
     {
-        return $this->hasMany(TaskDependency::class, 'depends_on_task_id');
+        return $this->hasMany(TaskChecklist::class, 'task_id')->orderBy('id', 'asc');
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(TaskAttachment::class, 'task_id')->orderBy('created_at', 'desc');
     }
 
     public function timeLogs()
@@ -195,14 +197,5 @@ class Task extends Model
         return $this->estimated_minutes + $this->travel_minutes_before + $this->travel_minutes_after;
     }
 
-    public function getHasPendingDependenciesAttribute()
-    {
-        if ($this->dependencies->isEmpty()) {
-            return false;
-        }
-
-        return $this->dependencies->contains(function ($dependency) {
-            return $dependency->dependsOnTask && $dependency->dependsOnTask->status !== 'terminada';
-        });
-    }
+    // El control de dependencias fue removido según la regla del MVP
 }

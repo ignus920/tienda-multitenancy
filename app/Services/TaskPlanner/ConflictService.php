@@ -18,7 +18,7 @@ class ConflictService
         $conflicts = [];
 
         $overlapping = TaskSchedule::where('user_id', $userId)
-            ->whereIn('schedule_status', ['programada', 'en_proceso', 'pausada'])
+            ->whereIn('schedule_status', ['pendiente', 'en_proceso', 'pausada'])
             ->when($ignoreScheduleId, fn($q) => $q->where('id', '!=', $ignoreScheduleId))
             ->where('scheduled_start', '<', $end)
             ->where('scheduled_end', '>', $start)

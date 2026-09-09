@@ -5,6 +5,7 @@ namespace App\Services\TaskPlanner;
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskSchedule;
 use App\Models\Tenant\TaskPlanner\TaskHistory;
+use App\Models\Tenant\TaskPlanner\TaskNotification;
 use App\Models\Tenant\TaskPlanner\EmployeeSchedule;
 use Carbon\Carbon;
 
@@ -53,7 +54,7 @@ class SchedulingService
                 [
                     'scheduled_start' => $start,
                     'scheduled_end' => $end,
-                    'schedule_status' => 'programada',
+                    'schedule_status' => 'pendiente',
                     'reschedule_reason' => $wasScheduled ? $rescheduleReason : null,
                 ]
             );
@@ -64,7 +65,7 @@ class SchedulingService
             ->whereNotIn('user_id', $userIds)
             ->delete();
 
-        $newStatus = $task->has_pending_dependencies ? 'bloqueada' : ($start->isFuture() ? 'programada' : 'disponible');
+        $newStatus = 'pendiente';
 
         TaskHistory::log(
             $task->id,
@@ -76,6 +77,15 @@ class SchedulingService
         );
 
         $task->update(['status' => $newStatus]);
+
+        TaskNotification::notify(
+            $userIds,
+            $task->id,
+            'programacion',
+            ($wasScheduled ? 'Cambió tu programación: ' : 'Nueva actividad programada: ') . $task->title
+                . ' — ' . $start->format('d/m H:i') . ' a ' . $end->format('H:i'),
+            $actingUserId
+        );
     }
 
     /**

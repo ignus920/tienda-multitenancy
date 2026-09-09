@@ -3,6 +3,8 @@
 namespace App\Livewire\Tenant\TaskPlanner;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\Attributes\On;
 use App\Models\Tenant\TaskPlanner\Task;
 use App\Models\Tenant\TaskPlanner\TaskSchedule;
 use App\Models\Tenant\TaskPlanner\TaskComment;
@@ -16,6 +18,8 @@ use Exception;
 
 class MyTasksToday extends Component
 {
+    use WithFileUploads;
+
     public $showPauseModal = false;
     public $pausingTaskId = null;
     public $pauseReason = '';
@@ -34,9 +38,31 @@ class MyTasksToday extends Component
     public $commentTaskId = null;
     public $newComment = '';
 
+    public $showAttachModal = false;
+    public $attachTaskId = null;
+    public $attachFiles = [];
+
+    public $userId;
+
+    public function mount()
+    {
+        $this->userId = Auth::id();
+    }
+
     public function boot()
     {
         $this->ensureTenantConnection();
+    }
+
+    /**
+     * Cuando llega un aviso del planificador por WebSocket, refrescamos la
+     * pantalla para que la tarjeta "AHORA DEBE REALIZAR" y la lista aparezcan
+     * sin recargar. El toast/sonido lo maneja la campanita (NotificationBell).
+     */
+    #[On('echo-private:user.{userId},.NewTaskPlannerNotification')]
+    public function onRealtimeUpdate()
+    {
+        // El solo hecho de que este método corra dispara un re-render de Livewire.
     }
 
     private function ensureTenantConnection()
@@ -65,6 +91,20 @@ class MyTasksToday extends Component
             $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea iniciada.']);
         } catch (Exception $e) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function toggleChecklistItem($checkId)
+    {
+        $this->ensureTenantConnection();
+        $checklist = \App\Models\Tenant\TaskPlanner\TaskChecklist::findOrFail($checkId);
+        
+        // Solo se pueden marcar los pasos mientras la tarea se está ejecutando.
+        if (in_array($checklist->task->status, ['en_proceso', 'pausada'])) {
+            $checklist->update([
+                'is_completed' => !$checklist->is_completed,
+                'completed_at' => !$checklist->is_completed ? now() : null,
+            ]);
         }
     }
 
@@ -109,7 +149,12 @@ class MyTasksToday extends Component
     {
         $this->ensureTenantConnection();
 
-        $service->finish(Task::findOrFail($this->finishingTaskId), Auth::id(), $this->finishNote);
+        try {
+            $service->finish(Task::findOrFail($this->finishingTaskId), Auth::id(), $this->finishNote);
+        } catch (Exception $e) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => $e->getMessage()]);
+            return;
+        }
 
         $this->showFinishModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea terminada.']);
@@ -145,6 +190,45 @@ class MyTasksToday extends Component
         $this->showCommentModal = true;
     }
 
+    public function openAttachModal($taskId)
+    {
+        $this->reset(['attachFiles']);
+        $this->attachTaskId = $taskId;
+        $this->showAttachModal = true;
+    }
+
+    public function saveAttachments()
+    {
+        $this->ensureTenantConnection();
+
+        $this->validate([
+            'attachFiles' => 'required|array|min:1',
+            'attachFiles.*' => 'file|max:10240',
+        ], [
+            'attachFiles.required' => 'Selecciona al menos un archivo o foto.',
+            'attachFiles.*.max' => 'Cada archivo debe pesar máximo 10 MB.',
+        ]);
+
+        $task = Task::findOrFail($this->attachTaskId);
+
+        foreach ($this->attachFiles as $file) {
+            $path = $file->store('task_attachments', 'public');
+            $task->attachments()->create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_type' => $file->getClientOriginalExtension(),
+                'file_size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
+
+        \App\Models\Tenant\TaskPlanner\TaskHistory::log($task->id, Auth::id(), 'adjunto_agregado', null, count($this->attachFiles) . ' archivo(s)');
+
+        $this->showAttachModal = false;
+        $this->reset(['attachFiles']);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Archivos adjuntados.']);
+    }
+
     public function addComment()
     {
         $this->ensureTenantConnection();
@@ -170,7 +254,7 @@ class MyTasksToday extends Component
         $todaySchedules = TaskSchedule::where('user_id', $userId)
             ->whereDate('scheduled_start', $today->toDateString())
             ->whereNotIn('schedule_status', ['cancelada'])
-            ->with(['task.department', 'task.comments.user', 'task.pauses'])
+            ->with(['task.department', 'task.comments.user', 'task.pauses', 'task.materials.item', 'task.checklists', 'task.attachments'])
             ->orderBy('scheduled_start')
             ->get();
 
@@ -182,12 +266,27 @@ class MyTasksToday extends Component
             return $s->scheduled_start->diffInMinutes($s->scheduled_end);
         });
 
-        $currentSchedule = $todaySchedules->first(function ($s) use ($today) {
+        // Tiempo laboral disponible hoy (jornada menos almuerzo)
+        $availableMinutes = 0;
+        if ($daySchedule) {
+            $availableMinutes = (int) \Carbon\Carbon::parse($daySchedule->start_time)
+                ->diffInMinutes(\Carbon\Carbon::parse($daySchedule->end_time));
+            if ($daySchedule->break_start && $daySchedule->break_end) {
+                $availableMinutes -= (int) \Carbon\Carbon::parse($daySchedule->break_start)
+                    ->diffInMinutes(\Carbon\Carbon::parse($daySchedule->break_end));
+            }
+        }
+
+        // "pendiente" y "vencida" son iniciables por el trabajador: una tarea que
+        // pasó su fecha límite no debe desaparecer de su pantalla si sigue agendada hoy.
+        $startable = ['pendiente', 'vencida'];
+
+        $currentSchedule = $todaySchedules->first(function ($s) {
             return $s->task->status === 'en_proceso' || $s->task->status === 'pausada';
-        }) ?? $todaySchedules->first(function ($s) use ($today) {
-            return in_array($s->task->status, ['programada', 'disponible']) && $s->scheduled_start->lte($today);
-        }) ?? $todaySchedules->first(function ($s) {
-            return in_array($s->task->status, ['programada', 'disponible']);
+        }) ?? $todaySchedules->first(function ($s) use ($today, $startable) {
+            return in_array($s->task->status, $startable) && $s->scheduled_start->lte($today);
+        }) ?? $todaySchedules->first(function ($s) use ($startable) {
+            return in_array($s->task->status, $startable);
         });
 
         $upcomingSchedules = $todaySchedules->reject(function ($s) use ($currentSchedule) {
@@ -210,15 +309,27 @@ class MyTasksToday extends Component
             }
         }
 
+        // Vista rápida de los próximos días (hasta 7 días hacia adelante)
+        $upcomingDays = TaskSchedule::where('user_id', $userId)
+            ->whereNotIn('schedule_status', ['cancelada', 'terminada'])
+            ->whereDate('scheduled_start', '>', $today->toDateString())
+            ->whereDate('scheduled_start', '<=', $today->copy()->addDays(7)->toDateString())
+            ->with('task.department')
+            ->orderBy('scheduled_start')
+            ->get()
+            ->groupBy(fn($s) => $s->scheduled_start->toDateString());
+
         return view('livewire.tenant.task-planner.my-tasks-today', [
             'today' => $today,
             'daySchedule' => $daySchedule,
             'todaySchedules' => $todaySchedules,
             'scheduledMinutes' => $scheduledMinutes,
+            'availableMinutes' => $availableMinutes,
             'currentSchedule' => $currentSchedule,
             'upcomingSchedules' => $upcomingSchedules,
+            'upcomingDays' => $upcomingDays,
             'fillerTasks' => $fillerTasks,
             'pauseReasons' => \App\Models\Tenant\TaskPlanner\TaskPause::REASONS,
-        ])->layout('layouts.app', ['header' => 'Mis Tareas de Hoy']);
+        ])->layout('layouts.app');
     }
 }

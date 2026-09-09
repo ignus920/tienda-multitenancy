@@ -11,6 +11,7 @@ use App\Models\Tenant\Items\Category;
 use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\InvItemsStore;
 use App\Models\Tenant\Items\InvStore;
+use App\Models\Tenant\Items\InvItemsDimensions;
 use App\Models\Auth\UserTenant;
 use App\Models\Auth\Tenant;
 use App\Models\Central\VntWarehouse;
@@ -140,6 +141,11 @@ class ManageItems extends Component
     public $showProductionSection = false;
     public $showDimensionSection = false;
     public $showAccesoriosSection = false;
+    public $showWebB2bSection = false;
+    public $scale_1_qty;
+    public $scale_1_discount;
+    public $scale_2_qty;
+    public $scale_2_discount;
     public $moduleKey = 'items';
 
     // tipos disponibles (puedes externalizarlo si lo prefieres)
@@ -362,16 +368,21 @@ class ManageItems extends Component
         $this->handles_serial = $item->handles_serial;
         $this->inventoriable = $item->inventoriable;
 
-        if ($item->inventoriable == 1) {
-            $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
-            $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
-            $this->wpMinStock = $storeRecord?->wp_min_stock ?? 0;
-        }
+        $storeRecord = InvItemsStore::where('itemId', $item->id)->orderByDesc('id')->first();
+        $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;
+        $this->wpMinStock = $storeRecord?->wp_min_stock ?? 0;
+
+        $dimensions = InvItemsDimensions::where('item_id', $item->id)->first();
+        $this->scale_1_qty = $dimensions?->scale_1_qty;
+        $this->scale_1_discount = $dimensions?->scale_1_discount;
+        $this->scale_2_qty = $dimensions?->scale_2_qty;
+        $this->scale_2_discount = $dimensions?->scale_2_discount;
 
         $this->disabled = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showWebB2bSection = false;
 
         $this->showModal = true;
     }
@@ -383,7 +394,7 @@ class ManageItems extends Component
 
         $query = Items::query()
             ->select('inv_items.*')
-            ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
+            ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax', 'locations'])
             ->when($this->selectedSupplierId, function ($query) {
                 $query->whereHas('importSetup', function ($q) {
                     $q->where('supplier_id', $this->selectedSupplierId);
@@ -396,7 +407,12 @@ class ManageItems extends Component
                         $q->where('inv_items.name', 'like', '%' . $word . '%')
                             ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
                             ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
-                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%')
+                            // Buscar también por la ubicación de PICKING (bodega storeId = 3)
+                            ->orWhereHas('locations', function ($loc) use ($word) {
+                                $loc->where('storeId', 3)
+                                    ->where('locationId', 'like', '%' . $word . '%');
+                            });
                     });
                 }
             });
@@ -1948,6 +1964,15 @@ class ManageItems extends Component
                 unset($apiData['inventory']);
             }
 
+            // Al ACTUALIZAR solo se envía precio/nombre/descripción/impuesto.
+            // Alegra rechaza el PUT completo (code 101099) si el item tiene
+            // movimientos en un periodo contable cerrado: no permite tocar
+            // costo unidad (inventory.unitCost) ni las cuentas (accounting).
+            // Esos bloques solo se necesitan al crear el item.
+            if ($isUpdate) {
+                unset($apiData['inventory'], $apiData['accounting']);
+            }
+
             // LOGGING: Mostrar el JSON que se está generando
             Log::info('📋 JSON generado para API de Items', [
                 'item_id' => $item->id,
@@ -2384,6 +2409,7 @@ class ManageItems extends Component
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showWebB2bSection = false;
     }
 
     public function activateAccesoriosSection(int $item_id): void
@@ -2392,6 +2418,7 @@ class ManageItems extends Component
         $this->showAccesoriosSection = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
+        $this->showWebB2bSection = false;
     }
 
     public function showImportSection($item_id)
@@ -2400,6 +2427,7 @@ class ManageItems extends Component
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showWebB2bSection = false;
     }
 
     public function showProductionSection($item_id)
@@ -2412,9 +2440,10 @@ class ManageItems extends Component
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showWebB2bSection = false;
     }
 
-    public function  activateDimensionSection($item_id)
+    public function activateDimensionSection($item_id)
     {
         Log::info('📏 showDimensionSection llamado', [
             'item_id' => $item_id,
@@ -2425,6 +2454,56 @@ class ManageItems extends Component
         $this->showDimensionSection = true;
         $this->showProductionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showWebB2bSection = false;
+    }
+
+    public function activateWebB2bSection($item_id)
+    {
+        $this->ensureTenantConnection();
+
+        $this->item_id = $item_id;
+        $this->showWebB2bSection = true;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+
+        $storeRecord = InvItemsStore::where('itemId', $item_id)->first();
+        if ($storeRecord) {
+            $this->wpStockPercentage = $storeRecord->wp_stock_percentage ?? 100;
+            $this->wpMinStock = $storeRecord->wp_min_stock ?? 0;
+        }
+
+        $dimensions = InvItemsDimensions::where('item_id', $item_id)->first();
+        if ($dimensions) {
+            $this->scale_1_qty = $dimensions->scale_1_qty;
+            $this->scale_1_discount = $dimensions->scale_1_discount;
+            $this->scale_2_qty = $dimensions->scale_2_qty;
+            $this->scale_2_discount = $dimensions->scale_2_discount;
+        }
+    }
+
+
+
+    public function saveB2bScales()
+    {
+        if (!$this->item_id) {
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $infoScales = [
+            'scale_1_qty'      => $this->scale_1_qty === '' ? null : $this->scale_1_qty,
+            'scale_1_discount' => $this->scale_1_discount === '' ? null : $this->scale_1_discount,
+            'scale_2_qty'      => $this->scale_2_qty === '' ? null : $this->scale_2_qty,
+            'scale_2_discount' => $this->scale_2_discount === '' ? null : $this->scale_2_discount,
+        ];
+
+        InvItemsDimensions::updateOrCreate(
+            ['item_id' => $this->item_id],
+            $infoScales
+        );
+
+        session()->flash('message', 'Configuración de escalas B2B guardada exitosamente.');
     }
 
     public function exportSpecialStocks()

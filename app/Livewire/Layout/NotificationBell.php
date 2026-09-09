@@ -7,9 +7,11 @@ use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\ProjectNotification;
 use App\Models\Tenant\Projects\ProjectMention;
 use App\Models\Tenant\Projects\ProjectTask;
+use App\Models\Tenant\TaskPlanner\TaskNotification;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class NotificationBell extends Component
@@ -22,6 +24,10 @@ class NotificationBell extends Component
     public $pendingTasks = [];
     public $taskCount = 0;
 
+    // Planificador Operativo (módulo tsk_*)
+    public $operativeNotifications = [];
+    public $operativeCount = 0;
+
     public $activeTab = 'general';
     public $showDropdown = false;
     public $userId;
@@ -32,6 +38,7 @@ class NotificationBell extends Component
         $this->loadNotifications();
         $this->loadPendingMentions();
         $this->loadPendingTasks();
+        $this->loadOperativeNotifications();
     }
 
     public function boot()
@@ -80,6 +87,23 @@ class NotificationBell extends Component
         $this->loadNotifications();
     }
 
+    /**
+     * Aviso en tiempo real del Planificador Operativo (tsk_*).
+     * Canal privado personal, evento propio: no interfiere con Proyectos.
+     */
+    #[On('echo-private:user.{userId},.NewTaskPlannerNotification')]
+    public function onNewOperativeNotification($payload = null)
+    {
+        $data = is_array($payload) && isset($payload[0]) ? $payload[0] : $payload;
+
+        $this->loadOperativeNotifications();
+        $this->dispatch('play-notification-sound');
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => $data['message'] ?? 'Tienes una nueva notificación de tareas',
+        ]);
+    }
+
     #[On('notifications-updated')]
     public function loadNotifications()
     {
@@ -111,6 +135,70 @@ class NotificationBell extends Component
                 ];
             })
             ->toArray();
+
+        // El wire:poll.60s ya llama a este método: aprovechamos para refrescar
+        // también las notificaciones operativas como respaldo del WebSocket.
+        $this->loadOperativeNotifications();
+    }
+
+    public function loadOperativeNotifications()
+    {
+        $this->ensureTenantConnection();
+
+        if (!Auth::check()) {
+            $this->operativeNotifications = [];
+            $this->operativeCount = 0;
+            return;
+        }
+
+        try {
+            if (!Schema::connection('tenant')->hasTable('tsk_notifications')) {
+                $this->operativeNotifications = [];
+                $this->operativeCount = 0;
+                return;
+            }
+
+            $rows = TaskNotification::where('user_id', Auth::id())
+                ->whereNull('read_at')
+                ->latest('id')
+                ->limit(20)
+                ->get();
+
+            $this->operativeCount = $rows->count();
+            $this->operativeNotifications = $rows->map(fn($n) => [
+                'id' => $n->id,
+                'task_id' => $n->task_id,
+                'type' => $n->type,
+                'message' => $n->message,
+                'time_ago' => Carbon::parse($n->created_at)->locale('es')->diffForHumans(),
+            ])->toArray();
+        } catch (\Throwable $e) {
+            $this->operativeNotifications = [];
+            $this->operativeCount = 0;
+        }
+    }
+
+    public function markOperativeAsRead($id)
+    {
+        $this->ensureTenantConnection();
+
+        TaskNotification::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->update(['read_at' => now()]);
+
+        $this->loadOperativeNotifications();
+    }
+
+    public function markAllOperativeAsRead()
+    {
+        $this->ensureTenantConnection();
+
+        TaskNotification::where('user_id', Auth::id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        $this->loadOperativeNotifications();
+        $this->showDropdown = false;
     }
 
     public function loadPendingMentions()
