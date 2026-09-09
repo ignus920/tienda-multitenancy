@@ -49,7 +49,7 @@
     background:var(--fp-surface);
     border-bottom:1px solid var(--fp-line);
   }
-  .fp-tabs{margin:0 auto; padding:0 22px; display:flex; gap:2px; overflow-x:auto}
+  .fp-tabs{max-width:1120px; margin:0 auto; padding:0 22px; display:flex; justify-content:center; gap:2px; overflow-x:auto}
   .fp-tab{
     display:flex; align-items:center; gap:8px; padding:12px 15px 14px; font-weight:600; font-size:13.5px;
     color:var(--fp-ink-3); border-bottom:2px solid transparent; white-space:nowrap; text-decoration:none; transition:color .12s;

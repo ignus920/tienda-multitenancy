@@ -288,69 +288,59 @@
                 </div>
             @endif
 
-            <!-- Barra de búsqueda -->
-            <div class="flex flex-wrap items-center gap-2 mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 shadow-sm">
-                <div class="relative flex-1 min-w-[200px]">
-                    <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"/></svg>
+            <div class="max-w-5xl">
+            <!-- Barra de búsqueda + filtros -->
+            @php
+                $fpPillOn  = 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm';
+                $fpPillOff = 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
+            @endphp
+            <div class="mb-4 space-y-2.5">
+                <!-- Buscador -->
+                <div class="relative rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                    <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"/></svg>
                     <input wire:model.live.debounce.300ms="search"
-                        type="text"
+                        type="search"
                         placeholder="Buscar por nombre o SKU…"
-                        class="block w-full pl-10 pr-4 py-2.5 border-0 rounded-xl bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 text-sm">
-                </div>
-                
-                <!-- Filtro de stock -->
-                <div class="flex items-center gap-4 px-2 py-2.5 flex-shrink-0" title="Mostrar todos los productos o solo los que tienen stock disponible">
-                    <label class="flex items-center cursor-pointer" title="Ver todo el catálogo de productos">
-                        <input type="radio" wire:model.live="stockFilter" value="all" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Todos</span>
-                    </label>
-                    <label class="flex items-center cursor-pointer" title="Ver solo productos con inventario disponible para entrega inmediata">
-                        <input type="radio" wire:model.live="stockFilter" value="in_stock" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">En stock</span>
-                    </label>
+                        class="block w-full pl-11 pr-4 py-3 border-0 rounded-2xl bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 text-sm">
                 </div>
 
-                <!-- Filtro de Forma de Pago (Crédito / Contado) -->
-                <div class="flex items-center gap-4 px-4 py-2.5 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 pl-4"   ||="Alternar entre listas de precios de Contado o de Crédito">
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">Pago:</span>
-                    <label class="flex items-center cursor-pointer" title="Ver precios y tarifas para pago de Contado">
-                        <input type="radio" wire:model.live="paymentFilter" value="contado" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Contado</span>
-                    </label>
-                    <label class="flex items-center cursor-pointer" title="Ver precios y tarifas para compras a Crédito">
-                        <input type="radio" wire:model.live="paymentFilter" value="credito" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                        <span class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Crédito</span>
-                    </label>
-                </div>
+                <!-- Filtros -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Stock -->
+                    <div class="inline-flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
+                        <label class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold transition-colors {{ $stockFilter === 'all' ? $fpPillOn : $fpPillOff }}">
+                            <input type="radio" wire:model.live="stockFilter" value="all" class="sr-only">Todos
+                        </label>
+                        <label class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold transition-colors {{ $stockFilter === 'in_stock' ? $fpPillOn : $fpPillOff }}">
+                            <input type="radio" wire:model.live="stockFilter" value="in_stock" class="sr-only">En stock
+                        </label>
+                    </div>
 
-                <!-- Botón de cambio de vista -->
-                <button @click="toggleViewMode()" 
-                        type="button" 
-                        class="p-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 transition-colors flex-shrink-0"
-                        :title="viewMode === 'list' ? 'Cambiar a cuadrícula' : 'Cambiar a lista'">
-                    <svg x-show="viewMode === 'list'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                    </svg>
-                    <svg x-show="viewMode === 'grid'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-                
-                <!-- Selector de cantidad por página -->
-                <div class="relative flex-shrink-0" title="Selecciona cuántos productos mostrar por página">
-                    <select wire:model.live="perPage" @change="savePerPage($event.target.value)"
-                            title="Productos por página"
-                            class="appearance-none block w-full pl-4 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-500 dark:focus:border-indigo-400 text-sm font-semibold transition-colors cursor-pointer shadow-sm text-center">
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
-                        <option value="40">40</option>
-                        <option value="50">50</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
+                    <!-- Forma de pago -->
+                    <div class="inline-flex items-center rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
+                        <span class="px-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Pago</span>
+                        <label class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold transition-colors {{ $paymentFilter === 'contado' ? $fpPillOn : $fpPillOff }}">
+                            <input type="radio" wire:model.live="paymentFilter" value="contado" class="sr-only">Contado
+                        </label>
+                        <label class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold transition-colors {{ $paymentFilter === 'credito' ? $fpPillOn : $fpPillOff }}">
+                            <input type="radio" wire:model.live="paymentFilter" value="credito" class="sr-only">Crédito
+                        </label>
+                    </div>
+
+                    <div class="ml-auto flex items-center gap-2">
+                        <button @click="toggleViewMode()" type="button"
+                                class="w-9 h-9 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                :title="viewMode === 'list' ? 'Ver en cuadrícula' : 'Ver en lista'">
+                            <svg x-show="viewMode === 'list'" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                            <svg x-show="viewMode === 'grid'" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                        <div class="relative" title="Productos por página">
+                            <select wire:model.live="perPage" @change="savePerPage($event.target.value)"
+                                    class="appearance-none pl-3 pr-8 h-9 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30 text-xs font-bold cursor-pointer">
+                                <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="40">40</option><option value="50">50</option>
+                            </select>
+                            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -442,11 +432,11 @@
                             $boxQty = $product->dimensions ? $product->dimensions->quntityxbox : 0;
                             $boxDiscount = $product->dimensions ? $product->dimensions->box_discount : 0;
                         @endphp
-                        <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors group"
+                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2.5 sm:gap-4 px-4 sm:px-5 py-3 sm:py-3.5 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors group"
                              x-data="{ showDetail: false }">
 
                             <!-- Menú de acciones (columna izquierda) -->
-                            <div class="w-9 flex-shrink-0 relative flex items-center justify-start" x-data="{ open: false }">
+                            <div class="hidden sm:flex w-8 flex-shrink-0 relative items-center justify-start" x-data="{ open: false }">
                                 <button @click.stop="open = !open" @click.away="open = false" title="Ver opciones disponibles para este producto" class="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center justify-center">
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
@@ -475,15 +465,21 @@
                             </div>
 
                             <!-- Nombre y código -->
-                            <div class="flex-1 min-w-0 flex flex-col justify-center">
-                                <div class="text-[13.5px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-2">{{ $product->name }}</div>
-                                @if($product->sku)
-                                    <div class="text-[11px] font-mono text-gray-400 dark:text-gray-500 mt-0.5">SKU {{ $product->sku }}</div>
-                                @endif
+                            <div class="flex-1 basis-[calc(100%-6rem)] sm:basis-0 min-w-0 flex flex-col justify-center">
+                                <div class="text-[13px] sm:text-[13.5px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-2">{{ $product->name }}</div>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    @if($product->sku)
+                                        <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500">SKU {{ $product->sku }}</span>
+                                    @endif
+                                    {{-- stock inline en móvil --}}
+                                    <span class="sm:hidden inline-flex items-center gap-1 text-[10px] font-bold {{ $visibleStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>{{ $visibleStock > 0 ? $visibleStock : 'Agotado' }}
+                                    </span>
+                                </div>
                             </div>
 
-                            <!-- Stock disponible -->
-                            <div class="w-16 flex-shrink-0 flex justify-center">
+                            <!-- Stock disponible (columna, solo desktop) -->
+                            <div class="hidden sm:flex w-16 flex-shrink-0 justify-center">
                                 @if($visibleStock > 0)
                                     <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                                         <span class="w-1.5 h-1.5 rounded-full bg-current"></span>{{ $visibleStock }}
@@ -496,7 +492,7 @@
                             </div>
 
                             <!-- Precio Contado -->
-                            <div class="w-24 flex-shrink-0 flex justify-end">
+                            <div class="w-[calc(50%-1.5rem)] sm:w-24 flex-shrink-0 flex justify-end">
                                 @if($priceCash > 0)
                                     @if($paymentFilter === 'contado')
                                         <button
@@ -515,7 +511,7 @@
                             </div>
 
                             <!-- Precio Crédito -->
-                            <div class="w-24 flex-shrink-0 flex justify-end">
+                            <div class="w-[calc(50%-1.5rem)] sm:w-24 flex-shrink-0 flex justify-end">
                                 @if($priceCredit && $priceCredit > 0)
                                     @if($paymentFilter === 'credito')
                                         <button
@@ -691,6 +687,7 @@
             <div class="mt-4">
                 {{ $products->links() }}
             </div>
+            </div>{{-- /max-w-5xl --}}
         </div>
 
         <!-- SIDEBAR (estilo cotizador) -->
