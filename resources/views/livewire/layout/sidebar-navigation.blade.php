@@ -41,8 +41,8 @@ new class extends Component
          :class="sidebarCollapsed ? 'px-3 py-4' : 'px-3 py-3'">
         {{-- Menú contraído: solo el círculo --}}
         <img x-show="sidebarCollapsed" class="h-9 w-9 object-contain" src="{{ asset('images/Logo.png') }}" alt="Fervicom">
-        {{-- Menú expandido: logo completo --}}
-        <img x-show="!sidebarCollapsed" class="h-12 w-full max-w-[210px] object-contain" src="{{ asset('images/fervicom-full-color.png') }}" alt="Fervicom Iluminación LED">
+        {{-- Menú expandido: logo completo (círculo + texto) --}}
+        <img x-show="!sidebarCollapsed" class="h-12 w-full max-w-[220px] object-contain" src="{{ asset('images/logofervi.png') }}" alt="Fervicom Iluminación LED">
     </div>
 
     <!-- Navigation -->
