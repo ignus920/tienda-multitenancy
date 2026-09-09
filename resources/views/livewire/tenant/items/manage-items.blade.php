@@ -442,8 +442,8 @@
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
                                     class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection),
-                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection)}">
+                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
+                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
                                     <div class="flex items-center space-x-2">
                                         <x-heroicon-o-information-circle class="w-5 h-5" />
                                         <span>Información General</span>
@@ -501,13 +501,26 @@
                                     </div>
                                 </button>
                                 @endif
+
+                                <!-- Pestaña Página Web / B2B - Siempre visible al editar -->
+                                @if($item_id)
+                                <button type="button" wire:click="activateWebB2bSection({{$item_id}})"
+                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showWebB2bSection),
+                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showWebB2bSection)}">
+                                    <div class="flex items-center space-x-2">
+                                        <x-heroicon-o-globe-alt class="w-5 h-5" />
+                                        <span>Página Web / B2B</span>
+                                    </div>
+                                </button>
+                                @endif
                             </nav>
                         </div>
                     </div>
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -767,63 +780,7 @@
                                 @error('inventoriable') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                             </div>
 
-                            @if($inventoriable == 1)
-                            <div class="col-span-2 grid grid-cols-2 gap-4 border p-4 rounded-xl border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 mt-2">
-                                <div class="col-span-2">
-                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center">
-                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                        </svg>
-                                        Parámetros de Página Web (WooCommerce)
-                                    </h4>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
-                                        % Stock WordPress
-                                        <!-- Tooltip -->
-                                        <div x-data="{ show: false }" class="relative inline-block ml-1.5">
-                                            <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                            </button>
-                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                                                Porcentaje del stock neto disponible que se publicará en la página web. Ej: 50% de 10 unidades publicará 5.
-                                            </div>
-                                        </div>
-                                    </label>
-                                    <div class="relative">
-                                        <input type="number" wire:model="wpStockPercentage"
-                                            min="0" max="100" step="1"
-                                            class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="100">
-                                        <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
-                                    </div>
-                                    @error('wpStockPercentage') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
-                                        Can Mínima WordPress
-                                        <!-- Tooltip -->
-                                        <div x-data="{ show: false }" class="relative inline-block ml-1.5">
-                                            <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                            </button>
-                                            <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                                                Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0).
-                                            </div>
-                                        </div>
-                                    </label>
-                                    <input type="number" wire:model="wpMinStock"
-                                        min="0" step="any"
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="0">
-                                    @error('wpMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                            @endif
+
                         </div>
 
                         <div class="mb-3">
@@ -1031,8 +988,8 @@
                         </div>
                     </div>
                 </form>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
-                    <!-- PESTAÑA 2: Contenido según el tipo del item -->
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showWebB2bSection))
+                    <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                             @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
@@ -1043,6 +1000,177 @@
                         @livewire('tenant.items.manage-dimensions', ['itemId' => $item_id], key('dim-'.$item_id))
                     @elseif($showAccesoriosSection)
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
+                    @elseif($showWebB2bSection)
+                        <div class="p-6 space-y-6">
+                            <!-- SECCIÓN 1: PARÁMETROS DE PÁGINA WEB (WOOCOMMERCE) -->
+                            <div class="border p-5 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 space-y-4">
+                                <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center select-none">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                        </svg>
+                                        Parámetros de Página Web (WooCommerce)
+                                    </h4>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            % Stock WordPress
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Porcentaje del stock neto disponible que se publicará en la página web. Ej: 50% de 10 unidades publicará 5.
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" wire:model="wpStockPercentage"
+                                                min="0" max="100" step="1"
+                                                class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                placeholder="100">
+                                            <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                                        </div>
+                                        @error('wpStockPercentage') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Can Mínima WordPress
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Si el stock disponible físico cae por debajo de esta cantidad, el disponible en la página web pasará a ser automáticamente cero (0).
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input type="number" wire:model="wpMinStock"
+                                            min="0" step="any"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="0">
+                                        @error('wpMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-end pt-2">
+                                    <button type="button" wire:click="saveWordpressParams"
+                                        class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                        Guardar parámetros WordPress
+                                    </button>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
+                                        Este botón guarda y sincroniza solo estos dos campos, sin necesidad de guardar el resto del formulario.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- SECCIÓN 2: CONFIGURACIÓN DE ESCALAS POR VOLUMEN (B2B) -->
+                            <div class="border p-5 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 space-y-4">
+                                <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider select-none">
+                                        Configuración de Escalas por Volumen (B2B)
+                                    </h4>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Escala 1 -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Cant. Mínima Escala 1
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Cantidad mínima de escala intermedia 1 (ej: 20 unidades).
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input wire:model="scale_1_qty" type="number"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Ej: 20">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Descuento Escala 1 (%)
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Descuento para cantidad de Escala 1 (ej: 3%).
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input wire:model="scale_1_discount" type="number" step="0.01"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Ej: 3.00">
+                                    </div>
+
+                                    <!-- Escala 2 -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Cant. Mínima Escala 2
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Cantidad mínima de escala intermedia 2 (ej: 40 unidades).
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input wire:model="scale_2_qty" type="number"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Ej: 40">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Descuento Escala 2 (%)
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Descuento para cantidad de Escala 2 (ej: 7%).
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input wire:model="scale_2_discount" type="number" step="0.01"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Ej: 7.00">
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end pt-2">
+                                    <button type="button" wire:click="saveB2bScales"
+                                        class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                        Guardar escalas B2B
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 @endif
 
