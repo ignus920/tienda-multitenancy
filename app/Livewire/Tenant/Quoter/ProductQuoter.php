@@ -2779,8 +2779,19 @@ class ProductQuoter extends Component
             }
         }
 
-        $phone = $customer['phone'] ?? '';
-        $isPhoneValid = preg_match('/^3[0-9]{9}$/', trim($phone));
+        // El teléfono a validar es el del CONTACTO del cliente (business_phone / personal_phone),
+        // NO el de la sucursal de envío. selectedCustomer['phone'] solo se llena al elegir una
+        // sucursal, por eso fallaba en clientes con varias sucursales aunque el cliente sí
+        // tuviera un celular válido cargado.
+        $phone = trim((string) ($customer['phone'] ?? ''));
+        if (!preg_match('/^3[0-9]{9}$/', $phone) && $this->editingQuoteId) {
+            $quoteForPhone = VntQuote::with('customer')->find($this->editingQuoteId);
+            $contactPhone = optional($quoteForPhone?->customer)->primary_phone;
+            if (!empty($contactPhone)) {
+                $phone = trim((string) $contactPhone);
+            }
+        }
+        $isPhoneValid = preg_match('/^3[0-9]{9}$/', $phone);
 
         if (count($missingFields) > 0 || !$isPhoneValid) {
             \Illuminate\Support\Facades\Log::info('⚠️ Cliente incompleto o sin celular válido - solicitando completar datos antes de crear OP', [
