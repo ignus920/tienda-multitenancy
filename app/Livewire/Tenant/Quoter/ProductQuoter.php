@@ -489,24 +489,20 @@ class ProductQuoter extends Component
                     'inv_items.*',
                     DB::raw('GROUP_CONCAT(DISTINCT CONCAT(central_warehouses.name, " - ", inv_store.name, ":", inv_items_store.stock_items_store) SEPARATOR ", ") as store_stock_details'),
                     DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
+                    // Reservas / tránsito / cuarentena / vitrina: se muestran en la matriz S/T
+                    // de cada producto en el cotizador comercial, así que deben calcularse siempre.
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= CURDATE()) as reserved_stock'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 2 AND deleted_at IS NULL AND due_date >= CURDATE()) as reserved_transit'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_quarantine_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as reserved_quarantine'),
+                    DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_showroom_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as showroom_stock'),
                     DB::raw('COALESCE(s7m.salidas_7_meses, 0) as salidas_7_meses')
                 )
                 ->where('inv_items.status', 1)
                 ->where('inv_items.type', '!=', 'INSUMO')
                 ->with(['principalImage', 'invValues', 'tax', 'locations'])
                 ->withCount('accessories')
-                ->when($this->hideQuoter, function ($q) use ($userStoreId) {
-                    // Métricas de bodega (reservas / tránsito / cuarentena / vitrina):
-                    // sólo se muestran en la vista de bodega. En el cotizador comercial
-                    // no se usan, así que se omiten para aligerar la consulta y acelerar
-                    // el buscador (sobre todo en conexiones lentas / WiFi).
-                    $q->addSelect(
-                        DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= CURDATE()) as reserved_stock'),
-                        DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 2 AND deleted_at IS NULL AND due_date >= CURDATE()) as reserved_transit'),
-                        DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_quarantine_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as reserved_quarantine'),
-                        DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_showroom_movements WHERE item_id = inv_items.id AND store_id = ' . (int)$userStoreId . ' AND deleted_at IS NULL) as showroom_stock')
-                    )
-                    ->with(['imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
+                ->when($this->hideQuoter, function ($q) {
+                    $q->with(['imports', 'remissionDetails.remission', 'dimensions', 'invItemsStore', 'principalBodegaImage']);
                 })
                 ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
                 ->leftJoin('inv_store', 'inv_items_store.storeId', '=', 'inv_store.id')
