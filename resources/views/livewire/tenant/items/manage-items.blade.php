@@ -557,12 +557,8 @@
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
-<<<<<<< HEAD
                 @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
-=======
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection))
                 <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
->>>>>>> test
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
                     <div class="space-y-6">
@@ -1119,6 +1115,7 @@
                         </div>
                     </div>
                 </form>
+                </div>
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showWebB2bSection))
                     @php
                         $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web_b2b'));
