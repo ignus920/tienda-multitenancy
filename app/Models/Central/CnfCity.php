@@ -3,6 +3,7 @@
 namespace App\Models\Central;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CnfCity extends Model
 {
@@ -23,4 +24,12 @@ class CnfCity extends Model
     ];
 
     public $timestamps = false;
+
+    /**
+     * Departamento / estado al que pertenece la ciudad (RAP central).
+     */
+    public function state(): BelongsTo
+    {
+        return $this->belongsTo(CnfState::class, 'state_id');
+    }
 }

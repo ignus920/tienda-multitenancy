@@ -762,6 +762,12 @@ $header = 'Seleccionar productos';
                             </span>
                         </div>
                         <div>
+                            <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Departamento</span>
+                            <span class="block text-sm font-extrabold text-gray-700 dark:text-slate-200 uppercase">
+                                {{ $selectedCustomer['stateName'] ?? 'N/A' }}
+                            </span>
+                        </div>
+                        <div>
                             <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Teléfono</span>
                             <span class="text-xs font-semibold text-gray-900 dark:text-white">
                                 {{ $selectedCustomer['phone'] ?? 'N/A' }}

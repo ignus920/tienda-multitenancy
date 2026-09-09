@@ -2387,6 +2387,9 @@
                         <p class="text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">
                             {{ $selectedCustomer['cityName'] ?? 'N/A' }}
                         </p>
+                        <p class="text-sm font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wide">
+                            Depto: {{ $selectedCustomer['stateName'] ?? 'N/A' }}
+                        </p>
                     </div>
 
                     @if($selectedDeliveryType)

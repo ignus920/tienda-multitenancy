@@ -1475,6 +1475,7 @@ class ProductQuoter extends Component
                 $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
                 if ($branch) {
                     $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+                    $this->selectedCustomer['stateName'] = data_get($branch, 'city.state.name', '');
                     $this->selectedCustomer['address'] = $branch['address'] ?? '';
                     $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
                 }
@@ -1485,7 +1486,7 @@ class ProductQuoter extends Component
     private function loadBranches($companyId)
     {
         $company = VntCompany::with(['warehouses' => function ($q) {
-            $q->where('status', 1)->with('city');
+            $q->where('status', 1)->with('city.state');
         }])->find($companyId);
 
         if ($company) {
@@ -1497,7 +1498,7 @@ class ProductQuoter extends Component
     {
         $this->ensureTenantConnection();
         $customer = VntCompany::with(['warehouses' => function ($q) {
-            $q->where('status', 1)->with('city');
+            $q->where('status', 1)->with('city.state');
         }])->find($customerId);
 
         if ($customer) {
@@ -1577,7 +1578,7 @@ class ProductQuoter extends Component
         $this->ensureTenantConnection();
 
         // Obtener el almacén/sucursal directamente de la base de datos con su ciudad para garantizar datos correctos y actualizados
-        $branchModel = VntWarehouse::with('city')->find($branchId);
+        $branchModel = VntWarehouse::with('city.state')->find($branchId);
 
         if ($branchModel) {
             $branch = $branchModel->toArray();
@@ -1625,6 +1626,7 @@ class ProductQuoter extends Component
 
         if ($branch) {
             $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+            $this->selectedCustomer['stateName'] = data_get($branch, 'city.state.name', '');
             $this->selectedCustomer['address'] = $branch['address'] ?? '';
             $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
             $this->deliveryPhone = $branch['phone'] ?? '';
@@ -1728,7 +1730,7 @@ class ProductQuoter extends Component
         }
 
         $this->ensureTenantConnection();
-        $city = \App\Models\Central\CnfCity::where('name', 'like', '%' . $newValue . '%')->first();
+        $city = \App\Models\Central\CnfCity::with('state')->where('name', 'like', '%' . $newValue . '%')->first();
         if (!$city) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => "Ciudad '{$newValue}' no encontrada"]);
             return;
@@ -1738,6 +1740,7 @@ class ProductQuoter extends Component
         if ($warehouse) {
             $warehouse->update(['cityId' => $city->id]);
             $this->selectedCustomer['cityName'] = $city->name;
+            $this->selectedCustomer['stateName'] = $city->state->name ?? '';
 
             // Recargar sucursales
             $this->loadBranches($this->selectedCustomer['id']);
@@ -1858,7 +1861,7 @@ class ProductQuoter extends Component
         if ($this->selectedCustomer && $this->selectedCustomer['id'] == $customerId) {
             // Buscar el cliente actualizado
             $customer = VntCompany::with(['warehouses' => function ($q) {
-                $q->where('status', 1)->with('city');
+                $q->where('status', 1)->with('city.state');
             }])->find($customerId);
 
             if ($customer) {
@@ -1888,6 +1891,7 @@ class ProductQuoter extends Component
                     $branch = collect($this->branches)->firstWhere('id', $this->selectedBranchId);
                     if ($branch) {
                         $this->selectedCustomer['cityName'] = $branch['city']['name'] ?? '';
+                        $this->selectedCustomer['stateName'] = data_get($branch, 'city.state.name', '');
                         $this->selectedCustomer['address'] = $branch['address'] ?? '';
                         $this->selectedCustomer['phone'] = $branch['phone'] ?? '';
                     }
@@ -2349,14 +2353,15 @@ class ProductQuoter extends Component
 
                 // Cargar ciudad, dirección y teléfono desde la sucursal (branch) de la cotización
                 if ($quote->branch) {
-                    $this->selectedCustomer['cityName'] = $quote->branch->city->name ?? '';
+                    $this->selectedCustomer['cityName'] = data_get($quote->branch, 'city.name', '');
+                    $this->selectedCustomer['stateName'] = data_get($quote->branch, 'city.state.name', '');
                     $this->selectedCustomer['address'] = $quote->branch->address ?? '';
                     $this->selectedCustomer['phone'] = $quote->branch->phone ?? '';
                 }
 
                 // Cargar sucursales de la empresa
                 if ($company) {
-                    $this->branches = $company->warehouses()->where('status', 1)->with('city')->get()->toArray();
+                    $this->branches = $company->warehouses()->where('status', 1)->with('city.state')->get()->toArray();
                     $this->selectedBranchId = $quote->branchId;
 
                     // Si el cliente tiene varias sucursales y el branchId guardado es el
