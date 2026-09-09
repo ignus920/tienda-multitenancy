@@ -69,7 +69,7 @@
         }
      }"
 >
-    <div class="px-4 sm:px-6"><x-portal-nav active="catalog" /></div>
+    <x-portal-nav active="catalog" />
 
     <!-- Modal de Visualización Ampliada de Promoción (Lightbox) -->
     <div x-show="showPromoModal"

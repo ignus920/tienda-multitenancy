@@ -151,7 +151,7 @@ trait InteractsWithClientPortal
      *
      * @return array<int, array{key:string, label:string, matches:array<string>}>
      */
-    protected function orderTimelineSteps(): array
+    public function orderTimelineSteps(): array
     {
         return [
             ['key' => 'registrado',  'label' => 'Pedido recibido',     'matches' => ['REGISTRADO']],
@@ -167,18 +167,18 @@ trait InteractsWithClientPortal
      *
      * @return array{label:string, color:string}
      */
-    protected function orderStatusBadge(?string $status): array
+    public function orderStatusBadge(?string $status): array
     {
         return match (strtoupper((string) $status)) {
-            'REGISTRADO'                        => ['label' => 'Recibido',       'color' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'],
-            'ALISTAMIENTO'                      => ['label' => 'En alistamiento', 'color' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'],
-            'EMPACADO'                          => ['label' => 'Empacado',       'color' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'],
-            'EN RECORRIDO', 'ENTREGADO A RUTA', 'EN RUTA' => ['label' => 'En camino', 'color' => 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'],
-            'ENTREGADO'                         => ['label' => 'Entregado',      'color' => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'],
-            'DEVUELTO'                          => ['label' => 'Devuelto',       'color' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'],
-            'ANULADO'                           => ['label' => 'Anulado',        'color' => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'],
-            'VENCIDO'                           => ['label' => 'Vencido',        'color' => 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'],
-            default                            => ['label' => ucfirst(strtolower((string) $status ?: 'Sin estado')), 'color' => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'],
+            'REGISTRADO'                        => ['label' => 'Recibido',       'fp' => 'blue'],
+            'ALISTAMIENTO'                      => ['label' => 'En alistamiento', 'fp' => 'amber'],
+            'EMPACADO'                          => ['label' => 'Empacado',       'fp' => 'blue'],
+            'EN RECORRIDO', 'ENTREGADO A RUTA', 'EN RUTA' => ['label' => 'En camino', 'fp' => 'cyan'],
+            'ENTREGADO'                         => ['label' => 'Entregado',      'fp' => 'green'],
+            'DEVUELTO'                          => ['label' => 'Devuelto',       'fp' => 'amber'],
+            'ANULADO'                           => ['label' => 'Anulado',        'fp' => 'red'],
+            'VENCIDO'                           => ['label' => 'Vencido',        'fp' => 'gray'],
+            default                            => ['label' => ucfirst(strtolower((string) $status ?: 'Sin estado')), 'fp' => 'gray'],
         };
     }
 
@@ -187,13 +187,13 @@ trait InteractsWithClientPortal
      *
      * @return array{label:string, color:string}
      */
-    protected function invoicePaymentBadge(?string $statusPayment): array
+    public function invoicePaymentBadge(?string $statusPayment): array
     {
         return match (strtoupper((string) $statusPayment)) {
-            'PAGADO'  => ['label' => 'Pagada',          'color' => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'],
-            'ABONO'   => ['label' => 'Con abono',       'color' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'],
-            'ANULADO' => ['label' => 'Anulada',         'color' => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'],
-            default   => ['label' => 'Pendiente',       'color' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'],
+            'PAGADO'  => ['label' => 'Pagada',    'fp' => 'green'],
+            'ABONO'   => ['label' => 'Con abono', 'fp' => 'amber'],
+            'ANULADO' => ['label' => 'Anulada',   'fp' => 'red'],
+            default   => ['label' => 'Pendiente', 'fp' => 'amber'],
         };
     }
 
@@ -205,7 +205,7 @@ trait InteractsWithClientPortal
      * @return array<int, array{key:string, label:string, date:?string, state:string}>
      *         state ∈ done | current | pending
      */
-    protected function buildOrderTimeline(InvRemissions $remission): array
+    public function buildOrderTimeline(InvRemissions $remission): array
     {
         $steps = $this->orderTimelineSteps();
 

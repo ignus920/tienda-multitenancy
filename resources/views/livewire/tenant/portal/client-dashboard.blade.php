@@ -1,141 +1,128 @@
-<div class="min-h-screen bg-gray-50 px-4 pb-16 pt-4 dark:bg-gray-950 sm:px-6">
+<div class="fp">
     <x-portal-nav active="dashboard" />
 
-    <div class="mx-auto max-w-6xl">
-
-        {{-- Saludo --}}
-        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="fp-wrap">
+        <div class="fp-greet">
             <div>
-                <p class="text-sm font-medium text-gray-400 dark:text-gray-500">Hola,</p>
-                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-                    {{ $companyName }}
-                </h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Este es el resumen de tu cuenta.
-                </p>
+                <div class="fp-eyebrow">{{ \Carbon\Carbon::now()->translatedFormat('l d \d\e F') }}</div>
+                <h1 class="fp-h1">Hola, {{ $companyName }}</h1>
+                <p>Este es el resumen de tu cuenta.</p>
             </div>
-            <a href="{{ route('tenant.client.portal') }}" wire:navigate
-               class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-700 active:scale-[.98]">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+            <a href="{{ route('tenant.client.portal') }}" wire:navigate class="fp-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6h15l-1.5 9h-12z M6 6 5 3H2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Hacer un pedido
             </a>
         </div>
 
-        {{-- KPIs --}}
-        <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            {{-- Pedidos en curso --}}
-            <a href="{{ route('tenant.client.orders') }}" wire:navigate
-               class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gray-200/60 dark:border-gray-800 dark:bg-gray-900 dark:hover:shadow-black/40">
-                <div class="flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 dark:bg-cyan-900/30">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/></svg>
+        {{-- Cinta: próxima entrega --}}
+        @php
+            $ribbonSteps = ['Recibido', 'Alistamiento', 'Empacado', 'En camino', 'Entregado'];
+            $ribbonTimeline = $nextDelivery ? $this->buildOrderTimeline($nextDelivery) : [];
+            $ribbonReached = -1;
+            foreach ($ribbonTimeline as $i => $s) { if ($s['state'] !== 'pending') $ribbonReached = $i; }
+        @endphp
+        @if ($nextDelivery)
+            <div class="fp-ribbon">
+                <span class="beam" aria-hidden="true"></span>
+                <div class="r-eyebrow">Tu próxima entrega</div>
+                <div class="r-main">
+                    <span class="big">
+                        @if ($nextDelivery->deliveryDate)
+                            {{ \Carbon\Carbon::parse($nextDelivery->deliveryDate)->translatedFormat('l d \d\e F') }}
+                        @else
+                            Fecha por confirmar
+                        @endif
                     </span>
-                    <span class="text-xs font-bold uppercase tracking-wide">En curso</span>
+                    <span class="ord">Pedido&nbsp;#{{ $nextDelivery->consecutive }}</span>
                 </div>
-                <p class="mt-3 text-3xl font-extrabold text-gray-900 dark:text-white">{{ $ordersInProgress }}</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">pedidos activos</p>
-            </a>
-
-            {{-- Próxima entrega --}}
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    </span>
-                    <span class="text-xs font-bold uppercase tracking-wide">Próxima entrega</span>
+                <div class="track" aria-hidden="true">
+                    @foreach ($ribbonSteps as $i => $lbl)
+                        <span class="node {{ $i < $ribbonReached ? 'done' : ($i === $ribbonReached ? 'now' : '') }}"></span>
+                        @if (! $loop->last)
+                            <span class="seg {{ $i < $ribbonReached ? 'done' : '' }}"></span>
+                        @endif
+                    @endforeach
                 </div>
-                @if ($nextDelivery && $nextDelivery->deliveryDate)
-                    <p class="mt-3 text-2xl font-extrabold text-gray-900 dark:text-white">
-                        {{ \Carbon\Carbon::parse($nextDelivery->deliveryDate)->translatedFormat('d M') }}
-                    </p>
-                    <a href="{{ route('tenant.client.orders.show', $nextDelivery->id) }}" wire:navigate
-                       class="text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
-                        Pedido #{{ $nextDelivery->consecutive }}
-                    </a>
-                @else
-                    <p class="mt-3 text-2xl font-extrabold text-gray-300 dark:text-gray-700">—</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500">sin entregas programadas</p>
-                @endif
+                <div class="track-labels">
+                    @foreach ($ribbonSteps as $i => $lbl)
+                        <span>@if($i === $ribbonReached)<b>{{ $lbl }}</b>@else{{ $lbl }}@endif</span>
+                    @endforeach
+                </div>
             </div>
+        @endif
 
-            {{-- Facturas por pagar --}}
-            <a href="{{ route('tenant.client.invoices') }}" wire:navigate
-               class="group rounded-2xl border border-gray-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gray-200/60 dark:border-gray-800 dark:bg-gray-900 dark:hover:shadow-black/40 {{ $unpaidCount > 0 ? 'ring-1 ring-amber-300 dark:ring-amber-700' : '' }}">
-                <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/30">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4m5 6H5a2 2 0 01-2-2V5a2 2 0 012-2h9l6 6v10a2 2 0 01-2 2z"/></svg>
-                    </span>
-                    <span class="text-xs font-bold uppercase tracking-wide">Por pagar</span>
-                </div>
-                <p class="mt-3 text-3xl font-extrabold text-gray-900 dark:text-white">{{ $unpaidCount }}</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">
-                    @if ($unpaidTotal > 0) ${{ number_format($unpaidTotal, 0, ',', '.') }} @else facturas @endif
-                </p>
+        {{-- Tiles --}}
+        <div class="fp-stats">
+            <a class="fp-tile" href="{{ route('tenant.client.orders') }}" wire:navigate>
+                <div class="t-head"><span class="t-ic ic-glow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm11 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z M13 16V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10h2m8 0H9m4 0a1 1 0 0 0 1 1M13 9h4l3 3v4h-2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>En curso</div>
+                <div class="num">{{ $ordersInProgress }}</div>
+                <div class="sub">{{ \Illuminate\Support\Str::plural('pedido', $ordersInProgress) }} {{ \Illuminate\Support\Str::plural('activo', $ordersInProgress) }}</div>
             </a>
-
-            {{-- Total histórico --}}
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </span>
-                    <span class="text-xs font-bold uppercase tracking-wide">Historial</span>
+            <a class="fp-tile {{ $unpaidCount > 0 ? 'attn' : '' }}" href="{{ route('tenant.client.invoices') }}" wire:navigate>
+                <div class="t-head"><span class="t-ic ic-warm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z M9 13h6M9 17h4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Por pagar</div>
+                <div class="num">{{ $unpaidCount }}</div>
+                <div class="sub">
+                    @if ($unpaidTotal > 0) ${{ number_format($unpaidTotal, 0, ',', '.') }} pendiente @else facturas @endif
                 </div>
-                <p class="mt-3 text-3xl font-extrabold text-gray-900 dark:text-white">{{ $totalOrders }}</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">pedidos en total</p>
+            </a>
+            <div class="fp-tile">
+                <div class="t-head"><span class="t-ic ic-mut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Historial</div>
+                <div class="num">{{ $totalOrders }}</div>
+                <div class="sub">{{ \Illuminate\Support\Str::plural('pedido', $totalOrders) }} en total</div>
             </div>
         </div>
 
-        {{-- Pedidos recientes --}}
-        <div class="mt-8">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Últimos pedidos</h2>
-                <a href="{{ route('tenant.client.orders') }}" wire:navigate
-                   class="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Ver todos</a>
+        {{-- Últimos pedidos + rail --}}
+        <div class="fp-grid2">
+            <div>
+                <h2 class="fp-section">Últimos pedidos <a href="{{ route('tenant.client.orders') }}" wire:navigate>Ver todos</a></h2>
+                @if ($recentOrders->isEmpty())
+                    <div class="fp-panel fp-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <p>Todavía no tienes pedidos</p>
+                        <span>Cuando hagas tu primer pedido, aparecerá acá.</span>
+                    </div>
+                @else
+                    <div class="fp-panel">
+                        @foreach ($recentOrders as $o)
+                            <a class="fp-row" href="{{ route('tenant.client.orders.show', $o['id']) }}" wire:navigate wire:key="recent-{{ $o['id'] }}">
+                                <span class="fp-obox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 8h14M5 8a2 2 0 1 1 0-4h14a2 2 0 1 1 0 4M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8m-9 4h4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                <div class="o-body">
+                                    <div class="o-t"><b>Pedido&nbsp;#{{ $o['consecutive'] }}</b><span class="fp-pill {{ $o['badge']['fp'] }}"><span class="dot"></span>{{ $o['badge']['label'] }}</span></div>
+                                    <div class="o-meta">
+                                        {{ \Carbon\Carbon::parse($o['date'])->translatedFormat('d M Y') }}
+                                        · {{ $o['items'] }} {{ \Illuminate\Support\Str::plural('producto', $o['items']) }}
+                                        @if ($o['invoice_no']) · Factura {{ $o['invoice_no'] }} @endif
+                                    </div>
+                                </div>
+                                <div class="o-amt">
+                                    <b>${{ number_format($o['total'], 0, ',', '.') }}</b>
+                                    @if ($o['delivery'])<span>Entrega {{ \Carbon\Carbon::parse($o['delivery'])->translatedFormat('d M') }}</span>@endif
+                                </div>
+                                <svg class="fp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 5 7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
-            @if ($recentOrders->isEmpty())
-                <div class="rounded-2xl border border-dashed border-gray-300 bg-white py-14 text-center dark:border-gray-700 dark:bg-gray-900">
-                    <svg class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                    <p class="mt-3 font-semibold text-gray-700 dark:text-gray-200">Todavía no tienes pedidos</p>
-                    <p class="text-sm text-gray-400 dark:text-gray-500">Cuando hagas tu primer pedido, aparecerá acá.</p>
-                    <a href="{{ route('tenant.client.portal') }}" wire:navigate
-                       class="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
-                        Explorar catálogo
+            <div>
+                <h2 class="fp-section">Accesos rápidos</h2>
+                <div class="fp-panel">
+                    <a class="fp-qa" href="{{ route('tenant.client.portal') }}" wire:navigate>
+                        <span class="qa-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 6h15l-1.5 9h-12z M6 6 5 3H2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><b>Hacer un pedido nuevo</b><span>Explorá el catálogo</span></span>
+                    </a>
+                    <a class="fp-qa" href="{{ route('tenant.client.orders') }}" wire:navigate>
+                        <span class="qa-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 11H4Z" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><b>Ver todos mis pedidos</b><span>Seguimiento y detalle</span></span>
+                    </a>
+                    <a class="fp-qa" href="{{ route('tenant.client.invoices') }}" wire:navigate>
+                        <span class="qa-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span><b>Descargar facturas</b><span>PDF oficial electrónico</span></span>
                     </a>
                 </div>
-            @else
-                <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-                    @foreach ($recentOrders as $o)
-                        <a href="{{ route('tenant.client.orders.show', $o['id']) }}" wire:navigate wire:key="recent-{{ $o['id'] }}"
-                           class="flex items-center gap-4 border-b border-gray-100 px-4 py-3.5 transition last:border-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/60">
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-500 dark:from-indigo-900/40 dark:to-indigo-900/10 dark:text-indigo-300">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-                            </span>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2">
-                                    <p class="truncate font-bold text-gray-900 dark:text-white">Pedido #{{ $o['consecutive'] }}</p>
-                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-bold {{ $o['badge']['color'] }}">{{ $o['badge']['label'] }}</span>
-                                </div>
-                                <p class="mt-0.5 truncate text-xs text-gray-400 dark:text-gray-500">
-                                    {{ \Carbon\Carbon::parse($o['date'])->translatedFormat('d M Y') }}
-                                    · {{ $o['items'] }} {{ \Illuminate\Support\Str::plural('producto', $o['items']) }}
-                                    @if ($o['invoice_no']) · Factura {{ $o['invoice_no'] }} @endif
-                                </p>
-                            </div>
-                            <div class="hidden text-right sm:block">
-                                <p class="font-extrabold text-gray-900 dark:text-white">${{ number_format($o['total'], 0, ',', '.') }}</p>
-                                @if ($o['delivery'])
-                                    <p class="text-[11px] text-gray-400 dark:text-gray-500">Entrega {{ \Carbon\Carbon::parse($o['delivery'])->translatedFormat('d M') }}</p>
-                                @endif
-                            </div>
-                            <svg class="h-4 w-4 shrink-0 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                        </a>
-                    @endforeach
-                </div>
-            @endif
+            </div>
         </div>
     </div>
 </div>
