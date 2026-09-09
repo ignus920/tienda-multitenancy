@@ -1964,6 +1964,15 @@ class ManageItems extends Component
                 unset($apiData['inventory']);
             }
 
+            // Al ACTUALIZAR solo se envía precio/nombre/descripción/impuesto.
+            // Alegra rechaza el PUT completo (code 101099) si el item tiene
+            // movimientos en un periodo contable cerrado: no permite tocar
+            // costo unidad (inventory.unitCost) ni las cuentas (accounting).
+            // Esos bloques solo se necesitan al crear el item.
+            if ($isUpdate) {
+                unset($apiData['inventory'], $apiData['accounting']);
+            }
+
             // LOGGING: Mostrar el JSON que se está generando
             Log::info('📋 JSON generado para API de Items', [
                 'item_id' => $item->id,
