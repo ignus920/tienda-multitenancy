@@ -6,6 +6,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
+  /* Modo claro (por defecto). El ERP usa la clase .dark en <body> para modo oscuro. */
   :root{
     --fp-bg:#EDF0F6; --fp-surface:#FFFFFF; --fp-surface-2:#F6F8FC;
     --fp-ink:#0E1626; --fp-ink-2:#54617B; --fp-ink-3:#8C96AC; --fp-line:#E2E7F0; --fp-line-2:#EEF1F7;
@@ -19,21 +20,7 @@
     --fp-shadow-md:0 6px 22px -8px rgba(14,22,38,.18);
     --fp-radius:16px; --fp-radius-sm:11px;
   }
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){
-      --fp-bg:#080C15; --fp-surface:#101827; --fp-surface-2:#0D1420;
-      --fp-ink:#ECF1F9; --fp-ink-2:#98A4BD; --fp-ink-3:#606C89; --fp-line:#1E293C; --fp-line-2:#182236;
-      --fp-accent:#5B8DFF; --fp-accent-ink:#A9C4FF; --fp-accent-soft:#14233F;
-      --fp-glow:#37D7E7; --fp-glow-soft:#0E2B33;
-      --fp-warm:#F2AE4A; --fp-warm-soft:#33260F;
-      --fp-good:#37C285; --fp-good-soft:#0F2C21;
-      --fp-warn:#E0A23C; --fp-warn-soft:#2E2410;
-      --fp-bad:#F0645F; --fp-bad-soft:#331A1B;
-      --fp-shadow-sm:0 1px 2px rgba(0,0,0,.4);
-      --fp-shadow-md:0 10px 30px -10px rgba(0,0,0,.6);
-    }
-  }
-  :root[data-theme="dark"]{
+  .dark{
     --fp-bg:#080C15; --fp-surface:#101827; --fp-surface-2:#0D1420;
     --fp-ink:#ECF1F9; --fp-ink-2:#98A4BD; --fp-ink-3:#606C89; --fp-line:#1E293C; --fp-line-2:#182236;
     --fp-accent:#5B8DFF; --fp-accent-ink:#A9C4FF; --fp-accent-soft:#14233F;

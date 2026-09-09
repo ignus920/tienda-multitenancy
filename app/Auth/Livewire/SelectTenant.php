@@ -59,8 +59,8 @@ class SelectTenant extends Component
         // Si el usuario es de perfil 18 (Cliente), omitir selección de bodega y redirigir directamente
         if (Auth::user()->profile_id == 18) {
             session()->forget('needs_warehouse_selection');
-            session()->put('warehouse_redirect_route', 'tenant.client.portal');
-            return redirect()->route('tenant.client.portal');
+            session()->put('warehouse_redirect_route', 'tenant.client.dashboard');
+            return redirect()->route('tenant.client.dashboard');
         }
 
         // Establecer bandera para abrir el modal de selección de bodega
