@@ -1119,18 +1119,12 @@
                         </div>
                     </div>
                 </form>
-<<<<<<< HEAD
                 @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showWebB2bSection))
-                    <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
-=======
-                </div>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection))
                     @php
-                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : 'acc');
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web_b2b'));
                     @endphp
                     <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
-                    <!-- PESTAÑA 2: Contenido según el tipo del item -->
->>>>>>> test
+                    <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                             @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
@@ -1311,8 +1305,8 @@
                                     </button>
                                 </div>
                             </div>
-                        </div>
                     @endif
+                    </div>
                 @endif
 
             </div>
