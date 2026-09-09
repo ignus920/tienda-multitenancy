@@ -479,15 +479,15 @@
                 <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
                 @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1 || $item_id))
                     <div class="px-6 pt-4">
-                        <div class="border-b border-gray-200 dark:border-gray-700">
-                            <nav class="flex flex-wrap -mb-px gap-x-6 gap-y-1" aria-label="Tabs">
+                        <div class="pb-1">
+                            <nav class="inline-flex flex-wrap gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
-                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
+                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
+                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
                                     <span>Información General</span>
                                     <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-0 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
                                         Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.
@@ -499,9 +499,9 @@
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
-                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
+                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showProductionSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
                                     <span>Importado</span>
                                     <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
                                         Datos de importación del producto: costos, etiquetas y seguimiento del embarque.
@@ -514,9 +514,9 @@
                                 <button type="button" wire:click="$set('showProductionSection', true)"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
-                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
+                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showProductionSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
                                     <span>Proceso de Producción</span>
                                     <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
                                         Proceso, pasos y materiales necesarios para fabricar este producto.
@@ -529,9 +529,9 @@
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
-                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
+                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showAccesoriosSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showAccesoriosSection)}">
                                     <span>Accesorios</span>
                                     <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
                                         Productos que se venden o instalan junto con este item (complementos, repuestos, kits).
@@ -544,9 +544,9 @@
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
-                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
+                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showDimensionSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showDimensionSection)}">
                                     <span>Medidas</span>
                                     <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
                                         Dimensiones del producto y escalas de corte / venta por cantidad.
@@ -558,9 +558,9 @@
                                 @if($item_id)
                                 <button type="button" wire:click="activateWebB2bSection({{$item_id}})"
                                     x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
-                                    :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showWebB2bSection),
-                                    'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showWebB2bSection)}">
+                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showWebB2bSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showWebB2bSection)}">
                                     <span>Página Web / B2B</span>
                                     <span x-show="tip" x-cloak style="display:none" class="absolute top-full right-0 mt-2 w-64 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
                                         Parámetros para la tienda web (WooCommerce): % de stock a publicar y cantidad mínima; y escalas de descuento por volumen para clientes B2B.
