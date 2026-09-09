@@ -1257,14 +1257,14 @@
     @endif
 
     <!-- Modal Values -->
-    <div wire:key="values-modal-slot">
+    <div wire:key="values-modal-slot-{{ $showValuesModal ? 'open-'.$item_id : 'closed' }}">
         @if($showValuesModal)
             @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key('values-'.$item_id))
         @endif
     </div>
 
     <!-- Modal Ubicaciones -->
-    <div wire:key="locations-modal-slot">
+    <div wire:key="locations-modal-slot-{{ $showLocationsModal ? 'open-'.$selectedItemId : 'closed' }}">
         @if($showLocationsModal)
             @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
         @endif
