@@ -77,6 +77,11 @@ class VntQuote extends Model
                     ->where('reference_type', 'quote');
     }
 
+    public function remissions(): HasMany
+    {
+        return $this->hasMany(\App\Models\Tenant\Remissions\InvRemissions::class, 'quoteId');
+    }
+
     // Métodos de utilidad
     public function getSubTotalAttribute()
     {

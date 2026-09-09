@@ -71,7 +71,7 @@ Route::get('dashboard', function () {
             return redirect()->route('imports.imports-orders');
         }
         if (auth()->user() && auth()->user()->profile_id == 18) {
-            return redirect()->route('tenant.client.portal');
+            return redirect()->route('tenant.client.dashboard');
         }
         return redirect()->route('tenant.dashboard');
     }
