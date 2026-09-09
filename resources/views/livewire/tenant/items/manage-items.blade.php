@@ -573,6 +573,16 @@
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
+                @php
+                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
+                        ? 'general'
+                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web')));
+                @endphp
+                {{-- Wrapper con key que CAMBIA por pestaña: fuerza a Livewire a reemplazar
+                     todo el subarbol al cambiar de pestana, en vez de intentar hacer patch
+                     de los bloques condicionales de una pestana sobre los de otra (eso
+                     desbalanceaba los marcadores de bloque y reventaba el morph). --}}
+                <div wire:key="items-tabcontent-{{ $item_id ?: 'new' }}-{{ $__activeItemTab }}">
                 @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
                 <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
@@ -1250,6 +1260,7 @@
                     @endif
                     </div>
                 @endif
+                </div>{{-- /items-tabcontent wrapper --}}
 
             </div>
         </div>
