@@ -2445,6 +2445,8 @@ class ManageItems extends Component
 
     public function activateWebB2bSection($item_id)
     {
+        $this->ensureTenantConnection();
+
         $this->item_id = $item_id;
         $this->showWebB2bSection = true;
         $this->showProductionSection = false;
