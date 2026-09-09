@@ -343,7 +343,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <!-- Menú de tres puntos con Alpine.js -->
-                                <div x-data="{ open: false }" class="inline-block text-left">
+                                <div x-data="{ open: false }" wire:key="row-menu-{{ $it->id }}" class="inline-block text-left">
                                     <button @click.stop="open = !open" x-ref="button"
                                         class="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1 transition-colors">
                                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -353,7 +353,7 @@
                                     </button>
 
                                     <!-- Menú desplegable: teleport al body para escapar de overflow-x-auto -->
-                                    <template x-teleport="body">
+                                    <template x-teleport="body" wire:key="row-menu-tpl-{{ $it->id }}">
                                         <div x-show="open"
                                             x-anchor.bottom-end.offset.4="$refs.button"
                                             x-transition:enter="transition ease-out duration-100"
@@ -443,6 +443,7 @@
     </div>
 
     <!-- Modal Registro Item-->
+    <div wire:key="items-modal-registro-slot">
     @if($showModal)
     <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
         x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
@@ -1257,8 +1258,8 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>{{-- /p-6 space-y-6 (contenido pestaña Web/B2B) --}}
                     @endif
-                    </div>
                 @endif
                 </div>{{-- /items-tabcontent wrapper --}}
 
@@ -1266,14 +1267,13 @@
         </div>
     </div>
     @endif
+    </div>{{-- /items-modal-registro-slot --}}
 
     <!-- Modal Values -->
-    {{-- El componente se monta SIEMPRE (mientras exista item) y solo se muestra/oculta.
-         Montarlo condicionalmente hacía que Livewire no lo renderizara hasta el
-         siguiente request (cambio de pestaña). --}}
+    {{-- El componente se monta SIEMPRE (mientras exista item) y solo se muestra/oculta. --}}
+    <div wire:key="values-modal-slot">
     @if($item_id)
-    <div wire:key="values-modal-slot"
-         x-data="{ open: @js((bool) $showValuesModal) }"
+    <div x-data="{ open: @js((bool) $showValuesModal) }"
          x-init="$wire.$watch('showValuesModal', v => open = v)"
          x-show="open"
          x-cloak
@@ -1281,15 +1281,17 @@
         @livewire('tenant.items.manage-values', ['ItemId' => $item_id], key('values-'.$item_id))
     </div>
     @endif
+    </div>
 
     <!-- Modal Ubicaciones -->
-    <div wire:key="locations-modal-slot-{{ $showLocationsModal ? 'open-'.$selectedItemId : 'closed' }}">
+    <div wire:key="locations-modal-slot">
         @if($showLocationsModal)
             @livewire('tenant.items.manage-locations', ['itemId' => $selectedItemId], key('locations-'.$selectedItemId))
         @endif
     </div>
 
     <!-- Modal Stock por Sucursales y Bodegas -->
+    <div wire:key="items-modal-stock-slot">
     @if($showStockModal)
     <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
         x-data="{ show: true }" x-show="show" x-transition:enter="ease-out duration-300"
@@ -1488,8 +1490,11 @@
         </div>
     </div>
     @endif
+    </div>{{-- /items-modal-stock-slot --}}
 
-    @livewire('tenant.components.product-image-modal-cargar')
+    <div wire:key="items-modal-image-cargar-slot">
+        @livewire('tenant.components.product-image-modal-cargar')
+    </div>
 
     <script>
         document.addEventListener('livewire:init', () => {
