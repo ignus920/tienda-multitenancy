@@ -394,7 +394,7 @@ class ManageItems extends Component
 
         $query = Items::query()
             ->select('inv_items.*')
-            ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax'])
+            ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax', 'locations'])
             ->when($this->selectedSupplierId, function ($query) {
                 $query->whereHas('importSetup', function ($q) {
                     $q->where('supplier_id', $this->selectedSupplierId);
@@ -407,7 +407,12 @@ class ManageItems extends Component
                         $q->where('inv_items.name', 'like', '%' . $word . '%')
                             ->orWhere('inv_items.sku', 'like', '%' . $word . '%')
                             ->orWhere('inv_items.internal_code', 'like', '%' . $word . '%')
-                            ->orWhere('inv_items.type', 'like', '%' . $word . '%');
+                            ->orWhere('inv_items.type', 'like', '%' . $word . '%')
+                            // Buscar también por la ubicación de PICKING (bodega storeId = 3)
+                            ->orWhereHas('locations', function ($loc) use ($word) {
+                                $loc->where('storeId', 3)
+                                    ->where('locationId', 'like', '%' . $word . '%');
+                            });
                     });
                 }
             });

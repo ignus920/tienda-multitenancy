@@ -198,6 +198,9 @@
                                 </div>
                             </th>
                             <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                                Ubic. Picking</th>
+                            <th
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Tipo</th>
                             <th
@@ -251,6 +254,13 @@
                                     <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 uppercase tracking-wide">
                                         Genérico
                                     </span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm whitespace-nowrap">
+                                @if($it->picking && $it->picking !== 'N/A')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded font-mono text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">{{ $it->picking }}</span>
+                                @else
+                                    <span class="text-gray-400 dark:text-gray-500">—</span>
                                 @endif
                             </td>
                             <td class="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
@@ -396,7 +406,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="15" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                 <div class="flex flex-col items-center">
                                     <svg class="w-12 h-12 mb-4 text-gray-400 dark:text-gray-600" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
@@ -440,7 +450,7 @@
         x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0">
         <div class="relative min-h-screen flex items-center justify-center p-4">
-            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
                 x-transition:enter="ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
@@ -470,30 +480,32 @@
                 @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1 || $item_id))
                     <div class="px-6 pt-4">
                         <div class="border-b border-gray-200 dark:border-gray-700">
-                            <nav class="flex -mb-px space-x-8" aria-label="Tabs">
+                            <nav class="flex flex-wrap -mb-px gap-x-6 gap-y-1" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
+                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
-                                    <div class="flex items-center space-x-2">
-                                        <x-heroicon-o-information-circle class="w-5 h-5" />
-                                        <span>Información General</span>
-                                    </div>
+                                    <span>Información General</span>
+                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-0 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
+                                        Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.
+                                    </span>
                                 </button>
 
                                 <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
                                 @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
+                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
-                                    <div class="flex items-center space-x-2">
-                                        <x-heroicon-o-truck class="w-5 h-5" />
-                                        <span>Importado</span>
-                                    </div>
+                                    <span>Importado</span>
+                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
+                                        Datos de importación del producto: costos, etiquetas y seguimiento del embarque.
+                                    </span>
                                 </button>
                                 @endif
 
@@ -501,13 +513,14 @@
                                 @if($type == 'PRODUCIDO')
                                 <button type="button" wire:click="$set('showProductionSection', true)"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
+                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showProductionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showProductionSection)}">
-                                    <div class="flex items-center space-x-2">
-                                        <x-heroicon-o-cog-6-tooth class="w-5 h-5" />
-                                        <span>Proceso de Producción</span>
-                                    </div>
+                                    <span>Proceso de Producción</span>
+                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
+                                        Proceso, pasos y materiales necesarios para fabricar este producto.
+                                    </span>
                                 </button>
                                 @endif
 
@@ -515,13 +528,14 @@
                                 @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
+                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showAccesoriosSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showAccesoriosSection)}">
-                                    <div class="flex items-center space-x-2">
-                                        <x-heroicon-o-puzzle-piece class="w-5 h-5" />
-                                        <span>Accesorios</span>
-                                    </div>
+                                    <span>Accesorios</span>
+                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
+                                        Productos que se venden o instalan junto con este item (complementos, repuestos, kits).
+                                    </span>
                                 </button>
                                 @endif
 
@@ -529,26 +543,28 @@
                                 @if ($inventoriable === 1)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
+                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
                                     :class="{'border-amber-500 text-amber-600 dark:text-amber-400': @js($showDimensionSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showDimensionSection)}">
-                                    <div class="flex items-center space-x-2">
-                                        <x-heroicon-o-cube class="w-5 h-5" />
-                                        <span>Medidas</span>
-                                    </div>
+                                    <span>Medidas</span>
+                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
+                                        Dimensiones del producto y escalas de corte / venta por cantidad.
+                                    </span>
                                 </button>
                                 @endif
 
                                 <!-- Pestaña Página Web / B2B - Siempre visible al editar -->
                                 @if($item_id)
                                 <button type="button" wire:click="activateWebB2bSection({{$item_id}})"
-                                    class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none"
+                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
+                                    class="relative py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 focus:outline-none"
                                     :class="{'border-indigo-500 text-indigo-600 dark:text-indigo-400': @js($showWebB2bSection),
                                     'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300': !@js($showWebB2bSection)}">
-                                    <div class="flex items-center space-x-2">
-                                        <x-heroicon-o-globe-alt class="w-5 h-5" />
-                                        <span>Página Web / B2B</span>
-                                    </div>
+                                    <span>Página Web / B2B</span>
+                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full right-0 mt-2 w-64 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
+                                        Parámetros para la tienda web (WooCommerce): % de stock a publicar y cantidad mínima; y escalas de descuento por volumen para clientes B2B.
+                                    </span>
                                 </button>
                                 @endif
                             </nav>
