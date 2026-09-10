@@ -766,6 +766,7 @@
                                                 @php $p = $profilePermissions[$grp['rows'][0]]; $i = $grp['rows'][0]; $exc = $isExc($p); @endphp
                                                 <div class="flex items-center gap-1.5 min-w-0 py-2.5 pl-6">
                                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                                    <x-permission-menu-hint :name="$p['name']" />
                                                     @if($exc)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>@endif
                                                 </div>
                                                 @foreach(['ver','crear','editar','desactivar'] as $acc)
@@ -780,11 +781,14 @@
                                                     @endif
                                                 </div>
                                             @else
-                                                <button type="button" @click="open = !open" class="flex items-center gap-1.5 min-w-0 py-3 text-left w-full">
-                                                    <svg class="w-4 h-4 shrink-0 text-gray-400 transition-transform" :class="open && 'rotate-90 text-indigo-500'" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                                                    <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                                <div class="flex items-center gap-1.5 min-w-0">
+                                                    <button type="button" @click="open = !open" class="flex items-center gap-1.5 min-w-0 py-3 text-left">
+                                                        <svg class="w-4 h-4 shrink-0 text-gray-400 transition-transform" :class="open && 'rotate-90 text-indigo-500'" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                                        <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                                    </button>
+                                                    <x-permission-menu-hint :name="$grp['title']" />
                                                     @if($excCount > 0)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">{{ $excCount }} excep.</span>@endif
-                                                </button>
+                                                </div>
                                                 <span></span><span></span><span></span><span></span><span></span>
                                             @endif
                                         </div>

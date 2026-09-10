@@ -85,6 +85,7 @@
                             @if($grp['single'])
                                 <div class="flex items-center gap-2 min-w-0 py-2.5 pl-7">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                    <x-permission-menu-hint :name="$grp['perms'][0]['name']" />
                                 </div>
                             @else
                                 <button type="button" @click="open = !open"
@@ -94,6 +95,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                                     </svg>
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                    <x-permission-menu-hint :name="$grp['title']" />
                                     <span class="hidden sm:inline text-xs font-mono text-gray-400 dark:text-gray-500">{{ $onShow }}/{{ $totalG }}</span>
                                     <span class="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full {{ $chipCls }}">{{ $chipTxt }}</span>
                                 </button>
