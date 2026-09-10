@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Central\UsrProfile;
 use App\Models\Central\UsrPermission;
 use App\Models\Central\UsrPermissionProfile;
+use App\Models\Central\UsrPermissionUser;
 use Exception;
 
 class PermissionCatalogService
@@ -56,6 +57,107 @@ class PermissionCatalogService
                 'message' => 'Error al configurar el perfil: ' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Guarda (crea o actualiza) los permisos de un perfil SIN borrar todo primero.
+     * Cada fila: ['permissionId' => int, 'show' => bool, 'create' => bool, 'edit' => bool, 'delete' => bool]
+     */
+    public function upsertProfilePermissions(int $profileId, array $rows): array
+    {
+        try {
+            $profile = UsrProfile::findOrFail($profileId);
+            $saved = 0;
+
+            foreach ($rows as $row) {
+                $permissionId = (int) ($row['permissionId'] ?? 0);
+                if (!$permissionId) {
+                    continue;
+                }
+
+                UsrPermissionProfile::withTrashed()->updateOrCreate(
+                    ['profileId' => $profileId, 'permissionId' => $permissionId],
+                    [
+                        'show'       => !empty($row['show']) ? 1 : 0,
+                        'creater'    => !empty($row['create']) ? 1 : 0,
+                        'editer'     => !empty($row['edit']) ? 1 : 0,
+                        'deleter'    => !empty($row['delete']) ? 1 : 0,
+                        'deleted_at' => null,
+                    ]
+                );
+                $saved++;
+            }
+
+            return [
+                'success' => true,
+                'message' => "Permisos del perfil '{$profile->name}' actualizados ({$saved} módulos).",
+                'saved'   => $saved,
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al guardar los permisos: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Permisos EFECTIVOS de un usuario = permisos del perfil + excepciones por usuario
+     * (tabla usr_permissions_users). Devuelve la misma forma que
+     * getUserPermissionConfiguration() más 'access_sources' por acción
+     * ('perfil' | 'excepcion').
+     */
+    public function getEffectiveUserPermissions(int $userId, int $profileId): array
+    {
+        $base = $this->getUserPermissionConfiguration($profileId);
+        $permissions = $base['permissions'];
+
+        // Inicializar fuentes en 'perfil'
+        foreach ($permissions as $name => &$perm) {
+            $perm['access_sources'] = [
+                'create' => 'perfil',
+                'delete' => 'perfil',
+                'edit'   => 'perfil',
+                'show'   => 'perfil',
+            ];
+        }
+        unset($perm);
+
+        $overrides = UsrPermissionUser::byUser($userId)
+            ->with('permission')
+            ->get();
+
+        $map = ['show' => 'show', 'create' => 'creater', 'edit' => 'editer', 'delete' => 'deleter'];
+
+        foreach ($overrides as $ov) {
+            $permName = $ov->permission?->name;
+            if (!$permName) {
+                continue;
+            }
+
+            if (!isset($permissions[$permName])) {
+                $permissions[$permName] = [
+                    'id' => $ov->permissionId,
+                    'name' => $permName,
+                    'access_levels'  => ['create' => false, 'delete' => false, 'edit' => false, 'show' => false],
+                    'access_sources' => ['create' => 'perfil', 'delete' => 'perfil', 'edit' => 'perfil', 'show' => 'perfil'],
+                ];
+            }
+
+            foreach ($map as $action => $column) {
+                $val = $ov->actionValue($column);
+                if (!is_null($val)) {
+                    $permissions[$permName]['access_levels'][$action] = $val;
+                    $permissions[$permName]['access_sources'][$action] = 'excepcion';
+                }
+            }
+        }
+
+        return [
+            'profile' => $base['profile'],
+            'permissions' => $permissions,
+            'total_permissions' => count($permissions),
+        ];
     }
 
     /**

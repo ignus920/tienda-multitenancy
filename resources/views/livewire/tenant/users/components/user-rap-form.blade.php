@@ -710,69 +710,60 @@
                         </div>
                     </div>
 
-                    <!-- Permisos del Perfil -->
+                    <!-- Permisos del usuario (perfil + excepciones) -->
                     @if(count($profilePermissions) > 0)
+                    @php $canEditPerms = $this->canEditPermissions(); @endphp
                     <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Permisos del Perfil</h3>
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Permisos</h3>
+                        <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                            Valores del <strong>perfil</strong>. Si cambiás una casilla, queda como
+                            <strong>excepción</strong> solo para este usuario.
+                        </p>
+                        <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-4">
                             <div class="overflow-x-auto">
                                 <table class="min-w-full">
                                     <thead>
                                         <tr class="border-b border-gray-200 dark:border-gray-600">
-                                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Módulo
-                                            </th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Ver
-                                            </th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Crear
-                                            </th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Editar
-                                            </th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Eliminar
-                                            </th>
+                                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Módulo</th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Ver</th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Crear</th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Editar</th>
+                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Desactivar</th>
+                                            <th class="py-2 px-3"></th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
-                                        @foreach($profilePermissions as $permission)
-                                        <tr>
-                                            <td class="py-3 px-3 text-sm text-gray-900 dark:text-white font-medium">
+                                        @foreach($profilePermissions as $i => $permission)
+                                        @php
+                                            $isException = false;
+                                            foreach (['ver','crear','editar','desactivar'] as $acc) {
+                                                if ((bool)($permission[$acc] ?? false) !== (bool)($permission[$acc.'_profile'] ?? false)) { $isException = true; break; }
+                                            }
+                                        @endphp
+                                        <tr wire:key="uperm-{{ $permission['id'] }}" class="{{ $isException ? 'bg-amber-50/60 dark:bg-amber-900/10' : '' }}">
+                                            <td class="py-2.5 px-3 text-sm text-gray-900 dark:text-white font-medium">
                                                 {{ $permission['name'] }}
+                                                @if($isException)
+                                                    <span class="ml-1 inline-block rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>
+                                                @endif
                                             </td>
-                                            <td class="py-3 px-3 text-center">
+                                            @foreach(['ver','crear','editar','desactivar'] as $acc)
+                                            <td class="py-2.5 px-3 text-center">
                                                 <div class="flex justify-center">
                                                     <input type="checkbox"
-                                                           @if($permission['ver']) checked @endif
-                                                           disabled
-                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
+                                                           wire:model.live="profilePermissions.{{ $i }}.{{ $acc }}"
+                                                           @disabled(!$canEditPerms)
+                                                           class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500 {{ !$canEditPerms ? 'cursor-not-allowed opacity-60' : '' }}">
                                                 </div>
                                             </td>
-                                            <td class="py-3 px-3 text-center">
-                                                <div class="flex justify-center">
-                                                    <input type="checkbox"
-                                                           @if($permission['crear']) checked @endif
-                                                           disabled
-                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
-                                                </div>
-                                            </td>
-                                            <td class="py-3 px-3 text-center">
-                                                <div class="flex justify-center">
-                                                    <input type="checkbox"
-                                                           @if($permission['editar']) checked @endif
-                                                           disabled
-                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
-                                                </div>
-                                            </td>
-                                            <td class="py-3 px-3 text-center">
-                                                <div class="flex justify-center">
-                                                    <input type="checkbox"
-                                                           @if($permission['eliminar']) checked @endif
-                                                           disabled
-                                                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded cursor-not-allowed opacity-60">
-                                                </div>
+                                            @endforeach
+                                            <td class="py-2.5 px-2 text-right">
+                                                @if($isException && $canEditPerms)
+                                                    <button type="button" wire:click="resetPermissionRow({{ $i }})"
+                                                            class="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+                                                        Volver al perfil
+                                                    </button>
+                                                @endif
                                             </td>
                                         </tr>
                                         @endforeach

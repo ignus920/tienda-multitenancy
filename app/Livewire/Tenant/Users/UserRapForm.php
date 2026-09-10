@@ -8,6 +8,10 @@ use App\Models\Auth\User;
 use App\Models\Auth\UserTenant;
 use App\Models\Central\UsrProfile;
 use App\Models\Central\UsrPermissionProfile;
+use App\Models\Central\UsrPermission;
+use App\Models\Central\UsrPermissionUser;
+use App\Services\PermissionCatalogService;
+use App\Helpers\PermissionHelper;
 use App\Models\Central\VntWarehouse;
 use App\Models\Central\VntContact;
 use Illuminate\Validation\Rule;
@@ -164,6 +168,11 @@ class UserRapForm extends Component
      * Cargar permisos del perfil seleccionado
      * Obtiene todos los permisos asociados al perfil con sus respectivos niveles de acceso
      */
+    /**
+     * Arma la matriz de permisos EFECTIVOS para el usuario que se está editando:
+     * catálogo completo de módulos, con el valor del perfil como base y las
+     * excepciones del usuario (usr_permissions_users) aplicadas encima.
+     */
     public function loadProfilePermissions($profileId = null): void
     {
         if (!$profileId) {
@@ -172,33 +181,139 @@ class UserRapForm extends Component
         }
 
         try {
-            $profile = UsrProfile::with(['permissions' => function($query) {
-                $query->active();
-            }])->find($profileId);
-
+            // 1. Base del perfil por módulo
+            $profile = UsrProfile::with(['permissions' => fn ($q) => $q->where('status', 1)])->find($profileId);
             if (!$profile) {
                 $this->profilePermissions = [];
                 return;
             }
 
-            $this->profilePermissions = $profile->permissions->map(function($permission) {
-                return [
-                    'id' => $permission->id,
-                    'name' => $permission->name,
-                    'ver' => (bool)($permission->pivot->show ?? false),
-                    'crear' => (bool)($permission->pivot->creater ?? false),
-                    'editar' => (bool)($permission->pivot->editer ?? false),
-                    'eliminar' => (bool)($permission->pivot->deleter ?? false),
+            $profileFlags = [];
+            foreach ($profile->permissions as $p) {
+                $profileFlags[$p->id] = [
+                    'ver'        => (bool) $p->pivot->show,
+                    'crear'      => (bool) $p->pivot->creater,
+                    'editar'     => (bool) $p->pivot->editer,
+                    'desactivar' => (bool) $p->pivot->deleter,
                 ];
-            })->toArray();
+            }
+
+            // 2. Excepciones del usuario (solo si estamos editando uno existente)
+            $overrides = [];
+            if ($this->editingId) {
+                $map = ['ver' => 'show', 'crear' => 'creater', 'editar' => 'editer', 'desactivar' => 'deleter'];
+                foreach (UsrPermissionUser::byUser((int) $this->editingId)->get() as $ov) {
+                    foreach ($map as $k => $col) {
+                        $val = $ov->actionValue($col);
+                        if (!is_null($val)) {
+                            $overrides[$ov->permissionId][$k] = $val;
+                        }
+                    }
+                }
+            }
+
+            // 3. Catálogo completo -> filas efectivas
+            $rows = [];
+            foreach (UsrPermission::where('status', 1)->orderBy('name')->get() as $perm) {
+                $base = $profileFlags[$perm->id] ?? ['ver' => false, 'crear' => false, 'editar' => false, 'desactivar' => false];
+                $ov = $overrides[$perm->id] ?? [];
+
+                $row = ['id' => $perm->id, 'name' => $perm->name];
+                foreach (['ver', 'crear', 'editar', 'desactivar'] as $k) {
+                    $row[$k] = array_key_exists($k, $ov) ? $ov[$k] : $base[$k];
+                    $row[$k . '_profile'] = $base[$k];
+                    $row[$k . '_source'] = array_key_exists($k, $ov) ? 'excepcion' : 'perfil';
+                }
+                $rows[] = $row;
+            }
+
+            $this->profilePermissions = $rows;
 
         } catch (\Exception $e) {
             Log::error('Error loading profile permissions', [
                 'profile_id' => $profileId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             $this->profilePermissions = [];
         }
+    }
+
+    /** Vuelve una fila de la matriz al valor del perfil (quita la excepción en memoria). */
+    public function resetPermissionRow($index): void
+    {
+        if (!isset($this->profilePermissions[$index])) {
+            return;
+        }
+        foreach (['ver', 'crear', 'editar', 'desactivar'] as $k) {
+            $this->profilePermissions[$index][$k] = $this->profilePermissions[$index][$k . '_profile'] ?? false;
+            $this->profilePermissions[$index][$k . '_source'] = 'perfil';
+        }
+    }
+
+    /**
+     * Guarda las excepciones del usuario: solo persiste las celdas que difieren
+     * del perfil; las que vuelven a coincidir se soft-deletean.
+     */
+    private function saveUserPermissionOverrides(int $userId): void
+    {
+        if (!$this->canEditPermissions()) {
+            return;
+        }
+
+        try {
+            $map = ['ver' => 'show', 'crear' => 'creater', 'editar' => 'editer', 'desactivar' => 'deleter'];
+
+            foreach ($this->profilePermissions as $row) {
+                $permissionId = (int) ($row['id'] ?? 0);
+                if (!$permissionId) {
+                    continue;
+                }
+
+                $payload = [];
+                $hasDiff = false;
+                foreach ($map as $k => $col) {
+                    $current = (bool) ($row[$k] ?? false);
+                    $profileVal = (bool) ($row[$k . '_profile'] ?? false);
+                    if ($current === $profileVal) {
+                        $payload[$col] = null; // heredar
+                    } else {
+                        $payload[$col] = $current ? 1 : 0;
+                        $hasDiff = true;
+                    }
+                }
+
+                $existing = UsrPermissionUser::withTrashed()
+                    ->where('userId', $userId)->where('permissionId', $permissionId)->first();
+
+                if ($hasDiff) {
+                    if ($existing) {
+                        $existing->fill($payload);
+                        $existing->deleted_at = null;
+                        $existing->save();
+                    } else {
+                        UsrPermissionUser::create(array_merge(
+                            ['userId' => $userId, 'permissionId' => $permissionId],
+                            $payload
+                        ));
+                    }
+                } elseif ($existing && !$existing->trashed()) {
+                    $existing->delete(); // volvió a igualar al perfil
+                }
+            }
+
+            PermissionHelper::clearCache();
+        } catch (\Exception $e) {
+            Log::error('Error guardando excepciones de permisos de usuario', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /** El admin actual puede editar permisos de otros usuarios. */
+    public function canEditPermissions(): bool
+    {
+        return PermissionHelper::userCan('Usuarios', 'edit') || PermissionHelper::isSuperAdmin();
     }
 
     /**
@@ -529,6 +644,11 @@ class UserRapForm extends Component
             } elseif ($user && !$shouldSync) {
                 // Si no se requería sincronización, solo mostrar mensaje de éxito local
                 session()->flash('sync_message', '✅ Usuario guardado exitosamente. La sincronización con la API de facturación electrónica está deshabilitada.');
+            }
+
+            // Guardar excepciones de permisos del usuario (si el admin las editó)
+            if ($user) {
+                $this->saveUserPermissionOverrides((int) $user->id);
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {

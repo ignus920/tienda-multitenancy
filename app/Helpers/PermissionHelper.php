@@ -11,6 +11,9 @@ class PermissionHelper
 {
     private static ?PermissionCatalogService $permissionService = null;
 
+    /** Caché de la configuración efectiva de permisos por id de usuario (dura lo que el request). */
+    private static array $configCache = [];
+
     private static function getPermissionService(): PermissionCatalogService
     {
         if (self::$permissionService === null) {
@@ -18,6 +21,36 @@ class PermissionHelper
         }
 
         return self::$permissionService;
+    }
+
+    /**
+     * Configuración de permisos EFECTIVOS del usuario actual (perfil + excepciones),
+     * cacheada durante el request para no consultar la BD central en cada userCan().
+     */
+    private static function currentUserConfig(): array
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->profile_id) {
+            return ['profile' => null, 'permissions' => []];
+        }
+
+        if (!array_key_exists($user->id, self::$configCache)) {
+            try {
+                self::$configCache[$user->id] = self::getPermissionService()
+                    ->getEffectiveUserPermissions((int) $user->id, (int) $user->profile_id);
+            } catch (\Exception $e) {
+                self::$configCache[$user->id] = ['profile' => null, 'permissions' => []];
+            }
+        }
+
+        return self::$configCache[$user->id];
+    }
+
+    /** Limpia la caché de permisos (llamar tras guardar cambios en la pantalla de gestión). */
+    public static function clearCache(): void
+    {
+        self::$configCache = [];
     }
 
     /**
@@ -32,8 +65,7 @@ class PermissionHelper
         }
 
         try {
-            $service = self::getPermissionService();
-            $config = $service->getUserPermissionConfiguration($user->profile_id);
+            $config = self::currentUserConfig();
 
             if (!isset($config['permissions'][$permission])) {
                 return false;
@@ -42,10 +74,10 @@ class PermissionHelper
             $accessLevels = $config['permissions'][$permission]['access_levels'];
 
             return match ($action) {
-                'create' => $accessLevels['create'],
-                'edit' => $accessLevels['edit'],
-                'delete' => $accessLevels['delete'],
-                'show' => $accessLevels['show'],
+                'create' => (bool) $accessLevels['create'],
+                'edit' => (bool) $accessLevels['edit'],
+                'delete', 'deactivate' => (bool) $accessLevels['delete'],
+                'show' => (bool) $accessLevels['show'],
                 default => false
             };
         } catch (\Exception $e) {
@@ -86,20 +118,7 @@ class PermissionHelper
      */
     public static function getUserPermissions(): array
     {
-        $user = Auth::user();
-
-        if (!$user || !$user->profile_id) {
-            return [];
-        }
-
-        try {
-            $service = self::getPermissionService();
-            $config = $service->getUserPermissionConfiguration($user->profile_id);
-
-            return $config['permissions'] ?? [];
-        } catch (\Exception $e) {
-            return [];
-        }
+        return self::currentUserConfig()['permissions'] ?? [];
     }
 
     /**
@@ -115,11 +134,11 @@ class PermissionHelper
 
         // Asumiendo que el perfil de super admin tiene alias 'super_admin' o id 1
         try {
-            $service = self::getPermissionService();
-            $config = $service->getUserPermissionConfiguration($user->profile_id);
+            $profile = self::currentUserConfig()['profile'] ?? null;
 
-            return $config['profile']['alias'] === 'Super Administrador'
-                || $config['profile']['id'] === 1;
+            return $profile
+                && (($profile['alias'] ?? null) === 'Super Administrador'
+                    || (int) ($profile['id'] ?? 0) === 1);
         } catch (\Exception $e) {
             return false;
         }
@@ -138,6 +157,7 @@ class PermissionHelper
                 'canCreate' => $permission['access_levels']['create'],
                 'canEdit' => $permission['access_levels']['edit'],
                 'canDelete' => $permission['access_levels']['delete'],
+                'canDeactivate' => $permission['access_levels']['delete'], // alias de canDelete
                 'canShow' => $permission['access_levels']['show']
             ];
         }

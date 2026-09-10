@@ -33,6 +33,9 @@ Route::prefix('/parameters')->middleware('tenant')->group(function () {
     Route::get('/access-control', \App\Livewire\Tenant\Parameters\AccessControlManager::class)
         ->name('tenant.parameters.access-control');
 
+    Route::get('/permissions', \App\Livewire\Tenant\Parameters\ProfilePermissionManager::class)
+        ->name('tenant.parameters.permissions');
+
     // Aquí se pueden agregar más rutas de parámetros en el futuro
     // Ejemplo:
     // Route::get('/taxes', App\Livewire\Tenant\Parameters\Taxes::class)

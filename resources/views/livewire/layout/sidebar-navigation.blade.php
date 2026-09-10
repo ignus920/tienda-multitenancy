@@ -659,6 +659,12 @@ new class extends Component
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.parameters.access-control') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Control de Acceso
                 </a>
+                @if(PermissionHelper::userCan('Usuarios', 'edit') || PermissionHelper::isSuperAdmin())
+                <a href="{{ route('tenant.parameters.permissions') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.parameters.permissions') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Permisos por Perfil
+                </a>
+                @endif
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -678,6 +684,10 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Botones</a>
                 <a href="{{ route('tenant.parameters.access-control') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Control de Acceso</a>
+                @if(PermissionHelper::userCan('Usuarios', 'edit') || PermissionHelper::isSuperAdmin())
+                <a href="{{ route('tenant.parameters.permissions') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Permisos por Perfil</a>
+                @endif
             </div>
         </div>
         @endif
