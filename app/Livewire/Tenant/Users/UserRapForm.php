@@ -77,6 +77,7 @@ class UserRapForm extends Component
     public $profiles = []; // Lista de perfiles disponibles para asignar al usuario
     public $warehouses = []; // Lista de sucursales disponibles según la compañía
     public $profilePermissions = []; // Permisos del perfil seleccionado para mostrar al usuario
+    public array $permGroups = [];   // Estructura agrupada por módulo/menú para la vista
 
     // Message properties
     public $successMessage = '';
@@ -201,6 +202,7 @@ class UserRapForm extends Component
     {
         if (!$profileId) {
             $this->profilePermissions = [];
+            $this->permGroups = [];
             Log::info('loadProfilePermissions: sin profileId', ['editingId' => $this->editingId]);
             return;
         }
@@ -210,6 +212,7 @@ class UserRapForm extends Component
             $profile = UsrProfile::with(['permissions' => fn ($q) => $q->where('status', 1)])->find($profileId);
             if (!$profile) {
                 $this->profilePermissions = [];
+                $this->permGroups = [];
                 Log::warning('loadProfilePermissions: perfil no encontrado', ['profile_id' => $profileId]);
                 return;
             }
@@ -238,13 +241,24 @@ class UserRapForm extends Component
                 }
             }
 
-            // 3. Catálogo completo -> filas efectivas
+            // 3. Catálogo completo -> filas efectivas (planas, para wire:model)
             $rows = [];
-            foreach (UsrPermission::where('status', 1)->orderBy('name')->get() as $perm) {
+            $catalog = UsrPermission::where('status', 1)
+                ->orderByRaw('COALESCE(grupo, name)')
+                ->orderBy('label')
+                ->orderBy('name')
+                ->get();
+
+            foreach ($catalog as $perm) {
                 $base = $profileFlags[$perm->id] ?? ['ver' => false, 'crear' => false, 'editar' => false, 'desactivar' => false];
                 $ov = $overrides[$perm->id] ?? [];
 
-                $row = ['id' => $perm->id, 'name' => $perm->name];
+                $row = [
+                    'id'    => $perm->id,
+                    'name'  => $perm->name,
+                    'label' => $perm->label ?: $perm->name,
+                    'grupo' => $perm->grupo,
+                ];
                 foreach (['ver', 'crear', 'editar', 'desactivar'] as $k) {
                     $row[$k] = array_key_exists($k, $ov) ? $ov[$k] : $base[$k];
                     $row[$k . '_profile'] = $base[$k];
@@ -254,6 +268,26 @@ class UserRapForm extends Component
             }
 
             $this->profilePermissions = $rows;
+
+            // 4. Estructura agrupada para la vista (referencia índices de $profilePermissions)
+            $buckets = [];
+            $singles = [];
+            foreach ($rows as $i => $row) {
+                if ($row['grupo']) {
+                    $buckets[$row['grupo']][] = $i;
+                } else {
+                    $singles[] = $i;
+                }
+            }
+            $groups = [];
+            foreach ($buckets as $grupo => $idxs) {
+                $groups[] = ['title' => $grupo, 'single' => false, 'rows' => $idxs];
+            }
+            foreach ($singles as $i) {
+                $groups[] = ['title' => $rows[$i]['label'], 'single' => true, 'rows' => [$i]];
+            }
+            usort($groups, fn ($a, $b) => strcasecmp($a['title'], $b['title']));
+            $this->permGroups = $groups;
 
             Log::info('loadProfilePermissions OK', [
                 'profile_id' => $profileId,
@@ -270,6 +304,7 @@ class UserRapForm extends Component
                 'file' => $e->getFile() . ':' . $e->getLine(),
             ]);
             $this->profilePermissions = [];
+            $this->permGroups = [];
         }
     }
 
@@ -501,6 +536,7 @@ class UserRapForm extends Component
         $this->two_factor_enabled = false;
         $this->two_factor_type = null;
         $this->profilePermissions = []; // Limpiar permisos cuando se resetea el formulario
+        $this->permGroups = [];
     }
 
     /**

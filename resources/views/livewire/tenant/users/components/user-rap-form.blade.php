@@ -724,65 +724,109 @@
                     </div>
 
                     <!-- Permisos del usuario (perfil + excepciones) -->
-                    @if(count($profilePermissions) > 0)
-                    @php $canEditPerms = $this->canEditPermissions(); @endphp
+                    @if(count($permGroups) > 0)
+                    @php
+                        $canEditPerms = $this->canEditPermissions();
+                        $pGrid = 'display:grid;grid-template-columns:minmax(0,1fr) 48px 48px 48px 48px 92px;align-items:center;';
+                        $isExc = function ($p) {
+                            foreach (['ver','crear','editar','desactivar'] as $a) {
+                                if ((bool)($p[$a] ?? false) !== (bool)($p[$a.'_profile'] ?? false)) return true;
+                            }
+                            return false;
+                        };
+                    @endphp
                     <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Permisos</h3>
-                        <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">
-                            Valores del <strong>perfil</strong>. Si cambiás una casilla, queda como
+                        <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                            Base: los valores del <strong>perfil</strong>. Si cambiás una casilla queda como
                             <strong>excepción</strong> solo para este usuario.
                         </p>
-                        <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-4">
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full">
-                                    <thead>
-                                        <tr class="border-b border-gray-200 dark:border-gray-600">
-                                            <th class="text-left py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Módulo</th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Ver</th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Crear</th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Editar</th>
-                                            <th class="text-center py-2 px-3 text-sm font-medium text-gray-600 dark:text-gray-300">Desactivar</th>
-                                            <th class="py-2 px-3"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
-                                        @foreach($profilePermissions as $i => $permission)
-                                        @php
-                                            $isException = false;
-                                            foreach (['ver','crear','editar','desactivar'] as $acc) {
-                                                if ((bool)($permission[$acc] ?? false) !== (bool)($permission[$acc.'_profile'] ?? false)) { $isException = true; break; }
-                                            }
-                                        @endphp
-                                        <tr wire:key="uperm-{{ $permission['id'] }}" class="{{ $isException ? 'bg-amber-50/60 dark:bg-amber-900/10' : '' }}">
-                                            <td class="py-2.5 px-3 text-sm text-gray-900 dark:text-white font-medium">
-                                                <x-permission-menu-hint :name="$permission['name']" />
-                                                @if($isException)
-                                                    <span class="ml-1 inline-block rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>
-                                                @endif
-                                            </td>
-                                            @foreach(['ver','crear','editar','desactivar'] as $acc)
-                                            <td class="py-2.5 px-3 text-center">
-                                                <div class="flex justify-center">
-                                                    <input type="checkbox"
-                                                           wire:model.live="profilePermissions.{{ $i }}.{{ $acc }}"
-                                                           @disabled(!$canEditPerms)
-                                                           class="w-4 h-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500 {{ !$canEditPerms ? 'cursor-not-allowed opacity-60' : '' }}">
-                                                </div>
-                                            </td>
-                                            @endforeach
-                                            <td class="py-2.5 px-2 text-right">
-                                                @if($isException && $canEditPerms)
-                                                    <button type="button" wire:click="resetPermissionRow({{ $i }})"
-                                                            class="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
-                                                        Volver al perfil
-                                                    </button>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+
+                        <div class="overflow-x-auto">
+                        <div style="min-width:560px">
+                            {{-- encabezado de columnas --}}
+                            <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500"
+                                 style="{{ $pGrid }}">
+                                <span>Módulo</span>
+                                <span class="text-center">Ver</span>
+                                <span class="text-center">Crear</span>
+                                <span class="text-center">Editar</span>
+                                <span class="text-center">Desact.</span>
+                                <span></span>
                             </div>
+
+                            <div class="space-y-1.5 mt-1.5">
+                                @foreach($permGroups as $grp)
+                                    @php
+                                        $excCount = 0;
+                                        foreach ($grp['rows'] as $ri) { if ($isExc($profilePermissions[$ri])) $excCount++; }
+                                    @endphp
+                                    <div wire:key="pgrp-{{ \Illuminate\Support\Str::slug($grp['title']) }}"
+                                         x-data="{ open: {{ $excCount > 0 ? 'true' : 'false' }} }"
+                                         class="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 overflow-hidden">
+
+                                        {{-- cabecera del grupo --}}
+                                        <div class="px-2.5" style="{{ $pGrid }}">
+                                            @if($grp['single'])
+                                                @php $p = $profilePermissions[$grp['rows'][0]]; $i = $grp['rows'][0]; $exc = $isExc($p); @endphp
+                                                <div class="flex items-center gap-1.5 min-w-0 py-2.5 pl-6">
+                                                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                                    <x-permission-menu-hint :name="$p['name']" />
+                                                    @if($exc)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>@endif
+                                                </div>
+                                                @foreach(['ver','crear','editar','desactivar'] as $acc)
+                                                    <div class="flex justify-center">
+                                                        <input type="checkbox" wire:model.live="profilePermissions.{{ $i }}.{{ $acc }}" @disabled(!$canEditPerms)
+                                                               class="h-4 w-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500 {{ !$canEditPerms ? 'cursor-not-allowed opacity-60' : '' }}">
+                                                    </div>
+                                                @endforeach
+                                                <div class="text-right pr-1">
+                                                    @if($exc && $canEditPerms)
+                                                        <button type="button" wire:click="resetPermissionRow({{ $i }})" class="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Volver</button>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <button type="button" @click="open = !open" class="flex items-center gap-1.5 min-w-0 py-3 text-left w-full">
+                                                    <svg class="w-4 h-4 shrink-0 text-gray-400 transition-transform" :class="open && 'rotate-90 text-indigo-500'" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                                    <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
+                                                    <x-permission-menu-hint :name="$grp['title']" />
+                                                    @if($excCount > 0)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">{{ $excCount }} excep.</span>@endif
+                                                </button>
+                                                <span></span><span></span><span></span><span></span><span></span>
+                                            @endif
+                                        </div>
+
+                                        {{-- subsecciones --}}
+                                        @unless($grp['single'])
+                                        <div x-show="open" x-transition.opacity class="border-t border-gray-200 dark:border-gray-600 bg-gray-50/70 dark:bg-gray-900/30">
+                                            @foreach($grp['rows'] as $i)
+                                                @php $p = $profilePermissions[$i]; $exc = $isExc($p); @endphp
+                                                <div wire:key="uperm-{{ $p['id'] }}"
+                                                     class="px-2.5 py-2 border-b border-gray-100 dark:border-gray-700/60 last:border-0 {{ $exc ? 'bg-amber-50/60 dark:bg-amber-900/10' : '' }}"
+                                                     style="{{ $pGrid }}">
+                                                    <div class="flex items-center gap-1.5 min-w-0 pl-8">
+                                                        <span class="text-sm text-gray-800 dark:text-gray-200 truncate">{{ $p['label'] }}</span>
+                                                        @if($exc)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>@endif
+                                                    </div>
+                                                    @foreach(['ver','crear','editar','desactivar'] as $acc)
+                                                        <div class="flex justify-center">
+                                                            <input type="checkbox" wire:model.live="profilePermissions.{{ $i }}.{{ $acc }}" @disabled(!$canEditPerms)
+                                                                   class="h-4 w-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 focus:ring-indigo-500 {{ !$canEditPerms ? 'cursor-not-allowed opacity-60' : '' }}">
+                                                        </div>
+                                                    @endforeach
+                                                    <div class="text-right pr-1">
+                                                        @if($exc && $canEditPerms)
+                                                            <button type="button" wire:click="resetPermissionRow({{ $i }})" class="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Volver</button>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                        @endunless
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
                         </div>
                     </div>
                     @endif
