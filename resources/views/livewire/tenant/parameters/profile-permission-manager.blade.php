@@ -43,7 +43,9 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
                             @foreach($matrix as $id => $row)
                                 <tr wire:key="perm-{{ $id }}" class="hover:bg-gray-50 dark:hover:bg-gray-900/30">
-                                    <td class="py-2.5 px-4 font-medium text-gray-900 dark:text-white">{{ $row['name'] }}</td>
+                                    <td class="py-2.5 px-4 font-medium text-gray-900 dark:text-white">
+                                        <x-permission-menu-hint :name="$row['name']" />
+                                    </td>
                                     @foreach($actions as $key => $label)
                                         <td class="py-2.5 px-3 text-center">
                                             <input type="checkbox"

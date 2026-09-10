@@ -755,7 +755,7 @@
                                         @endphp
                                         <tr wire:key="uperm-{{ $permission['id'] }}" class="{{ $isException ? 'bg-amber-50/60 dark:bg-amber-900/10' : '' }}">
                                             <td class="py-2.5 px-3 text-sm text-gray-900 dark:text-white font-medium">
-                                                {{ $permission['name'] }}
+                                                <x-permission-menu-hint :name="$permission['name']" />
                                                 @if($isException)
                                                     <span class="ml-1 inline-block rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>
                                                 @endif
