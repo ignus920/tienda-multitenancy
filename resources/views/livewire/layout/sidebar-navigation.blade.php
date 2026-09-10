@@ -287,7 +287,15 @@ new class extends Component
         </div>
         @endif
 
-        @if (Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18 && PermissionHelper::userCan('Garantias', 'show'))
+        @php
+            // Subsecciones de "Devoluciones y Garantías". Comodín "Garantias" solo si no tiene ninguna.
+            $garSubs   = ['dev' => 'Garantias Devoluciones', 'chat' => 'Garantias Chatbot', 'war' => 'Garantias Warranties'];
+            $garHasSub = PermissionHelper::userCanAny(array_values($garSubs), 'show');
+            $garMaster = !$garHasSub && PermissionHelper::userCan('Garantias', 'show');
+            $garSub    = fn ($k) => PermissionHelper::isSuperAdmin() || $garMaster || PermissionHelper::userCan($garSubs[$k], 'show');
+            $garAny    = PermissionHelper::isSuperAdmin() || $garMaster || $garHasSub;
+        @endphp
+        @if (Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18 && $garAny)
         <!-- Devoluciones y Garantías (Menú Agrupado) -->
         <div x-data="{
             tooltip: false,
@@ -320,18 +328,24 @@ new class extends Component
             <div x-show="open && !sidebarCollapsed" x-transition
                 class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                
+                @if($garSub('dev'))
                 <a href="{{ route('tenant.returns') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.returns') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Devoluciones
                 </a>
+                @endif
+                @if($garSub('chat'))
                 <a href="{{ route('tenant.warranties.chatbot') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties.chatbot') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Chatbot (Nuevas)
                 </a>
+                @endif
+                @if($garSub('war'))
                 <a href="{{ route('tenant.warranties') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties') || request()->routeIs('tenant.warranties.create') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Garantías
                 </a>
+                @endif
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -339,10 +353,18 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
                 @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
                 <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Devoluciones y Gtías.</div>
+                @if($garSub('dev'))
                 <a href="{{ route('tenant.returns') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Devoluciones</a>
+                @endif
+                @if($garSub('chat'))
+                <a href="{{ route('tenant.warranties.chatbot') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Chatbot (Nuevas)</a>
+                @endif
+                @if($garSub('war'))
                 <a href="{{ route('tenant.warranties') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Garantías</a>
+                @endif
             </div>
         </div>
         @endif

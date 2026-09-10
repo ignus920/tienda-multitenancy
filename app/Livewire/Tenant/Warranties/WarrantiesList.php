@@ -38,6 +38,13 @@ class WarrantiesList extends Component
 
     public function boot()
     {
+        abort_unless(
+            \App\Helpers\PermissionHelper::isSuperAdmin()
+            || \App\Helpers\PermissionHelper::userCan('Garantias Warranties', 'show')
+            || \App\Helpers\PermissionHelper::userCan('Garantias', 'show'),
+            403
+        );
+
         $this->ensureTenantConnection();
     }
 
