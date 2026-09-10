@@ -423,7 +423,7 @@
                                             <button wire:click="openChangePasswordModal({{ $user->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 112 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                                                 </svg>
                                                 Cambiar Contraseña
                                             </button>
@@ -466,17 +466,12 @@
 
         <!-- Modal -->
         @if($showModal)
-       <div class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
-    x-data="{ show: true }"
-    x-show="show"
-    x-transition:enter="ease-out duration-300"
-    x-transition:enter-start="opacity-0"
-    x-transition:enter-end="opacity-100"
-    x-transition:leave="ease-in duration-200"
-    x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    @keydown.escape.window="$wire.closeModal()">
-    
+       <div wire:key="user-form-modal"
+    class="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50"
+    x-data
+    x-transition.opacity
+    @keydown.escape.window.prevent="$wire.closeModal()">
+
     <div class="relative min-h-screen flex items-center justify-center p-4">
         <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             x-transition:enter="ease-out duration-300"
@@ -771,7 +766,6 @@
                                                 @php $p = $profilePermissions[$grp['rows'][0]]; $i = $grp['rows'][0]; $exc = $isExc($p); @endphp
                                                 <div class="flex items-center gap-1.5 min-w-0 py-2.5 pl-6">
                                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
-                                                    <x-permission-menu-hint :name="$p['name']" />
                                                     @if($exc)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>@endif
                                                 </div>
                                                 @foreach(['ver','crear','editar','desactivar'] as $acc)
@@ -789,7 +783,6 @@
                                                 <button type="button" @click="open = !open" class="flex items-center gap-1.5 min-w-0 py-3 text-left w-full">
                                                     <svg class="w-4 h-4 shrink-0 text-gray-400 transition-transform" :class="open && 'rotate-90 text-indigo-500'" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                                                     <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $grp['title'] }}</span>
-                                                    <x-permission-menu-hint :name="$grp['title']" />
                                                     @if($excCount > 0)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">{{ $excCount }} excep.</span>@endif
                                                 </button>
                                                 <span></span><span></span><span></span><span></span><span></span>
@@ -890,7 +883,7 @@
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                                 <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 112 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                                 </svg>
                                 Cambiar Contraseña
                             </h3>

@@ -23,23 +23,33 @@
     ];
     $hint = $map[$name] ?? 'Sin sección de menú asignada todavía';
 @endphp
-<span class="inline-flex items-center gap-1.5">
-    <span>{{ $name }}</span>
-    <span x-data="{ show: false }" class="relative inline-flex">
-        <button type="button"
-                @mouseenter="show = true" @mouseleave="show = false" @click="show = !show"
-                @focus="show = true" @blur="show = false"
-                class="text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 focus:outline-none"
-                aria-label="¿A qué menú corresponde?">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </button>
-        <span x-show="show" x-transition x-cloak
-              class="absolute left-4 top-1/2 -translate-y-1/2 z-[60] whitespace-nowrap rounded-md
-                     bg-gray-800 dark:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-white shadow-xl">
+<span x-data="{
+        open: false,
+        x: 0, y: 0,
+        place(el) {
+            const r = el.getBoundingClientRect();
+            this.x = r.right + 8;
+            this.y = r.top + r.height / 2;
+            this.open = true;
+        }
+     }"
+      class="inline-flex align-middle">
+    <button type="button"
+            @click.stop.prevent="open ? open = false : place($el)"
+            @mouseenter="place($el)" @mouseleave="open = false"
+            @blur="open = false"
+            class="text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 focus:outline-none"
+            aria-label="¿A qué menú corresponde?">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    </button>
+    <template x-teleport="body">
+        <span x-show="open" x-transition.opacity
+              :style="`position:fixed;left:${x}px;top:${y}px;transform:translateY(-50%);z-index:9999`"
+              class="pointer-events-none whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-xs font-medium text-white shadow-xl">
             {{ $hint }}
         </span>
-    </span>
+    </template>
 </span>
