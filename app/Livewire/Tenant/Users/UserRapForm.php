@@ -302,11 +302,14 @@ class UserRapForm extends Component
             }
 
             PermissionHelper::clearCache();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error guardando excepciones de permisos de usuario', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
             ]);
+            // Avisar al admin en vez de fallar en silencio (p. ej. la tabla
+            // usr_permissions_users todavía no existe en este entorno).
+            session()->flash('sync_error', '⚠️ El usuario se guardó, pero no se pudieron guardar las excepciones de permisos: ' . $e->getMessage());
         }
     }
 
@@ -591,6 +594,14 @@ class UserRapForm extends Component
                 $user = $this->createUserWithContact();
             }
 
+            // Guardar excepciones de permisos del usuario (si el admin las editó).
+            // Se hace ACÁ, no después de la sincronización con la API, porque son
+            // escrituras locales y no deben perderse si el sync con la API falla o
+            // corta el flujo antes de tiempo.
+            if ($user) {
+                $this->saveUserPermissionOverrides((int) $user->id);
+            }
+
             // PASO 5: Finalizar sincronización con API (SI ES REQUERIDA)
             if ($user && $shouldSync) {
                 try {
@@ -644,11 +655,6 @@ class UserRapForm extends Component
             } elseif ($user && !$shouldSync) {
                 // Si no se requería sincronización, solo mostrar mensaje de éxito local
                 session()->flash('sync_message', '✅ Usuario guardado exitosamente. La sincronización con la API de facturación electrónica está deshabilitada.');
-            }
-
-            // Guardar excepciones de permisos del usuario (si el admin las editó)
-            if ($user) {
-                $this->saveUserPermissionOverrides((int) $user->id);
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
