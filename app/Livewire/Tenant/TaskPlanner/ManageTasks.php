@@ -139,10 +139,12 @@ class ManageTasks extends Component
 
     public function boot()
     {
-        // El "Panel de Gerencia" es solo para administración (perfiles 1 y 2).
-        // El menú lateral ya lo oculta; esto cierra el acceso por URL directa
-        // y también en cada petición de Livewire, no solo en la carga inicial.
-        abort_unless(in_array(Auth::user()?->profile_id, [1, 2]), 403);
+        // "Panel de Gerencia": 100% por permiso 'Planeacion Panel Gerencia' (o Super Admin).
+        abort_unless(
+            \App\Helpers\PermissionHelper::isSuperAdmin()
+            || \App\Helpers\PermissionHelper::userCan('Planeacion Panel Gerencia', 'show'),
+            403
+        );
 
         $this->ensureTenantConnection();
     }

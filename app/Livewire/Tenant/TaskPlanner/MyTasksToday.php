@@ -51,6 +51,13 @@ class MyTasksToday extends Component
 
     public function boot()
     {
+        abort_unless(
+            \App\Helpers\PermissionHelper::isSuperAdmin()
+            || \App\Helpers\PermissionHelper::userCan('Planeacion Mis Tareas', 'show')
+            || \App\Helpers\PermissionHelper::userCan('Planeacion de Tareas', 'show'),
+            403
+        );
+
         $this->ensureTenantConnection();
     }
 
