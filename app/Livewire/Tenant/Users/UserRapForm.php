@@ -257,11 +257,18 @@ class UserRapForm extends Component
     private function saveUserPermissionOverrides(int $userId): void
     {
         if (!$this->canEditPermissions()) {
+            Log::warning('saveUserPermissionOverrides: sin permiso, no se guardan excepciones', [
+                'user_id' => $userId,
+                'acting_user' => Auth::id(),
+            ]);
             return;
         }
 
         try {
             $map = ['ver' => 'show', 'crear' => 'creater', 'editar' => 'editer', 'desactivar' => 'deleter'];
+
+            $diffCount = 0;
+            $touched = 0;
 
             foreach ($this->profilePermissions as $row) {
                 $permissionId = (int) ($row['id'] ?? 0);
@@ -286,6 +293,7 @@ class UserRapForm extends Component
                     ->where('userId', $userId)->where('permissionId', $permissionId)->first();
 
                 if ($hasDiff) {
+                    $diffCount++;
                     if ($existing) {
                         $existing->fill($payload);
                         $existing->deleted_at = null;
@@ -296,10 +304,19 @@ class UserRapForm extends Component
                             $payload
                         ));
                     }
+                    $touched++;
                 } elseif ($existing && !$existing->trashed()) {
                     $existing->delete(); // volvió a igualar al perfil
+                    $touched++;
                 }
             }
+
+            Log::info('saveUserPermissionOverrides OK', [
+                'user_id' => $userId,
+                'rows_en_matriz' => count($this->profilePermissions),
+                'con_diferencia' => $diffCount,
+                'escritos' => $touched,
+            ]);
 
             PermissionHelper::clearCache();
         } catch (\Throwable $e) {
