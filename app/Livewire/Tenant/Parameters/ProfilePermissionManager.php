@@ -113,23 +113,20 @@ class ProfilePermissionManager extends Component
         usort($this->groups, fn ($a, $b) => strcasecmp($a['title'], $b['title']));
     }
 
-    /** Marca/desmarca una acción para TODAS las subsecciones de un grupo. */
-    public function toggleGroupColumn(string $groupKey, string $action): void
+    /** Marca/desmarca una acción para TODAS las subsecciones de un grupo (ids explícitos). */
+    public function toggleGroupColumn(array $ids, string $action): void
     {
-        if (!array_key_exists($action, $this->actions)) {
+        if (!array_key_exists($action, $this->actions) || !$ids) {
             return;
         }
 
-        $ids = collect($this->groups)
-            ->firstWhere('key', $groupKey)['perms'] ?? [];
-        $ids = collect($ids)->pluck('id')->all();
-        if (!$ids) {
-            return;
-        }
-
+        $ids = array_map('intval', $ids);
         $allChecked = collect($ids)->every(fn ($id) => !empty($this->matrix[$id][$action] ?? false));
+
         foreach ($ids as $id) {
-            $this->matrix[$id][$action] = !$allChecked;
+            if (isset($this->matrix[$id])) {
+                $this->matrix[$id][$action] = !$allChecked;
+            }
         }
     }
 

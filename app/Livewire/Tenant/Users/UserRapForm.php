@@ -320,6 +320,31 @@ class UserRapForm extends Component
         }
     }
 
+    /** Marca/desmarca una acción para todas las filas de un grupo (índices explícitos). */
+    public function togglePermGroupColumn(array $indices, string $acc): void
+    {
+        if (!in_array($acc, ['ver', 'crear', 'editar', 'desactivar'], true) || !$indices) {
+            return;
+        }
+
+        $indices = array_map('intval', $indices);
+        $allChecked = collect($indices)->every(fn ($i) => !empty($this->profilePermissions[$i][$acc] ?? false));
+
+        foreach ($indices as $i) {
+            if (isset($this->profilePermissions[$i])) {
+                $this->profilePermissions[$i][$acc] = !$allChecked;
+            }
+        }
+    }
+
+    /** Vuelve TODAS las filas de un grupo a los valores del perfil. */
+    public function resetPermGroup(array $indices): void
+    {
+        foreach ($indices as $i) {
+            $this->resetPermissionRow((int) $i);
+        }
+    }
+
     /**
      * Guarda las excepciones del usuario: solo persiste las celdas que difieren
      * del perfil; las que vuelven a coincidir se soft-deletean.

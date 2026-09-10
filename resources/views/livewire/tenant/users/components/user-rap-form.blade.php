@@ -754,7 +754,12 @@
                                 @foreach($permGroups as $grp)
                                     @php
                                         $excCount = 0;
-                                        foreach ($grp['rows'] as $ri) { if ($isExc($profilePermissions[$ri])) $excCount++; }
+                                        $colOn = ['ver'=>0,'crear'=>0,'editar'=>0,'desactivar'=>0];
+                                        foreach ($grp['rows'] as $ri) {
+                                            if ($isExc($profilePermissions[$ri])) $excCount++;
+                                            foreach ($colOn as $c => $_) { if (!empty($profilePermissions[$ri][$c])) $colOn[$c]++; }
+                                        }
+                                        $gTot = count($grp['rows']);
                                     @endphp
                                     <div wire:key="pgrp-{{ \Illuminate\Support\Str::slug($grp['title']) }}"
                                          x-data="{ open: {{ $excCount > 0 ? 'true' : 'false' }} }"
@@ -789,7 +794,30 @@
                                                     <x-permission-menu-hint :name="$grp['title']" />
                                                     @if($excCount > 0)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">{{ $excCount }} excep.</span>@endif
                                                 </div>
-                                                <span></span><span></span><span></span><span></span><span></span>
+                                                @foreach(['ver','crear','editar','desactivar'] as $acc)
+                                                    @php
+                                                        $cn = $colOn[$acc];
+                                                        $gcls = $cn === 0 ? 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700'
+                                                              : ($cn === $gTot ? 'border-indigo-600 bg-indigo-600' : 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50');
+                                                    @endphp
+                                                    <div class="flex justify-center">
+                                                        <button type="button" @disabled(!$canEditPerms)
+                                                                wire:click="togglePermGroupColumn(@js($grp['rows']), '{{ $acc }}')"
+                                                                title="Marcar/desmarcar {{ $acc }} en todo {{ $grp['title'] }}"
+                                                                class="h-4 w-4 rounded border-2 flex items-center justify-center {{ $gcls }} {{ !$canEditPerms ? 'cursor-not-allowed opacity-50' : 'hover:border-indigo-500' }}">
+                                                            @if($cn === $gTot && $gTot > 0)
+                                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5"/></svg>
+                                                            @elseif($cn > 0)
+                                                                <span class="block w-2 rounded bg-indigo-600 dark:bg-indigo-300" style="height:2px"></span>
+                                                            @endif
+                                                        </button>
+                                                    </div>
+                                                @endforeach
+                                                <div class="text-right pr-1">
+                                                    @if($excCount > 0 && $canEditPerms)
+                                                        <button type="button" wire:click="resetPermGroup(@js($grp['rows']))" class="text-[11px] font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Volver</button>
+                                                    @endif
+                                                </div>
                                             @endif
                                         </div>
 

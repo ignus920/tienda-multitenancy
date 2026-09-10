@@ -115,9 +115,9 @@
                                                 : ($cOn === $totalG ? 'border-indigo-600 bg-indigo-600' : 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900/50');
                                         @endphp
                                         <button type="button"
-                                                wire:click="toggleGroupColumn('{{ $grp['key'] }}', '{{ $ak }}')"
-                                                title="{{ $al }} — todo {{ $grp['title'] }}"
-                                                class="h-4 w-4 rounded border-2 flex items-center justify-center {{ $stateCls }}">
+                                                wire:click="toggleGroupColumn(@js($ids), '{{ $ak }}')"
+                                                title="{{ $al }} — marcar/desmarcar todo {{ $grp['title'] }}"
+                                                class="h-4 w-4 rounded border-2 flex items-center justify-center hover:border-indigo-500 {{ $stateCls }}">
                                             @if($cOn === $totalG)
                                                 <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5"/></svg>
                                             @elseif($cOn > 0)
