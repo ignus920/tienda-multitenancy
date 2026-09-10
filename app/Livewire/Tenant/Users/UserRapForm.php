@@ -177,6 +177,7 @@ class UserRapForm extends Component
     {
         if (!$profileId) {
             $this->profilePermissions = [];
+            Log::info('loadProfilePermissions: sin profileId', ['editingId' => $this->editingId]);
             return;
         }
 
@@ -185,6 +186,7 @@ class UserRapForm extends Component
             $profile = UsrProfile::with(['permissions' => fn ($q) => $q->where('status', 1)])->find($profileId);
             if (!$profile) {
                 $this->profilePermissions = [];
+                Log::warning('loadProfilePermissions: perfil no encontrado', ['profile_id' => $profileId]);
                 return;
             }
 
@@ -229,10 +231,19 @@ class UserRapForm extends Component
 
             $this->profilePermissions = $rows;
 
-        } catch (\Exception $e) {
+            Log::info('loadProfilePermissions OK', [
+                'profile_id' => $profileId,
+                'editingId' => $this->editingId,
+                'catalogo' => count($rows),
+                'perfil_con_flags' => count($profileFlags),
+                'overrides' => count($overrides),
+            ]);
+
+        } catch (\Throwable $e) {
             Log::error('Error loading profile permissions', [
                 'profile_id' => $profileId,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
             ]);
             $this->profilePermissions = [];
         }
@@ -418,6 +429,12 @@ class UserRapForm extends Component
             $this->loadProfilePermissions($this->profile_id);
         }
 
+        Log::info('edit() fin', [
+            'user_id' => $userId,
+            'profile_id' => $this->profile_id,
+            'profilePermissions_count' => count($this->profilePermissions),
+        ]);
+
         $this->showModal = true;
     }
 
@@ -554,6 +571,12 @@ class UserRapForm extends Component
     public function save(): void
     {
         try {
+            Log::info('save() inicio', [
+                'editingId' => $this->editingId,
+                'profile_id' => $this->profile_id,
+                'profilePermissions_count' => count($this->profilePermissions),
+            ]);
+
             // Clear previous error message
             $this->errorMessage = '';
             $this->successMessage = '';
