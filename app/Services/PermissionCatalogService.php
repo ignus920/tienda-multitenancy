@@ -123,9 +123,27 @@ class PermissionCatalogService
         }
         unset($perm);
 
-        $overrides = UsrPermissionUser::byUser($userId)
-            ->with('permission')
-            ->get();
+        // Si la tabla de excepciones aún no existe (migración no corrida en este
+        // entorno), degradar a permisos SOLO de perfil en vez de romper todo.
+        try {
+            if (!\Illuminate\Support\Facades\Schema::connection('central')->hasTable('usr_permissions_users')) {
+                return [
+                    'profile' => $base['profile'],
+                    'permissions' => $permissions,
+                    'total_permissions' => count($permissions),
+                ];
+            }
+
+            $overrides = UsrPermissionUser::byUser($userId)
+                ->with('permission')
+                ->get();
+        } catch (\Throwable $e) {
+            return [
+                'profile' => $base['profile'],
+                'permissions' => $permissions,
+                'total_permissions' => count($permissions),
+            ];
+        }
 
         $map = ['show' => 'show', 'create' => 'creater', 'edit' => 'editer', 'delete' => 'deleter'];
 

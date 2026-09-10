@@ -36,11 +36,19 @@ class PermissionHelper
         }
 
         if (!array_key_exists($user->id, self::$configCache)) {
+            $service = self::getPermissionService();
             try {
-                self::$configCache[$user->id] = self::getPermissionService()
+                self::$configCache[$user->id] = $service
                     ->getEffectiveUserPermissions((int) $user->id, (int) $user->profile_id);
-            } catch (\Exception $e) {
-                self::$configCache[$user->id] = ['profile' => null, 'permissions' => []];
+            } catch (\Throwable $e) {
+                // Fallback: si la resolución efectiva (perfil + excepciones) falla,
+                // usar SOLO los permisos del perfil para no ocultar todo el menú.
+                try {
+                    self::$configCache[$user->id] = $service
+                        ->getUserPermissionConfiguration((int) $user->profile_id);
+                } catch (\Throwable $e2) {
+                    self::$configCache[$user->id] = ['profile' => null, 'permissions' => []];
+                }
             }
         }
 
