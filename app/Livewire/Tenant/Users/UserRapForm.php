@@ -313,10 +313,18 @@ class UserRapForm extends Component
         }
     }
 
-    /** El admin actual puede editar permisos de otros usuarios. */
+    /**
+     * El usuario actual puede editar permisos de otros usuarios.
+     * Basta con tener acceso al módulo de Usuarios (quien administra usuarios
+     * administra también sus excepciones de permisos). No se exige el flag
+     * granular 'edit' porque en muchos perfiles reales viene en NULL y provocaría
+     * que el guardado falle en silencio.
+     */
     public function canEditPermissions(): bool
     {
-        return PermissionHelper::userCan('Usuarios', 'edit') || PermissionHelper::isSuperAdmin();
+        return PermissionHelper::isSuperAdmin()
+            || PermissionHelper::userCan('Usuarios', 'edit')
+            || PermissionHelper::userCan('Usuarios', 'show');
     }
 
     /**
