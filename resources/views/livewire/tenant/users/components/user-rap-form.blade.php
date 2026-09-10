@@ -1,22 +1,22 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
     <div class="max-w-12xl mx-auto">
         <!-- Header -->
-        @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'show'))
+        @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'show') || \App\Helpers\PermissionHelper::isSuperAdmin())
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Usuarios</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Administración de usuarios del sistema</p>
                 </div>
-                @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'create'))
-                <button wire:click="create"
-                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                @php $canCreate = $this->canCreateUsers(); @endphp
+                <button
+                    @if($canCreate) wire:click="create" @else type="button" disabled title="No tenés permiso para crear usuarios" @endif
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150 {{ $canCreate ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed opacity-60' }}">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Crear Nuevo
                 </button>
-                @endif
             </div>
         </div>
 
@@ -356,14 +356,19 @@
 
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <!-- Estado Toggle -->
+                                @php $canDeactivate = $this->canDeactivateUsers(); @endphp
                                 <div class="flex items-center justify-center gap-2">
                                     <!-- Toggle Switch -->
                                     <button type="button"
+                                        @if($canDeactivate)
                                         wire:click="toggleItemStatus({{ $user->id }})"
                                         wire:loading.attr="disabled"
                                         wire:loading.class="opacity-50 cursor-not-allowed"
                                         wire:target="toggleItemStatus({{ $user->id }})"
-                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md {{ $user->contact && $user->contact->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
+                                        @else
+                                        disabled title="No tenés permiso para activar/desactivar usuarios"
+                                        @endif
+                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {{ $canDeactivate ? 'hover:shadow-md' : 'cursor-not-allowed opacity-50' }} {{ $user->contact && $user->contact->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
                                         role="switch"
                                         aria-checked="{{ $user->contact && $user->contact->status ? 'true' : 'false' }}"
                                         aria-label="Toggle user status for {{ $user->name }}">
@@ -404,15 +409,14 @@
                                         style="display: none;">
                                         <div class="py-1" role="menu" aria-orientation="vertical">
                                             <!-- Editar Usuario -->
-                                            @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'edit'))
+                                            {{-- "Editar" si tiene permiso de edición; si solo tiene "Ver", abre la ficha en modo lectura --}}
                                             <button wire:click="edit({{ $user->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
-                                                Editar
+                                                {{ $this->canEditUsers() ? 'Editar' : 'Ver' }}
                                             </button>
-                                            @endif
 
                                             <!-- Cambiar Contraseña -->
                                             @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'edit'))
@@ -561,6 +565,15 @@
 
                 <!-- User Form -->
                 <form wire:submit.prevent="save">
+                    @php $canEditUser = $editingId ? $this->canEditUsers() : $this->canCreateUsers(); @endphp
+
+                    @unless($canEditUser)
+                    <div class="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
+                        Modo solo lectura. No tenés permiso para {{ $editingId ? 'editar este usuario' : 'crear usuarios' }}.
+                    </div>
+                    @endunless
+
+                    <fieldset @disabled(!$canEditUser) class="p-0 m-0 border-0 min-w-0 disabled:opacity-70">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- First Name -->
                         <div>
@@ -774,12 +787,15 @@
                     </div>
                     @endif
 
+                    </fieldset>
+
                     <!-- Action Buttons -->
                     <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button wire:click="closeModal" type="button"
                             class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancelar
+                            {{ $canEditUser ? 'Cancelar' : 'Cerrar' }}
                         </button>
+                        @if($canEditUser)
                         <button type="submit"
                             wire:loading.attr="disabled"
                             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
@@ -794,6 +810,7 @@
                                 Guardando...
                             </span>
                         </button>
+                        @endif
                     </div>
                 </form>
             </div>

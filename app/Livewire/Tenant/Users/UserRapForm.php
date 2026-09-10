@@ -101,14 +101,33 @@ class UserRapForm extends Component
      */
     public function mount(): void
     {
-        // Gestión de Usuarios: solo Super Administrador o 'Usuarios -> Editar'.
+        // Acceso a la pantalla de Usuarios: basta con 'Usuarios -> Ver' (modo lectura).
+        // Cada acción de escritura (crear / editar / desactivar) se valida aparte.
         abort_unless(
-            PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'edit'),
+            PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'show'),
             403
         );
 
         $this->loadProfiles();
         $this->loadWarehouses();
+    }
+
+    /** El usuario actual puede crear usuarios. */
+    public function canCreateUsers(): bool
+    {
+        return PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'create');
+    }
+
+    /** El usuario actual puede editar usuarios (y guardar sus excepciones de permisos). */
+    public function canEditUsers(): bool
+    {
+        return PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'edit');
+    }
+
+    /** El usuario actual puede activar/desactivar usuarios. */
+    public function canDeactivateUsers(): bool
+    {
+        return PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'deactivate');
     }
 
     /**
@@ -378,6 +397,8 @@ class UserRapForm extends Component
      */
     public function create(): void
     {
+        abort_unless($this->canCreateUsers(), 403);
+
         if (!$this->canCreateUser()) {
             $limit = $this->getUserLimit();
             $current = $this->getActiveUserCount();
@@ -576,6 +597,11 @@ class UserRapForm extends Component
      */
     public function save(): void
     {
+        // Candado por acción: crear un usuario nuevo requiere 'Crear'; editar uno
+        // existente requiere 'Editar'. (La UI ya oculta/bloquea los botones, esto
+        // es defensa en profundidad contra requests directos.)
+        abort_unless($this->editingId ? $this->canEditUsers() : $this->canCreateUsers(), 403);
+
         try {
             Log::info('save() inicio', [
                 'editingId' => $this->editingId,
@@ -960,6 +986,8 @@ class UserRapForm extends Component
      */
     public function toggleItemStatus(int $userId): void
     {
+        abort_unless($this->canDeactivateUsers(), 403);
+
         try {
             // 1. Obtener tenant actual
             $tenantId = $this->getTenantId();
@@ -1075,6 +1103,8 @@ class UserRapForm extends Component
      */
     public function openChangePasswordModal(int $userId): void
     {
+        abort_unless($this->canEditUsers(), 403);
+
         try {
             $this->userToChangePassword = User::findOrFail($userId);
             $this->resetChangePasswordForm();
@@ -1108,6 +1138,8 @@ class UserRapForm extends Component
      */
     public function changePassword(): void
     {
+        abort_unless($this->canEditUsers(), 403);
+
         $this->validate([
             'newPassword' => 'required|min:8',
             'confirmPassword' => 'required|same:newPassword',
