@@ -27,7 +27,7 @@ class ProfilePermissionManager extends Component
 
     public function mount(): void
     {
-        abort_unless(PermissionHelper::userCan('Usuarios', 'edit') || PermissionHelper::isSuperAdmin(), 403);
+        abort_unless(PermissionHelper::isSuperAdmin(), 403);
     }
 
     public function updatedSelectedProfileId($value): void
@@ -83,7 +83,7 @@ class ProfilePermissionManager extends Component
 
     public function save(): void
     {
-        abort_unless(PermissionHelper::userCan('Usuarios', 'edit') || PermissionHelper::isSuperAdmin(), 403);
+        abort_unless(PermissionHelper::isSuperAdmin(), 403);
 
         if (!$this->selectedProfileId) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Selecciona un perfil.']);

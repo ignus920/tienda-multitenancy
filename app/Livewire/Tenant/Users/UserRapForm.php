@@ -101,6 +101,11 @@ class UserRapForm extends Component
      */
     public function mount(): void
     {
+        // Gestión de Usuarios: solo Super Administrador o 'Usuarios -> Editar'.
+        abort_unless(
+            PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'edit'),
+            403
+        );
 
         $this->loadProfiles();
         $this->loadWarehouses();
@@ -347,17 +352,13 @@ class UserRapForm extends Component
     }
 
     /**
-     * El usuario actual puede editar permisos de otros usuarios.
-     * Basta con tener acceso al módulo de Usuarios (quien administra usuarios
-     * administra también sus excepciones de permisos). No se exige el flag
-     * granular 'edit' porque en muchos perfiles reales viene en NULL y provocaría
-     * que el guardado falle en silencio.
+     * El usuario actual puede gestionar usuarios y sus excepciones de permisos.
+     * Solo Super Administrador o quien tenga 'Usuarios -> Editar'.
      */
     public function canEditPermissions(): bool
     {
         return PermissionHelper::isSuperAdmin()
-            || PermissionHelper::userCan('Usuarios', 'edit')
-            || PermissionHelper::userCan('Usuarios', 'show');
+            || PermissionHelper::userCan('Usuarios', 'edit');
     }
 
     /**
