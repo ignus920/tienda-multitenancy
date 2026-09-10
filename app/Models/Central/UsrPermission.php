@@ -14,8 +14,16 @@ class UsrPermission extends Model
 
     protected $fillable = [
         'name',
+        'grupo',
+        'label',
         'status',
     ];
+
+    /** Etiqueta para mostrar (label si existe, si no el name). */
+    public function getDisplayLabelAttribute(): string
+    {
+        return $this->label ?: $this->name;
+    }
 
     protected function casts(): array
     {

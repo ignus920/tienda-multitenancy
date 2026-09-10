@@ -6,6 +6,7 @@ use App\Helpers\PermissionHelper;
 use App\Models\Central\UsrPermission;
 use App\Models\Central\UsrProfile;
 use App\Services\PermissionCatalogService;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class ProfilePermissionManager extends Component
@@ -21,8 +22,12 @@ class ProfilePermissionManager extends Component
     public $selectedProfileId = null;
 
     /**
-     * matriz: [ permissionId => ['id'=>, 'name'=>, 'show'=>bool, 'create'=>bool, 'edit'=>bool, 'delete'=>bool] ]
+     * Estructura para la vista (agrupada por "grupo" del catálogo):
+     * [ ['key'=>slug, 'title'=>str, 'single'=>bool, 'perms'=>[ ['id'=>, 'label'=>, 'name'=>] ] ] ]
      */
+    public array $groups = [];
+
+    /** matriz plana para wire:model: [ permissionId => ['show'=>bool,'create'=>bool,'edit'=>bool,'delete'=>bool] ] */
     public array $matrix = [];
 
     public function mount(): void
@@ -37,14 +42,20 @@ class ProfilePermissionManager extends Component
 
     private function loadMatrix(?int $profileId): void
     {
+        $this->groups = [];
         $this->matrix = [];
 
         if (!$profileId) {
             return;
         }
 
-        $permissions = UsrPermission::where('status', 1)->orderBy('name')->get();
+        $permissions = UsrPermission::where('status', 1)
+            ->orderByRaw('COALESCE(grupo, name)')
+            ->orderBy('label')
+            ->orderBy('name')
+            ->get();
 
+        // Flags ya asignados al perfil
         $assigned = [];
         $profile = UsrProfile::with(['permissions' => fn ($q) => $q->where('status', 1)])->find($profileId);
         if ($profile) {
@@ -58,25 +69,66 @@ class ProfilePermissionManager extends Component
             }
         }
 
+        $buckets = []; // grupo => [perms]
+        $singles = [];
+
         foreach ($permissions as $perm) {
-            $flags = $assigned[$perm->id] ?? ['show' => false, 'create' => false, 'edit' => false, 'delete' => false];
-            $this->matrix[$perm->id] = array_merge(
-                ['id' => $perm->id, 'name' => $perm->name],
-                $flags
-            );
+            $this->matrix[$perm->id] = $assigned[$perm->id]
+                ?? ['show' => false, 'create' => false, 'edit' => false, 'delete' => false];
+
+            $entry = [
+                'id'    => $perm->id,
+                'name'  => $perm->name,
+                'label' => $perm->label ?: $perm->name,
+            ];
+
+            if ($perm->grupo) {
+                $buckets[$perm->grupo][] = $entry;
+            } else {
+                $singles[] = $entry;
+            }
         }
+
+        // Grupos con subsecciones
+        foreach ($buckets as $grupo => $perms) {
+            $this->groups[] = [
+                'key'    => Str::slug($grupo),
+                'title'  => $grupo,
+                'single' => false,
+                'perms'  => $perms,
+            ];
+        }
+
+        // Módulos sueltos (sin grupo) -> una fila cada uno
+        foreach ($singles as $entry) {
+            $this->groups[] = [
+                'key'    => 'x-' . $entry['id'],
+                'title'  => $entry['label'],
+                'single' => true,
+                'perms'  => [$entry],
+            ];
+        }
+
+        // Orden alfabético por título
+        usort($this->groups, fn ($a, $b) => strcasecmp($a['title'], $b['title']));
     }
 
-    /** Marca o desmarca una columna entera. */
-    public function toggleColumn(string $action): void
+    /** Marca/desmarca una acción para TODAS las subsecciones de un grupo. */
+    public function toggleGroupColumn(string $groupKey, string $action): void
     {
         if (!array_key_exists($action, $this->actions)) {
             return;
         }
 
-        // Si TODOS están marcados -> desmarcar todo; si no -> marcar todo.
-        $allChecked = collect($this->matrix)->every(fn ($row) => !empty($row[$action]));
-        foreach ($this->matrix as $id => $row) {
+        $ids = collect($this->groups)
+            ->firstWhere('key', $groupKey)['perms'] ?? [];
+        $ids = collect($ids)->pluck('id')->all();
+        if (!$ids) {
+            return;
+        }
+
+        $allChecked = collect($ids)->every(fn ($id) => !empty($this->matrix[$id][$action] ?? false));
+        foreach ($ids as $id) {
             $this->matrix[$id][$action] = !$allChecked;
         }
     }
@@ -91,13 +143,13 @@ class ProfilePermissionManager extends Component
         }
 
         $rows = [];
-        foreach ($this->matrix as $row) {
+        foreach ($this->matrix as $id => $flags) {
             $rows[] = [
-                'permissionId' => $row['id'],
-                'show'   => !empty($row['show']),
-                'create' => !empty($row['create']),
-                'edit'   => !empty($row['edit']),
-                'delete' => !empty($row['delete']),
+                'permissionId' => (int) $id,
+                'show'   => !empty($flags['show']),
+                'create' => !empty($flags['create']),
+                'edit'   => !empty($flags['edit']),
+                'delete' => !empty($flags['delete']),
             ];
         }
 

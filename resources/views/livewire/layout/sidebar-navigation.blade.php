@@ -790,7 +790,25 @@ new class extends Component
 
 
         <!-- Inventario (menú con subitems) -->
-        @if(!$isAlmacenista && PermissionHelper::userCan('Inventario', 'show'))
+        @php
+            // Inventario: cada subsección tiene su propio permiso "Inventario X".
+            // El permiso "Inventario" (maestro) queda como comodín: si lo tiene, ve todo. Ver [[permisos]].
+            $invSubs = [
+                'items'          => 'Inventario Items',
+                'categorias'     => 'Inventario Categorias',
+                'marcas'         => 'Inventario Marcas',
+                'casas'          => 'Inventario Casas',
+                'unidades'       => 'Inventario Unidades',
+                'movimientos'    => 'Inventario Movimientos',
+                'transferencias' => 'Inventario Transferencias',
+                'solicitud'      => 'Inventario SolicitudStock',
+                'bodegas'        => 'Inventario Bodegas',
+            ];
+            $invMaster = PermissionHelper::userCan('Inventario', 'show');
+            $invSub = fn ($k) => $invMaster || PermissionHelper::userCan($invSubs[$k], 'show');
+            $invAny = $invMaster || PermissionHelper::userCanAny(array_values($invSubs), 'show');
+        @endphp
+        @if(!$isAlmacenista && $invAny)
         <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -816,33 +834,51 @@ new class extends Component
             <!-- Submenú -->
             <div x-show="open && !sidebarCollapsed" x-transition
                 class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                @if($invSub('items'))
                 <a href="{{url('/items/items')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
+                @endif
+                @if($invSub('categorias'))
                 <a href="{{url('/inventory/categories')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Categorías</a>
-                @if (PermissionHelper::getMerchantType() == 5)
+                @endif
+                @if ($invMaster && PermissionHelper::getMerchantType() == 5)
                 <a href="{{url('/inventory/commands')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Comandas</a>
                 @endif
 
+                @if($invSub('marcas'))
                 <a href="{{url('/inventory/brands')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Marcas</a>
+                @endif
+                @if($invSub('casas'))
                 <a href="{{url('/inventory/houses')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Casas</a>
+                @endif
+                @if($invSub('unidades'))
                 <a href="{{url('/inventory/units')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Unidades de Medida</a>
+                @endif
+                @if($invSub('movimientos'))
                 <a href="{{ route('movements.movements') }}" wire:navigate
                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('movements.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión movimientos
                 </a>
+                @endif
+                @if($invSub('transferencias'))
                 <a href="{{ route('transfers.transfers') }}" wire:navigate
                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('transfers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                    Transferencias
                 </a>
+                @endif
+                @if($invSub('solicitud'))
                 <a href="{{ route('tenant.transfer_requests') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('transfer_requests.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">Solicitud de stock</a>
+                @endif
+                @if($invSub('bodegas'))
                 <a href="{{url('/inventory/warehouses')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Bodegas</a>
+                @endif
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -850,28 +886,46 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
                 @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
                 <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Inventario</div>
+                @if($invSub('items'))
                 <a href="{{url('/items/items')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Ítems</a>
+                @endif
+                @if($invSub('categorias'))
                 <a href="{{url('/inventory/categories')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Categorías</a>
-                @if (PermissionHelper::getMerchantType() == 5)
+                @endif
+                @if ($invMaster && PermissionHelper::getMerchantType() == 5)
                 <a href="{{url('/inventory/commands')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Comandas</a>
                 @endif
+                @if($invSub('marcas'))
                 <a href="{{url('/inventory/brands')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Marcas</a>
+                @endif
+                @if($invSub('casas'))
                 <a href="{{url('/inventory/houses')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Casas</a>
+                @endif
+                @if($invSub('unidades'))
                 <a href="{{url('/inventory/units')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Unidades de Medida</a>
+                @endif
+                @if($invSub('movimientos'))
                 <a href="{{ route('movements.movements') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión movimientos</a>
+                @endif
+                @if($invSub('transferencias'))
                 <a href="{{ route('transfers.transfers') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Transferencias</a>
+                @endif
+                @if($invSub('solicitud'))
                 <a href="{{ route('tenant.transfer_requests') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Solicitud de stock</a>
+                @endif
+                @if($invSub('bodegas'))
                 <a href="{{url('/inventory/warehouses')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Bodegas</a>
+                @endif
             </div>
         </div>
         @endif
