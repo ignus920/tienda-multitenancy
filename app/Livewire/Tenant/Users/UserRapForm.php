@@ -116,9 +116,14 @@ class UserRapForm extends Component
      */
     private function usuariosCan(string $action): bool
     {
-        return PermissionHelper::isSuperAdmin()
-            || PermissionHelper::userCan('Usuarios Usuarios', $action)
-            || PermissionHelper::userCan('Usuarios', $action);
+        if (PermissionHelper::isSuperAdmin()) {
+            return true;
+        }
+        // Si tiene la subsección granular (Ver), esa manda; si no, comodín del permiso viejo.
+        if (PermissionHelper::userCan('Usuarios Usuarios', 'show')) {
+            return PermissionHelper::userCan('Usuarios Usuarios', $action);
+        }
+        return PermissionHelper::userCan('Usuarios', $action);
     }
 
     /** El usuario actual puede crear usuarios. */

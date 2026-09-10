@@ -527,9 +527,13 @@ new class extends Component
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
         @php
-            // "Usuarios" = permiso maestro (comodín). Subsecciones: contactos / usuarios del sistema.
-            $usrContactos = PermissionHelper::userCan('Usuarios', 'show') || PermissionHelper::userCan('Usuarios Contactos', 'show') || PermissionHelper::isSuperAdmin();
-            $usrUsuarios  = PermissionHelper::userCan('Usuarios', 'show') || PermissionHelper::userCan('Usuarios Usuarios', 'show') || PermissionHelper::isSuperAdmin();
+            // Subsecciones: "Usuarios Contactos" / "Usuarios Usuarios". "Usuarios" viejo = comodín,
+            // solo aplica si NO tiene ninguna subsección (respaldo para no-migrados).
+            $usrHasSub  = PermissionHelper::userCanAny(['Usuarios Contactos', 'Usuarios Usuarios'], 'show');
+            $usrMaster  = !$usrHasSub && PermissionHelper::userCan('Usuarios', 'show');
+            $usrSuper   = PermissionHelper::isSuperAdmin();
+            $usrContactos = $usrSuper || $usrMaster || PermissionHelper::userCan('Usuarios Contactos', 'show');
+            $usrUsuarios  = $usrSuper || $usrMaster || PermissionHelper::userCan('Usuarios Usuarios', 'show');
         @endphp
         @if(!$isOperario && ($usrContactos || $usrUsuarios))
         <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
@@ -813,9 +817,12 @@ new class extends Component
                 'solicitud'      => 'Inventario SolicitudStock',
                 'bodegas'        => 'Inventario Bodegas',
             ];
-            $invMaster = PermissionHelper::userCan('Inventario', 'show');
+            $invHasSub = PermissionHelper::userCanAny(array_values($invSubs), 'show');
+            // Comodín "Inventario": solo si NO tiene ninguna subsección (respaldo para no-migrados).
+            // Si tiene aunque sea una subsección, mandan las subsecciones.
+            $invMaster = !$invHasSub && PermissionHelper::userCan('Inventario', 'show');
             $invSub = fn ($k) => $invMaster || PermissionHelper::userCan($invSubs[$k], 'show');
-            $invAny = $invMaster || PermissionHelper::userCanAny(array_values($invSubs), 'show');
+            $invAny = $invMaster || $invHasSub;
         @endphp
         @if(!$isAlmacenista && $invAny)
         <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
