@@ -1,7 +1,7 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
     <div class="max-w-12xl mx-auto">
         <!-- Header -->
-        @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'show') || \App\Helpers\PermissionHelper::isSuperAdmin())
+        @if(\App\Helpers\PermissionHelper::userCanAny(['Usuarios', 'Usuarios Usuarios'], 'show') || \App\Helpers\PermissionHelper::isSuperAdmin())
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -419,7 +419,7 @@
                                             </button>
 
                                             <!-- Cambiar Contraseña -->
-                                            @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'edit'))
+                                            @if($this->canEditUsers())
                                             <button wire:click="openChangePasswordModal({{ $user->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-orange-800 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

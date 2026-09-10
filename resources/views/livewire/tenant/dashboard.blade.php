@@ -149,7 +149,7 @@
                     </a>
                     @endif
 
-                    @if(\App\Helpers\PermissionHelper::userCan('Usuarios', 'show'))
+                    @if(\App\Helpers\PermissionHelper::userCanAny(['Usuarios', 'Usuarios Contactos'], 'show'))
                     <a href="{{ route('customers.customers') }}" class="group flex flex-col items-center p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:border-green-300 dark:hover:border-green-500 hover:shadow-lg hover:shadow-green-100 dark:hover:shadow-gray-900/30 transform hover:-translate-y-1 transition-all duration-300 ease-in-out">
                         <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full group-hover:bg-green-200 dark:group-hover:bg-green-800/50 group-hover:scale-110 transition-all duration-300">
                             <svg class="w-8 h-8 text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

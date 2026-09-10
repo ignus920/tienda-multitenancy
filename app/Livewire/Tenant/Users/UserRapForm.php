@@ -102,33 +102,41 @@ class UserRapForm extends Component
      */
     public function mount(): void
     {
-        // Acceso a la pantalla de Usuarios: basta con 'Usuarios -> Ver' (modo lectura).
+        // Acceso a la pantalla de Usuarios: basta con 'Ver' (modo lectura).
         // Cada acción de escritura (crear / editar / desactivar) se valida aparte.
-        abort_unless(
-            PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'show'),
-            403
-        );
+        abort_unless($this->usuariosCan('show'), 403);
 
         $this->loadProfiles();
         $this->loadWarehouses();
     }
 
+    /**
+     * Chequea una acción sobre "Gestión de Usuarios".
+     * Acepta el permiso granular 'Usuarios Usuarios' o el comodín viejo 'Usuarios'.
+     */
+    private function usuariosCan(string $action): bool
+    {
+        return PermissionHelper::isSuperAdmin()
+            || PermissionHelper::userCan('Usuarios Usuarios', $action)
+            || PermissionHelper::userCan('Usuarios', $action);
+    }
+
     /** El usuario actual puede crear usuarios. */
     public function canCreateUsers(): bool
     {
-        return PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'create');
+        return $this->usuariosCan('create');
     }
 
     /** El usuario actual puede editar usuarios (y guardar sus excepciones de permisos). */
     public function canEditUsers(): bool
     {
-        return PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'edit');
+        return $this->usuariosCan('edit');
     }
 
     /** El usuario actual puede activar/desactivar usuarios. */
     public function canDeactivateUsers(): bool
     {
-        return PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Usuarios', 'deactivate');
+        return $this->usuariosCan('deactivate');
     }
 
     /**
@@ -438,12 +446,11 @@ class UserRapForm extends Component
 
     /**
      * El usuario actual puede gestionar usuarios y sus excepciones de permisos.
-     * Solo Super Administrador o quien tenga 'Usuarios -> Editar'.
+     * Solo Super Administrador o quien tenga 'Gestión de Usuarios -> Editar'.
      */
     public function canEditPermissions(): bool
     {
-        return PermissionHelper::isSuperAdmin()
-            || PermissionHelper::userCan('Usuarios', 'edit');
+        return $this->usuariosCan('edit');
     }
 
     /**

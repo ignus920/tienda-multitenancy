@@ -526,7 +526,12 @@ new class extends Component
 
 
         <!-- Clientes (menú con subitems: ruta por defecto + navegación AJAX) -->
-        @if(!$isOperario && PermissionHelper::userCanAny(['Usuarios'], 'show'))
+        @php
+            // "Usuarios" = permiso maestro (comodín). Subsecciones: contactos / usuarios del sistema.
+            $usrContactos = PermissionHelper::userCan('Usuarios', 'show') || PermissionHelper::userCan('Usuarios Contactos', 'show') || PermissionHelper::isSuperAdmin();
+            $usrUsuarios  = PermissionHelper::userCan('Usuarios', 'show') || PermissionHelper::userCan('Usuarios Usuarios', 'show') || PermissionHelper::isSuperAdmin();
+        @endphp
+        @if(!$isOperario && ($usrContactos || $usrUsuarios))
         <div x-data="{ tooltip: false, open: false, _t: null }" class="w-full relative">
             <!-- Botón principal -->
             <div class="group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -555,11 +560,13 @@ new class extends Component
             <!-- Submenú -->
             <div x-show="open && !sidebarCollapsed" x-transition
                 class="ml-8 mt-1 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                @if($usrContactos)
                 <a href="{{ route('customers.customers') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('customers.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión Contactos
                 </a>
-                @if(PermissionHelper::userCan('Usuarios', 'show') || PermissionHelper::isSuperAdmin())
+                @endif
+                @if($usrUsuarios)
                  <a href="{{ route('users.users') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('users.*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión Usuarios
@@ -572,9 +579,11 @@ new class extends Component
                 class="absolute top-0 left-full ml-2 bg-gray-800 text-white rounded-lg shadow-xl z-[9999] whitespace-nowrap overflow-hidden min-w-[160px]"
                 @mouseenter="clearTimeout(_t); tooltip = true" @mouseleave="_t = setTimeout(() => tooltip = false, 200)">
                 <div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-700">Gestión de contactos</div>
+                @if($usrContactos)
                 <a href="{{ route('customers.customers') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión Contactos</a>
-                @if(PermissionHelper::userCan('Usuarios', 'show') || PermissionHelper::isSuperAdmin())
+                @endif
+                @if($usrUsuarios)
                 <a href="{{ route('users.users') }}" class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión Usuarios</a>
                 @endif
             </div>
