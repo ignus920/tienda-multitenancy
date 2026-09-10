@@ -265,8 +265,13 @@ class UserRapForm extends Component
      * Guarda las excepciones del usuario: solo persiste las celdas que difieren
      * del perfil; las que vuelven a coincidir se soft-deletean.
      */
-    private function saveUserPermissionOverrides(int $userId): void
+    private function saveUserPermissionOverrides(int $userId, ?array $matrix = null): void
     {
+        // La matriz se pasa explícitamente porque updateUserWithContact() llama a
+        // closeModal() -> resetForm() y para cuando llegamos acá $this->profilePermissions
+        // ya puede estar vacío.
+        $matrix = $matrix ?? $this->profilePermissions;
+
         if (!$this->canEditPermissions()) {
             Log::warning('saveUserPermissionOverrides: sin permiso, no se guardan excepciones', [
                 'user_id' => $userId,
@@ -281,7 +286,7 @@ class UserRapForm extends Component
             $diffCount = 0;
             $touched = 0;
 
-            foreach ($this->profilePermissions as $row) {
+            foreach ($matrix as $row) {
                 $permissionId = (int) ($row['id'] ?? 0);
                 if (!$permissionId) {
                     continue;
@@ -324,7 +329,7 @@ class UserRapForm extends Component
 
             Log::info('saveUserPermissionOverrides OK', [
                 'user_id' => $userId,
-                'rows_en_matriz' => count($this->profilePermissions),
+                'rows_en_matriz' => count($matrix),
                 'con_diferencia' => $diffCount,
                 'escritos' => $touched,
             ]);
@@ -632,6 +637,10 @@ class UserRapForm extends Component
                 $tempApiId = $apiValidationResult['temp_api_id'] ?? null;
             }
 
+            // Copia de la matriz de permisos ANTES de guardar el usuario: updateUserWithContact()
+            // llama a closeModal() -> resetForm() y deja $this->profilePermissions vacío.
+            $permMatrixSnapshot = $this->profilePermissions;
+
             // PASO 4: Guardar en base de datos local
             if ($this->editingId) {
                 // Update mode
@@ -647,7 +656,7 @@ class UserRapForm extends Component
             // escrituras locales y no deben perderse si el sync con la API falla o
             // corta el flujo antes de tiempo.
             if ($user) {
-                $this->saveUserPermissionOverrides((int) $user->id);
+                $this->saveUserPermissionOverrides((int) $user->id, $permMatrixSnapshot);
             }
 
             // PASO 5: Finalizar sincronización con API (SI ES REQUERIDA)
