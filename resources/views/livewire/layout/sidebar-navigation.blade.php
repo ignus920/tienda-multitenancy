@@ -274,7 +274,7 @@ new class extends Component
         </div>
         @endif
 
-        @if (Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18)
+        @if (Auth::user()?->profile_id != 17 && Auth::user()?->profile_id != 18 && PermissionHelper::userCan('Garantias', 'show'))
         <!-- Devoluciones y Garantías (Menú Agrupado) -->
         <div x-data="{
             tooltip: false,
@@ -336,7 +336,7 @@ new class extends Component
 
 
 
-        @if($isAlmacenista || $isAdmin)
+        @if(PermissionHelper::userCan('Almacen', 'show'))
         <!-- Almacén (Menú agrupado) -->
         <div x-data="{
             tooltip: false,
@@ -472,7 +472,7 @@ new class extends Component
         @endif
 
         <!-- Informes (Menú Desplegable) -->
-        @if(!$isOperario && PermissionHelper::userCan('Ventas', 'show') && Auth::user()?->profile_id != 17)
+        @if(!$isOperario && PermissionHelper::userCan('Reportes', 'show') && Auth::user()?->profile_id != 17)
         <div x-data="{
             tooltip: false,
             open: {{ request()->routeIs('tenant.reports.*') ? 'true' : 'false' }},
