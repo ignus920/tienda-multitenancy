@@ -10,7 +10,7 @@
                 </div>
                 @php $canCreate = $this->canCreateUsers(); @endphp
                 <button
-                    @if($canCreate) wire:click="create" @else type="button" disabled title="No tenés permiso para crear usuarios" @endif
+                    @if($canCreate) wire:click="create" @else type="button" disabled title="No tiene permiso para crear usuarios" @endif
                     class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150 {{ $canCreate ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed opacity-60' }}">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -366,7 +366,7 @@
                                         wire:loading.class="opacity-50 cursor-not-allowed"
                                         wire:target="toggleItemStatus({{ $user->id }})"
                                         @else
-                                        disabled title="No tenés permiso para activar/desactivar usuarios"
+                                        disabled title="No tiene permiso para activar/desactivar usuarios"
                                         @endif
                                         class="relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {{ $canDeactivate ? 'hover:shadow-md' : 'cursor-not-allowed opacity-50' }} {{ $user->contact && $user->contact->status ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500' }}"
                                         role="switch"
@@ -569,7 +569,7 @@
 
                     @unless($canEditUser)
                     <div class="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
-                        Modo solo lectura. No tenés permiso para {{ $editingId ? 'editar este usuario' : 'crear usuarios' }}.
+                        Modo solo lectura. No tiene permiso para {{ $editingId ? 'editar este usuario' : 'crear usuarios' }}.
                     </div>
                     @endunless
 
