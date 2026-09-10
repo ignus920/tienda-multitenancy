@@ -60,7 +60,9 @@
             <div class="mt-2 space-y-2">
                 @foreach($groups as $grp)
                     @php
-                        $ids = collect($grp['perms'])->pluck('id')->all();
+                        // Contadores y "marcar todo" -> solo las subsecciones reales (excluye la fila "acceso a todo")
+                        $subPerms = collect($grp['perms'])->reject(fn ($p) => $p['master'] ?? false)->values();
+                        $ids = $subPerms->pluck('id')->all();
                         $totalG = count($ids);
                         $counts = [];
                         foreach ($actions as $ak => $al) {
@@ -135,9 +137,9 @@
                              class="border-t border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/30">
                             @foreach($grp['perms'] as $perm)
                                 <div wire:key="perm-{{ $perm['id'] }}"
-                                     class="pl-10 pr-3 py-2 border-b border-gray-100 dark:border-gray-700/60 last:border-0"
+                                     class="pr-3 py-2 border-b border-gray-100 dark:border-gray-700/60 last:border-0 {{ ($perm['master'] ?? false) ? 'pl-8 bg-indigo-50/50 dark:bg-indigo-900/10' : 'pl-10' }}"
                                      style="{{ $gridStyle }}">
-                                    <span class="text-sm text-gray-800 dark:text-gray-200 truncate">{{ $perm['label'] }}</span>
+                                    <span class="text-sm truncate {{ ($perm['master'] ?? false) ? 'font-semibold text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-200' }}">{{ $perm['label'] }}</span>
                                     @foreach($actions as $ak => $al)
                                         <div class="flex justify-center">
                                             <input type="checkbox"

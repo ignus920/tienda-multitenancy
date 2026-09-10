@@ -254,10 +254,11 @@ class UserRapForm extends Component
                 $ov = $overrides[$perm->id] ?? [];
 
                 $row = [
-                    'id'    => $perm->id,
-                    'name'  => $perm->name,
-                    'label' => $perm->label ?: $perm->name,
-                    'grupo' => $perm->grupo,
+                    'id'     => $perm->id,
+                    'name'   => $perm->name,
+                    'label'  => $perm->label ?: $perm->name,
+                    'grupo'  => $perm->grupo,
+                    'master' => ($perm->grupo && $perm->name === $perm->grupo),
                 ];
                 foreach (['ver', 'crear', 'editar', 'desactivar'] as $k) {
                     $row[$k] = array_key_exists($k, $ov) ? $ov[$k] : $base[$k];
@@ -281,6 +282,11 @@ class UserRapForm extends Component
             }
             $groups = [];
             foreach ($buckets as $grupo => $idxs) {
+                // fila "acceso a todo" (name == grupo) primero
+                usort($idxs, function ($a, $b) use ($rows) {
+                    return ($rows[$b]['master'] <=> $rows[$a]['master'])
+                        ?: strcasecmp($rows[$a]['label'], $rows[$b]['label']);
+                });
                 $groups[] = ['title' => $grupo, 'single' => false, 'rows' => $idxs];
             }
             foreach ($singles as $i) {

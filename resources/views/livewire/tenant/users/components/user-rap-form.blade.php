@@ -753,13 +753,17 @@
                             <div class="space-y-1.5 mt-1.5">
                                 @foreach($permGroups as $grp)
                                     @php
+                                        // "marcar toda la columna" y contadores -> solo subsecciones reales (excluye "acceso a todo")
+                                        $subRows = collect($grp['rows'])->reject(fn ($ri) => $profilePermissions[$ri]['master'] ?? false)->values()->all();
                                         $excCount = 0;
                                         $colOn = ['ver'=>0,'crear'=>0,'editar'=>0,'desactivar'=>0];
                                         foreach ($grp['rows'] as $ri) {
                                             if ($isExc($profilePermissions[$ri])) $excCount++;
+                                        }
+                                        foreach ($subRows as $ri) {
                                             foreach ($colOn as $c => $_) { if (!empty($profilePermissions[$ri][$c])) $colOn[$c]++; }
                                         }
-                                        $gTot = count($grp['rows']);
+                                        $gTot = count($subRows);
                                     @endphp
                                     <div wire:key="pgrp-{{ \Illuminate\Support\Str::slug($grp['title']) }}"
                                          x-data="{ open: {{ $excCount > 0 ? 'true' : 'false' }} }"
@@ -802,7 +806,7 @@
                                                     @endphp
                                                     <div class="flex justify-center">
                                                         <button type="button" @disabled(!$canEditPerms)
-                                                                wire:click="togglePermGroupColumn(@js($grp['rows']), '{{ $acc }}')"
+                                                                wire:click="togglePermGroupColumn(@js($subRows), '{{ $acc }}')"
                                                                 title="Marcar/desmarcar {{ $acc }} en todo {{ $grp['title'] }}"
                                                                 class="h-4 w-4 rounded border-2 flex items-center justify-center {{ $gcls }} {{ !$canEditPerms ? 'cursor-not-allowed opacity-50' : 'hover:border-indigo-500' }}">
                                                             @if($cn === $gTot && $gTot > 0)
@@ -825,12 +829,12 @@
                                         @unless($grp['single'])
                                         <div x-show="open" x-transition.opacity class="border-t border-gray-200 dark:border-gray-600 bg-gray-50/70 dark:bg-gray-900/30">
                                             @foreach($grp['rows'] as $i)
-                                                @php $p = $profilePermissions[$i]; $exc = $isExc($p); @endphp
+                                                @php $p = $profilePermissions[$i]; $exc = $isExc($p); $isMaster = $p['master'] ?? false; @endphp
                                                 <div wire:key="uperm-{{ $p['id'] }}"
-                                                     class="px-2.5 py-2 border-b border-gray-100 dark:border-gray-700/60 last:border-0 {{ $exc ? 'bg-amber-50/60 dark:bg-amber-900/10' : '' }}"
+                                                     class="px-2.5 py-2 border-b border-gray-100 dark:border-gray-700/60 last:border-0 {{ $exc ? 'bg-amber-50/60 dark:bg-amber-900/10' : ($isMaster ? 'bg-indigo-50/60 dark:bg-indigo-900/10' : '') }}"
                                                      style="{{ $pGrid }}">
-                                                    <div class="flex items-center gap-1.5 min-w-0 pl-8">
-                                                        <span class="text-sm text-gray-800 dark:text-gray-200 truncate">{{ $p['label'] }}</span>
+                                                    <div class="flex items-center gap-1.5 min-w-0 {{ $isMaster ? 'pl-6' : 'pl-8' }}">
+                                                        <span class="text-sm truncate {{ $isMaster ? 'font-semibold text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-200' }}">{{ $p['label'] }}</span>
                                                         @if($exc)<span class="rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 text-[10px] font-bold">Excepción</span>@endif
                                                     </div>
                                                     @foreach(['ver','crear','editar','desactivar'] as $acc)

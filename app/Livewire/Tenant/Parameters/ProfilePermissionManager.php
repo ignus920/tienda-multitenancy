@@ -77,9 +77,10 @@ class ProfilePermissionManager extends Component
                 ?? ['show' => false, 'create' => false, 'edit' => false, 'delete' => false];
 
             $entry = [
-                'id'    => $perm->id,
-                'name'  => $perm->name,
-                'label' => $perm->label ?: $perm->name,
+                'id'     => $perm->id,
+                'name'   => $perm->name,
+                'label'  => $perm->label ?: $perm->name,
+                'master' => ($perm->grupo && $perm->name === $perm->grupo), // "acceso a todo"
             ];
 
             if ($perm->grupo) {
@@ -89,8 +90,9 @@ class ProfilePermissionManager extends Component
             }
         }
 
-        // Grupos con subsecciones
+        // Grupos con subsecciones (la fila "maestra" primero)
         foreach ($buckets as $grupo => $perms) {
+            usort($perms, fn ($a, $b) => ($b['master'] <=> $a['master']) ?: strcasecmp($a['label'], $b['label']));
             $this->groups[] = [
                 'key'    => Str::slug($grupo),
                 'title'  => $grupo,
