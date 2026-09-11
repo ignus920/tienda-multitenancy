@@ -17,8 +17,6 @@
 
         @if(count($assignedSuggestions) >= \App\Livewire\Tenant\Items\ItemSuggestedProducts::MAX_SUGGESTIONS)
             <p class="text-sm text-gray-400 dark:text-gray-500">Ya se alcanzó el máximo de {{ \App\Livewire\Tenant\Items\ItemSuggestedProducts::MAX_SUGGESTIONS }} productos sugeridos.</p>
-        @elseif(count($availableItems) === 0)
-            <p class="text-sm text-gray-400 dark:text-gray-500">No hay más productos disponibles para sugerir.</p>
         @else
             <div class="grid grid-cols-1 gap-3">
                 <div class="flex flex-col md:flex-row gap-3 md:items-end">
@@ -26,18 +24,22 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Producto <span class="text-red-500">*</span>
                         </label>
-                        <select wire:model="selectedSuggestedItemId"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                            <option value="">-- Seleccione un producto --</option>
-                            @foreach($availableItems as $availableItem)
-                                <option value="{{ $availableItem['id'] }}">
-                                    {{ $availableItem['name'] }}
-                                    @if($availableItem['internal_code'])
-                                        ({{ $availableItem['internal_code'] }})
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="w-full relative" x-data="{ open: true }" @click.away="open = false">
+                            <input wire:model.live.debounce.300ms="search" @focus="open = true" type="text"
+                                placeholder="Buscar por código o nombre..."
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            @if(!empty($searchResults) && $search)
+                                <div x-show="open" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-56 overflow-y-auto">
+                                    @foreach($searchResults as $result)
+                                        <button type="button"
+                                            wire:click="selectSuggestedItem({{ $result['id'] }}, '{{ addslashes($result['name']) }}', '{{ addslashes($result['code']) }}')"
+                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-750">
+                                            <span class="text-gray-400">{{ $result['code'] }}</span> - <span class="font-medium">{{ $result['name'] }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
                         @error('selectedSuggestedItemId')
                             <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
                         @enderror
@@ -60,6 +62,7 @@
                         </button>
                     </div>
                 </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500">Haz clic sobre un resultado de la búsqueda para seleccionarlo.</p>
             </div>
         @endif
     </div>

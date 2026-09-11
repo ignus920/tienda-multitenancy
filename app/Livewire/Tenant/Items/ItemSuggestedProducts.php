@@ -15,39 +15,23 @@ class ItemSuggestedProducts extends Component
 
     public $itemId;
 
+    public $search = '';
+    public $searchResults = [];
     public $selectedSuggestedItemId = '';
     public $assignedSuggestions = [];
-    public $availableItems = [];
 
     protected $rules = [
         'selectedSuggestedItemId' => 'required|integer',
     ];
 
     protected $messages = [
-        'selectedSuggestedItemId.required' => 'Debe seleccionar un producto.',
+        'selectedSuggestedItemId.required' => 'Debe buscar y seleccionar un producto.',
     ];
 
     public function mount($itemId)
     {
         $this->itemId = $itemId;
         $this->ensureTenantConnection();
-        $this->loadData();
-    }
-
-    private function loadData(): void
-    {
-        try {
-            $this->availableItems = Items::on('tenant')
-                ->where('status', 1)
-                ->where('id', '!=', $this->itemId)
-                ->orderBy('name')
-                ->get(['id', 'name', 'internal_code'])
-                ->toArray();
-        } catch (\Exception $e) {
-            Log::error('ItemSuggestedProducts - Error cargando productos: ' . $e->getMessage());
-            $this->availableItems = [];
-        }
-
         $this->loadAssigned();
     }
 
@@ -63,6 +47,48 @@ class ItemSuggestedProducts extends Component
             Log::error('ItemSuggestedProducts - Error cargando sugeridos: ' . $e->getMessage());
             $this->assignedSuggestions = [];
         }
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->ensureTenantConnection();
+        $this->selectedSuggestedItemId = '';
+
+        if (strlen($this->search) < 2) {
+            $this->searchResults = [];
+            return;
+        }
+
+        $assignedIds = collect($this->assignedSuggestions)->pluck('suggested_item')->all();
+
+        $words = array_filter(explode(' ', trim($this->search)));
+
+        $query = Items::active()
+            ->where('id', '!=', $this->itemId)
+            ->whereNotIn('id', $assignedIds);
+
+        foreach ($words as $word) {
+            $query->where(function ($q) use ($word) {
+                $q->where('name', 'like', '%' . $word . '%')
+                  ->orWhere('internal_code', 'like', '%' . $word . '%')
+                  ->orWhere('description', 'like', '%' . $word . '%');
+            });
+        }
+
+        $this->searchResults = $query->limit(10)->get(['id', 'name', 'internal_code'])->map(function ($item) {
+            return [
+                'id'   => $item->id,
+                'name' => $item->name,
+                'code' => $item->internal_code,
+            ];
+        })->toArray();
+    }
+
+    public function selectSuggestedItem(int $itemId, string $itemName, string $itemCode = ''): void
+    {
+        $this->selectedSuggestedItemId = $itemId;
+        $this->search = $itemCode ? "{$itemCode} - {$itemName}" : $itemName;
+        $this->searchResults = [];
     }
 
     public function addSuggestion(): void
@@ -94,7 +120,7 @@ class ItemSuggestedProducts extends Component
             'suggested_item' => $this->selectedSuggestedItemId,
         ]);
 
-        $this->reset('selectedSuggestedItemId');
+        $this->reset('selectedSuggestedItemId', 'search', 'searchResults');
         $this->loadAssigned();
         $this->dispatch('notify', type: 'success', message: 'Producto sugerido agregado correctamente.');
     }
