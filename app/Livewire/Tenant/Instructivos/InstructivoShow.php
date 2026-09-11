@@ -25,6 +25,7 @@ class InstructivoShow extends Component
     public string $entryTitle = '';
     public string $entryBody = '';
     public $tempFiles = [];
+    public array $stagedFiles = [];
 
     public function boot()
     {
@@ -36,6 +37,17 @@ class InstructivoShow extends Component
         );
 
         $this->canManage = PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Instructivos', 'edit');
+    }
+
+    // El <input multiple> reemplaza su selección completa cada vez que se abre
+    // el diálogo (así es el navegador, no algo que controlemos). Por eso cada
+    // tanda que llega a $tempFiles se va sumando a $stagedFiles, en vez de
+    // usar $tempFiles directo, para no perder lo ya elegido de otra carpeta.
+    public function updatedTempFiles()
+    {
+        foreach ($this->tempFiles as $file) {
+            $this->stagedFiles[] = $file;
+        }
     }
 
     private function ensureTenantConnection()
@@ -90,6 +102,7 @@ class InstructivoShow extends Component
         $this->entryTitle = $entry->title;
         $this->entryBody = $entry->body;
         $this->tempFiles = [];
+        $this->stagedFiles = [];
         $this->showEntryModal = true;
     }
 
@@ -100,7 +113,7 @@ class InstructivoShow extends Component
         $this->validate([
             'entryTitle' => 'required|string|max:150',
             'entryBody' => 'required|string',
-            'tempFiles.*' => 'nullable|file|max:10240|mimes:png,jpg,jpeg,webp,pdf,xls,xlsx',
+            'stagedFiles.*' => 'nullable|file|max:10240|mimes:png,jpg,jpeg,webp,pdf,xls,xlsx',
         ]);
 
         if ($this->editingEntryId) {
@@ -120,7 +133,7 @@ class InstructivoShow extends Component
             ]);
         }
 
-        foreach ($this->tempFiles as $file) {
+        foreach ($this->stagedFiles as $file) {
             $path = $this->storeKeepingOriginalName($file, 'instructivos');
             $entry->attachments()->create([
                 'file_name' => $file->getClientOriginalName(),
@@ -146,8 +159,8 @@ class InstructivoShow extends Component
 
     public function removeTempFile(int $index)
     {
-        unset($this->tempFiles[$index]);
-        $this->tempFiles = array_values($this->tempFiles);
+        unset($this->stagedFiles[$index]);
+        $this->stagedFiles = array_values($this->stagedFiles);
     }
 
     private function storeKeepingOriginalName($uploadedFile, string $directory): string
@@ -178,6 +191,7 @@ class InstructivoShow extends Component
         $this->entryTitle = '';
         $this->entryBody = '';
         $this->tempFiles = [];
+        $this->stagedFiles = [];
         $this->resetErrorBag();
     }
 }
