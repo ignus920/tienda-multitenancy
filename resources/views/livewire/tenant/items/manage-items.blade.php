@@ -482,20 +482,9 @@
                     <div class="px-6 pt-4">
                         <div class="pb-1 relative"
                             x-data="{
-                                showLeftArrow: false,
-                                showRightArrow: false,
                                 tipVisible: false,
                                 tipText: '',
                                 tipStyle: '',
-                                updateArrows() {
-                                    const el = this.$refs.tabScroll;
-                                    if (!el) return;
-                                    this.showLeftArrow = el.scrollLeft > 4;
-                                    this.showRightArrow = el.scrollLeft < (el.scrollWidth - el.clientWidth - 4);
-                                },
-                                scrollTabs(dir) {
-                                    this.$refs.tabScroll.scrollBy({ left: dir * 160, behavior: 'smooth' });
-                                },
                                 showTip(event, text) {
                                     const rect = event.currentTarget.getBoundingClientRect();
                                     this.tipText = text;
@@ -503,18 +492,9 @@
                                     this.tipStyle = 'top:' + (rect.bottom + 8) + 'px; left:' + left + 'px;';
                                     this.tipVisible = true;
                                 }
-                            }"
-                            x-init="$nextTick(() => updateArrows())"
-                            @resize.window="updateArrows()">
+                            }">
 
-                            <!-- Flecha izquierda: indica que hay más pestañas a la izquierda -->
-                            <button type="button" x-show="showLeftArrow" x-cloak style="display:none" @click="scrollTabs(-1)"
-                                class="absolute left-0.5 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-gray-700 shadow-md ring-1 ring-black/10 text-gray-500 dark:text-gray-300 hover:text-indigo-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                            </button>
-
-                            <nav x-ref="tabScroll" @scroll.debounce.50ms="updateArrows()"
-                                class="flex flex-nowrap items-center gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5 overflow-x-auto scroll-smooth"
+                            <nav class="flex flex-nowrap items-center gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5 overflow-x-auto scroll-smooth"
                                 style="scrollbar-width: thin;" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
@@ -597,12 +577,6 @@
                                 </button>
                                 @endif
                             </nav>
-
-                            <!-- Flecha derecha: indica que hay más pestañas a la derecha -->
-                            <button type="button" x-show="showRightArrow" x-cloak style="display:none" @click="scrollTabs(1)"
-                                class="absolute right-0.5 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-gray-700 shadow-md ring-1 ring-black/10 text-gray-500 dark:text-gray-300 hover:text-indigo-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                            </button>
 
                             <!-- Tooltip flotante único: fixed para no recortarse con el scroll horizontal del nav.
                                  La visibilidad y la posición se resuelven en el mismo :style (evita que
