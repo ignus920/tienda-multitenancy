@@ -3,10 +3,12 @@
 namespace App\Livewire\Tenant\Instructivos;
 
 use App\Helpers\PermissionHelper;
+use App\Models\Auth\Tenant;
 use App\Models\Auth\User;
 use App\Models\Tenant\Instructivos\Instructivo;
 use App\Models\Tenant\Instructivos\InstructivoDepartment;
 use App\Models\Tenant\Instructivos\InstructivoDepartmentUser;
+use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -24,12 +26,27 @@ class DepartmentShow extends Component
 
     public function boot()
     {
+        $this->ensureTenantConnection();
+
         abort_unless(
             PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Instructivos', 'show'),
             403
         );
 
         $this->canManage = PermissionHelper::isSuperAdmin() || PermissionHelper::userCan('Instructivos', 'edit');
+    }
+
+    private function ensureTenantConnection()
+    {
+        $tenantId = session('tenant_id');
+        if (!$tenantId) return;
+
+        $tenant = Tenant::find($tenantId);
+        if (!$tenant) return;
+
+        $tenantManager = app(TenantManager::class);
+        $tenantManager->setConnection($tenant);
+        tenancy()->initialize($tenant);
     }
 
     public function mount(int $department)
