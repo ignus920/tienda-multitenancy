@@ -361,7 +361,7 @@
             border: 1px solid #ccc;
             padding: 6px;
             border-radius: 4px;
-            height: 145px;
+            min-height: 145px;
             display: inline-block;
             vertical-align: top;
             margin: 0 6px 8px 0;
@@ -408,8 +408,8 @@
         }
 
         .image-card .suggested-products {
-            margin-top: 6px;
-            padding-top: 4px;
+            margin-top: 8px;
+            padding-top: 6px;
             border-top: 1px dashed #ccc;
         }
 
