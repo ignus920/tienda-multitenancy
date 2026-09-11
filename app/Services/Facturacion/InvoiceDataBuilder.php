@@ -32,6 +32,11 @@ class InvoiceDataBuilder
      * @param array $retentions Retenciones aplicadas (opcional, se calcularán automáticamente si están vacías)
      * @param int $termDays Días de término para fecha de vencimiento
      * @param bool $calculateRetentions Si debe calcular las retenciones automáticamente
+     * @param string|null $sellerApiId ID de Alegra del vendedor (override del usuario autenticado)
+     * @param iterable|null $detailsOverride Detalles a usar para construir los items en vez de
+     *        $quote->detalles (ej. al facturar desde una remisión: $remission->details, que ya
+     *        trae los precios con descuento aplicado — la cotización puede haber quedado
+     *        desactualizada respecto al descuento real de la remisión).
      * @return array Datos formateados para la API de Alegra
      */
     public static function buildFromQuote(
@@ -40,7 +45,8 @@ class InvoiceDataBuilder
         array $retentions = [],
         int $termDays = 0,
         bool $calculateRetentions = true,
-        ?string $sellerApiId = null   // ID de Alegra del vendedor (override del usuario autenticado)
+        ?string $sellerApiId = null,
+        $detailsOverride = null
     ): array {
         // Fecha actual en formato YYYY-MM-DD (equivalente al JavaScript)
         $date = now()->format('Y-m-d');
@@ -55,8 +61,9 @@ class InvoiceDataBuilder
             'due_date' => $dueDate
         ]);
 
-        // Construir items de Alegra desde los detalles de la cotización
-        $itemsAlegra = self::buildItemsFromQuoteDetails($quote);
+        // Construir items de Alegra desde los detalles de la cotización, o desde
+        // $detailsOverride si se proporcionó (ej. detalles reales de la remisión).
+        $itemsAlegra = self::buildItemsFromQuoteDetails($detailsOverride ?? $quote->detalles);
 
         // Obtener datos del cliente (equivalente a getGlobalProduct en JS)
         $customerData = self::getCustomerDataForInvoice($quote);
@@ -137,14 +144,16 @@ class InvoiceDataBuilder
     }
 
     /**
-     * Construir items de Alegra desde los detalles de la cotización
+     * Construir items de Alegra desde una colección de detalles (de una cotización
+     * o de una remisión — ambas tablas usan las mismas columnas value/tax/quantity
+     * y la misma relación item()).
      * Equivalente al Object.keys(allData).forEach en JavaScript
      */
-    protected static function buildItemsFromQuoteDetails(VntQuote $quote): array
+    protected static function buildItemsFromQuoteDetails(iterable $detalles): array
     {
         $itemsAlegra = [];
 
-        foreach ($quote->detalles as $detalle) {
+        foreach ($detalles as $detalle) {
             $product = $detalle->item; // Relación ya cargada
 
             if (!$product) {
@@ -247,10 +256,11 @@ class InvoiceDataBuilder
             ];
         }
 
+        $totalDetalles = is_countable($detalles) ? count($detalles) : count($itemsAlegra);
         Log::info('📦 Items procesados para factura', [
-            'total_details' => count($quote->detalles),
+            'total_details' => $totalDetalles,
             'valid_items' => count($itemsAlegra),
-            'skipped_items' => count($quote->detalles) - count($itemsAlegra)
+            'skipped_items' => $totalDetalles - count($itemsAlegra)
         ]);
 
         return $itemsAlegra;
