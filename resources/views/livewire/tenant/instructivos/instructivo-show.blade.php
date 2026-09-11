@@ -149,7 +149,7 @@
                         Contenido
                         <x-field-hint text='La explicación completa, paso a paso. Ejemplo: "1. Contar el efectivo. 2. Comparar contra el sistema. 3. Registrar la diferencia si hay. 4. Firmar el cierre."' />
                     </label>
-                    <div class="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-white">
+                    <div wire:ignore class="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-white">
                         <div x-ref="editor" style="min-height: 160px;"></div>
                     </div>
                     @error('entryBody') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
