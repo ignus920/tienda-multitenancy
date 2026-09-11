@@ -20,6 +20,7 @@ use App\Models\Tenant\Imports\ImpShippments;
 use App\Models\Tenant\Imports\ImpShipmentComments;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class Orders extends Component
 {
@@ -2123,6 +2124,35 @@ class Orders extends Component
         }
     }
 
+    /**
+     * Guarda un archivo subido conservando su NOMBRE ORIGINAL (pedido explícito:
+     * no reemplazarlo por un hash aleatorio). Si ya existe un archivo con ese
+     * mismo nombre en el destino, se le agrega un sufijo numérico " (1)", " (2)"...
+     * para no pisar el anterior, en vez de fallar o sobrescribir en silencio.
+     */
+    private function storeKeepingOriginalName($uploadedFile, string $directory): string
+    {
+        $originalName = $uploadedFile->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+
+        // Sanitizar: letras (incl. tildes/ñ), números, espacios, guiones y puntos.
+        $baseName = trim(preg_replace('/[^\pL\pN _\-\.]+/u', '_', $baseName));
+        if ($baseName === '') {
+            $baseName = 'archivo';
+        }
+
+        $disk = Storage::disk('public');
+        $fileName = $extension ? "{$baseName}.{$extension}" : $baseName;
+        $counter = 1;
+        while ($disk->exists("{$directory}/{$fileName}")) {
+            $fileName = $extension ? "{$baseName} ({$counter}).{$extension}" : "{$baseName} ({$counter})";
+            $counter++;
+        }
+
+        return $uploadedFile->storeAs($directory, $fileName, 'public');
+    }
+
     public function saveAdditionalImages()
     {
         $this->ensureTenantConnection();
@@ -2159,7 +2189,7 @@ class Orders extends Component
 
             $tenantId = session('tenant_id', 'default');
             foreach ($this->additionalProductImages as $image) {
-                $path = $image->store("new_products/{$tenantId}", 'public');
+                $path = $this->storeKeepingOriginalName($image, "new_products/{$tenantId}");
                 $existingImages[] = $path;
             }
 
@@ -3181,7 +3211,7 @@ class Orders extends Component
             $tenantId = session('tenant_id', 'default');
             foreach ($this->newProductImages as $image) {
                 if ($image) {
-                    $path = $image->store("new_products/{$tenantId}", 'public');
+                    $path = $this->storeKeepingOriginalName($image, "new_products/{$tenantId}");
                     $imagePaths[] = $path;
                 }
             }
