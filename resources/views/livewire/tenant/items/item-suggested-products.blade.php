@@ -85,16 +85,20 @@
                     <li class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 group transition-colors hover:border-indigo-300 dark:hover:border-indigo-600">
 
                         <div class="p-1 bg-gray-50 dark:bg-indigo-900/20 rounded-lg flex-shrink-0 overflow-hidden w-12 h-12 border border-gray-100 dark:border-slate-700 flex items-center justify-center text-indigo-400">
-                            <x-heroicon-o-cube class="w-6 h-6" />
+                            @if(!empty($suggestion['thumbnail_url']))
+                                <img src="{{ $suggestion['thumbnail_url'] }}" class="w-full h-full object-cover rounded-md" alt="{{ $suggestion['name'] }}">
+                            @else
+                                <x-heroicon-o-cube class="w-6 h-6" />
+                            @endif
                         </div>
 
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                {{ $suggestion['suggested_item']['name'] ?? '—' }}
+                                {{ $suggestion['name'] ?? '—' }}
                             </p>
-                            @if(!empty($suggestion['suggested_item']['internal_code']))
+                            @if(!empty($suggestion['internal_code']))
                                 <p class="text-xs text-gray-400 dark:text-gray-500">
-                                    Código: {{ $suggestion['suggested_item']['internal_code'] }}
+                                    Código: {{ $suggestion['internal_code'] }}
                                 </p>
                             @endif
                         </div>
