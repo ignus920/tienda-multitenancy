@@ -105,19 +105,24 @@
     @if($showEntryModal)
     <div wire:key="entry-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
                 {{ $editingEntryId ? 'Editar entrada' : 'Nueva entrada' }}
             </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Cada entrada es como una página de la bitácora: un tema o procedimiento explicado paso a paso.
+            </p>
 
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
-                    <input type="text" wire:model="entryTitle" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">El nombre corto de este tema. Ejemplo: "Cómo hacer el corte de caja diario".</p>
+                    <input type="text" wire:model="entryTitle" placeholder="Ej: Cómo hacer el corte de caja diario" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                     @error('entryTitle') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contenido</label>
-                    <textarea wire:model="entryBody" rows="6" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"></textarea>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">La explicación completa, paso a paso. Ejemplo: "1. Contar el efectivo de la caja. 2. Comparar contra el sistema. 3. Registrar la diferencia si hay. 4. Firmar el cierre."</p>
+                    <textarea wire:model="entryBody" rows="6" placeholder="Ej: 1. Contar el efectivo de la caja.&#10;2. Comparar contra el sistema.&#10;3. Registrar la diferencia si hay.&#10;4. Firmar el cierre." class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"></textarea>
                     @error('entryBody') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
