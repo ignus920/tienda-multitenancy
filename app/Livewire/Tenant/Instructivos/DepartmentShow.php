@@ -19,6 +19,7 @@ class DepartmentShow extends Component
     public bool $canManage = false;
 
     public bool $showNewModal = false;
+    public ?int $editingInstructivoId = null;
     public string $newTitle = '';
 
     public bool $showMembersModal = false;
@@ -77,7 +78,17 @@ class DepartmentShow extends Component
     public function openNew()
     {
         abort_unless($this->canManage, 403);
+        $this->editingInstructivoId = null;
         $this->newTitle = '';
+        $this->showNewModal = true;
+    }
+
+    public function openEditInstructivo(int $id)
+    {
+        abort_unless($this->canManage, 403);
+        $instructivo = Instructivo::where('department_id', $this->departmentId)->findOrFail($id);
+        $this->editingInstructivoId = $instructivo->id;
+        $this->newTitle = $instructivo->title;
         $this->showNewModal = true;
     }
 
@@ -88,6 +99,16 @@ class DepartmentShow extends Component
         $this->validate([
             'newTitle' => 'required|string|max:150',
         ]);
+
+        if ($this->editingInstructivoId) {
+            Instructivo::where('id', $this->editingInstructivoId)
+                ->where('department_id', $this->departmentId)
+                ->update(['title' => $this->newTitle]);
+
+            $this->showNewModal = false;
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Instructivo actualizado.']);
+            return;
+        }
 
         $instructivo = Instructivo::create([
             'department_id' => $this->departmentId,

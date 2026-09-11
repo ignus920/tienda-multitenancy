@@ -46,27 +46,34 @@
                     </p>
                 </a>
                 @if($canManage)
-                <button wire:click="
-                    Swal.fire({
-                        title: '¿Desactivar instructivo?',
-                        text: 'Dejará de verse en el listado. No se elimina la información.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#ef4444',
-                        cancelButtonColor: '#4f46e5',
-                        confirmButtonText: 'Sí, desactivar',
-                        cancelButtonText: 'Cancelar',
-                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                        color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $wire.deactivateInstructivo({{ $instructivo->id }})
-                        }
-                    })
-                " class="absolute top-2 right-2 p-1 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shadow"
-                    title="Desactivar">
-                    <x-heroicon-o-x-mark class="w-3.5 h-3.5" />
-                </button>
+                <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button wire:click="openEditInstructivo({{ $instructivo->id }})"
+                        class="p-1 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-400 hover:text-indigo-600 shadow"
+                        title="Editar título">
+                        <x-heroicon-o-pencil class="w-3.5 h-3.5" />
+                    </button>
+                    <button wire:click="
+                        Swal.fire({
+                            title: '¿Desactivar instructivo?',
+                            text: 'Dejará de verse en el listado. No se elimina la información.',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#ef4444',
+                            cancelButtonColor: '#4f46e5',
+                            confirmButtonText: 'Sí, desactivar',
+                            cancelButtonText: 'Cancelar',
+                            background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                            color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                $wire.deactivateInstructivo({{ $instructivo->id }})
+                            }
+                        })
+                    " class="p-1 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-400 hover:text-red-600 shadow"
+                        title="Desactivar">
+                        <x-heroicon-o-x-mark class="w-3.5 h-3.5" />
+                    </button>
+                </div>
                 @endif
             </div>
             @endforeach
@@ -74,18 +81,22 @@
         @endif
     </div>
 
-    {{-- Modal nuevo instructivo --}}
+    {{-- Modal nuevo/editar instructivo --}}
     @if($showNewModal)
     <div wire:key="new-instructivo-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Nuevo instructivo</h3>
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {{ $editingInstructivoId ? 'Editar instructivo' : 'Nuevo instructivo' }}
+            </h3>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
             <input type="text" wire:model="newTitle" wire:keydown.enter="saveNew" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
             @error('newTitle') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
 
             <div class="flex justify-end gap-2 mt-6">
                 <button wire:click="$set('showNewModal', false)" type="button" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
-                <button wire:click="saveNew" type="button" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Crear</button>
+                <button wire:click="saveNew" type="button" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                    {{ $editingInstructivoId ? 'Guardar' : 'Crear' }}
+                </button>
             </div>
         </div>
     </div>
