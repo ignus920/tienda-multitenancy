@@ -407,50 +407,18 @@
             color: #999;
         }
 
-        .image-card .suggested-products {
-            margin-top: 8px;
-            padding-top: 6px;
-            border-top: 1px dashed #ccc;
+        .suggested-header {
+            flex-basis: 100%;
+            width: 100%;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #555;
+            margin: 4px 0 6px 0;
         }
 
-        .image-card .suggested-products-label {
-            font-size: 6.5pt;
-            color: #888;
-            margin-bottom: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .image-card .suggested-products-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2px;
-            justify-content: center;
-        }
-
-        .image-card .suggested-product-item img {
-            width: 34px;
-            height: 34px;
-            object-fit: contain;
-            display: block;
-            border: 1px solid #e5e5e5;
-            border-radius: 3px;
-            background-color: #fff;
-        }
-
-        .image-card .suggested-no-image {
-            width: 34px;
-            height: 34px;
-            background-color: #f5f5f5;
-            border: 1px dashed #ccc;
-            font-size: 5pt;
-            color: #999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            line-height: 1;
+        .image-card.suggested-card {
+            border-style: dashed;
+            border-color: #a5b4fc;
         }
 
         @media print {
@@ -984,27 +952,27 @@
                         <div class="no-image-placeholder">Sin imagen</div>
                     @endif
                     <div class="product-name">{{ $detalle->item->name ?? $detalle->item->display_name }}</div>
-
-                    @if($detalle->item->suggestedProducts && $detalle->item->suggestedProducts->count() > 0)
-                        <div class="suggested-products">
-                            <div class="suggested-products-label">También te puede interesar:</div>
-                            <div class="suggested-products-grid">
-                                @foreach($detalle->item->suggestedProducts as $suggestion)
-                                    @if($suggestion->suggestedItem)
-                                        <div class="suggested-product-item">
-                                            @if($suggestion->suggestedItem->principalImage)
-                                                <img src="{{ $suggestion->suggestedItem->getPrincipalThumbnailUrl() }}"
-                                                     alt="{{ $suggestion->suggestedItem->name }}">
-                                            @else
-                                                <div class="suggested-no-image">Sin img.</div>
-                                            @endif
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
                 </div>
+
+                @if($detalle->item->suggestedProducts && $detalle->item->suggestedProducts->count() > 0)
+                    <div class="suggested-header">Sugeridos de {{ $detalle->item->name ?? $detalle->item->display_name }}:</div>
+                    @foreach($detalle->item->suggestedProducts as $suggestion)
+                        @if($suggestion->suggestedItem)
+                            <div class="image-card suggested-card">
+                                @if($suggestion->suggestedItem->internal_code)
+                                    <div class="product-code">{{ $suggestion->suggestedItem->internal_code }}</div>
+                                @endif
+                                @if($suggestion->suggestedItem->principalImage)
+                                    <img src="{{ $suggestion->suggestedItem->getPrincipalThumbnailUrl() }}"
+                                         alt="{{ $suggestion->suggestedItem->name }}">
+                                @else
+                                    <div class="no-image-placeholder">Sin imagen</div>
+                                @endif
+                                <div class="product-name">{{ $suggestion->suggestedItem->name }}</div>
+                            </div>
+                        @endif
+                    @endforeach
+                @endif
             @endforeach
         </div>
     </div>
