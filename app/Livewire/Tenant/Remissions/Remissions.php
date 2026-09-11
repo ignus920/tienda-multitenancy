@@ -1470,12 +1470,15 @@ class Remissions extends Component
             }
 
             $invoiceData = InvoiceDataBuilder::buildFromQuote(
-                $remission->quote,  // Usamos la cotización asociada a la remisión
+                $remission->quote,  // Cliente, bodega, numeración, etc. vienen de la cotización
                 $paymentMethods,
                 $retentions,
                 $termDays,
-                true,           // calculateRetentions
-                $sellerApiId    // seller desde remisión
+                true,               // calculateRetentions
+                $sellerApiId,       // seller desde remisión
+                $remission->details // Items: usar los de la REMISIÓN (ya con el descuento real
+                                    // aplicado), no los de la cotización, que puede haber quedado
+                                    // desactualizada frente al descuento final de la remisión.
             );
 
             Log::info('📡 Enviando factura a API de Alegra desde remisión', [
