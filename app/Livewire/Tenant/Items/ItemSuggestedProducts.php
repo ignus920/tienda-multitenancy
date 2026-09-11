@@ -59,7 +59,10 @@ class ItemSuggestedProducts extends Component
             return;
         }
 
-        $assignedIds = collect($this->assignedSuggestions)->pluck('suggested_item')->all();
+        // OJO: 'suggested_item' en el array es la relación cargada (con:suggestedItem),
+        // no la columna FK -- ambas se llaman igual una vez pasa por toArray(), y la
+        // relación pisa a la columna. Por eso se saca el id desde 'suggested_item.id'.
+        $assignedIds = collect($this->assignedSuggestions)->pluck('suggested_item.id')->filter()->all();
 
         $words = array_filter(explode(' ', trim($this->search)));
 
