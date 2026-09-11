@@ -169,6 +169,8 @@ class DepartmentShow extends Component
         return User::whereHas('tenants', function ($query) use ($tenantId) {
                 $query->where('tenants.id', $tenantId);
             })
+            // Solo empleados: excluye perfiles 17 (Proveedor) y 18 (Cliente).
+            ->whereNotIn('profile_id', [17, 18])
             ->orderBy('name')
             ->get(['id', 'name']);
     }
