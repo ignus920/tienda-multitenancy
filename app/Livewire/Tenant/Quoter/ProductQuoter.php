@@ -569,12 +569,17 @@ class ProductQuoter extends Component
                 })
                 ->when($this->productFilter === 'poca_venta', function ($query) {
                     $query->havingRaw('
-                        CASE 
-                            WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
+                        CASE
+                            WHEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0)) > 0
                             THEN (SUM(COALESCE(inv_items_store.stock_items_store, 0)) * 100) / (SUM(COALESCE(inv_items_store.stock_items_store, 0)) + COALESCE(s7m.salidas_7_meses, 0))
-                            ELSE 0 
+                            ELSE 0
                         END BETWEEN 50 AND 60
                     ');
+                })
+                ->when($this->productFilter === 'con_reservas', function ($query) {
+                    // Reutiliza reserved_stock / reserved_transit (ya calculadas arriba: solo
+                    // reservas Registradas -status_id=1- y con due_date >= hoy, en tiempo real).
+                    $query->havingRaw('(reserved_stock > 0 OR reserved_transit > 0)');
                 })
                 ->groupBy(
                     'inv_items.id',

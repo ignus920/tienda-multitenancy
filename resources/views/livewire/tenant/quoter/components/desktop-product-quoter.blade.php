@@ -376,6 +376,7 @@
                                 <option value="nuevos">Productos nuevos</option>
                                 <option value="sin_venta">Productos que no se están vendiendo</option>
                                 <option value="poca_venta">Productos con poca venta</option>
+                                <option value="con_reservas">Con reservas activas</option>
                             </select>
                         </div>
 
