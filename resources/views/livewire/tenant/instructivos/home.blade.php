@@ -65,6 +65,10 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ícono (emoji)</label>
                         <input type="text" wire:model="deptIcon" maxlength="10" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                            Windows: tecla <span class="font-semibold">Windows + .</span><br>
+                            Mac: <span class="font-semibold">Cmd + Ctrl + Espacio</span>
+                        </p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
