@@ -145,6 +145,10 @@ class DepartmentShow extends Component
     public function getTenantUsersProperty()
     {
         $tenantId = session('tenant_id');
-        return User::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name']);
+        return User::whereHas('tenants', function ($query) use ($tenantId) {
+                $query->where('tenants.id', $tenantId);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }

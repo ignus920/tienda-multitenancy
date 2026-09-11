@@ -31,4 +31,14 @@ class InstructivoAttachment extends Model
     {
         return in_array(strtolower($this->file_type ?? ''), ['jpg', 'jpeg', 'png', 'gif', 'webp']);
     }
+
+    public function isPdf(): bool
+    {
+        return strtolower($this->file_type ?? '') === 'pdf';
+    }
+
+    public function isExcel(): bool
+    {
+        return in_array(strtolower($this->file_type ?? ''), ['xls', 'xlsx']);
+    }
 }

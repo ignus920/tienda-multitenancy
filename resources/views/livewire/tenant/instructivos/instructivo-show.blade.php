@@ -69,20 +69,29 @@
                 <p class="mt-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ $entry->body }}</p>
 
                 @if($entry->attachments->isNotEmpty())
-                <div class="mt-4 flex flex-wrap gap-2">
+                <div class="mt-4 flex flex-wrap gap-3">
                     @foreach($entry->attachments as $att)
-                        @if($att->isImage())
                         <a href="{{ route('tenant.instructivos.attachment', $att->id) }}" target="_blank"
-                            class="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 block">
-                            <img src="{{ route('tenant.instructivos.attachment', $att->id) }}" class="w-full h-full object-cover" alt="{{ $att->file_name }}">
+                            class="w-24 group/att" title="{{ $att->file_name }}">
+                            <div class="w-24 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center justify-center hover:ring-2 hover:ring-indigo-500 transition-all">
+                                @if($att->isImage())
+                                    <img src="{{ route('tenant.instructivos.attachment', $att->id) }}" class="w-full h-full object-cover" alt="{{ $att->file_name }}">
+                                @elseif($att->isPdf())
+                                    <div class="flex flex-col items-center justify-center p-2 bg-red-50 text-red-600 w-full h-full">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                        <span class="text-[9px] font-bold mt-1">PDF</span>
+                                    </div>
+                                @elseif($att->isExcel())
+                                    <div class="flex flex-col items-center justify-center p-2 bg-green-50 text-green-600 w-full h-full">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        <span class="text-[9px] font-bold mt-1">EXCEL</span>
+                                    </div>
+                                @else
+                                    <x-heroicon-o-paper-clip class="w-6 h-6 text-gray-400" />
+                                @endif
+                            </div>
+                            <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400 truncate group-hover/att:text-indigo-600">{{ $att->file_name }}</p>
                         </a>
-                        @else
-                        <a href="{{ route('tenant.instructivos.attachment', $att->id) }}" target="_blank"
-                            class="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <x-heroicon-o-paper-clip class="w-3.5 h-3.5" />
-                            {{ $att->file_name }}
-                        </a>
-                        @endif
                     @endforeach
                 </div>
                 @endif
@@ -112,18 +121,49 @@
                     @error('entryBody') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Imágenes / archivos</label>
-                    <input type="file" wire:model="tempFiles" multiple class="w-full text-sm text-gray-600 dark:text-gray-300">
-                    <div wire:loading wire:target="tempFiles" class="text-xs text-gray-400 mt-1">Subiendo...</div>
-                    @error('tempFiles.*') <span class="text-xs text-red-500 block">{{ $message }}</span> @enderror
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Imágenes / archivos (Excel, PDF o imágenes)</label>
+
+                    <div x-data="{ isDropping: false }"
+                         x-on:dragover.prevent="isDropping = true"
+                         x-on:dragleave.prevent="isDropping = false"
+                         x-on:drop.prevent="isDropping = false; if($event.dataTransfer.files.length) { @this.uploadMultiple('tempFiles', $event.dataTransfer.files) }"
+                         :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30': isDropping, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900': !isDropping }"
+                         class="flex flex-col items-center justify-center w-full h-24 px-4 py-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 relative">
+
+                        <div class="flex flex-col items-center justify-center pointer-events-none">
+                            <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold text-indigo-600">Haz clic</span> o arrastra archivos aquí</p>
+                        </div>
+                        <input type="file" wire:model="tempFiles" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    </div>
+
+                    <div wire:loading wire:target="tempFiles" class="mt-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
+                        <svg class="animate-spin h-3 w-3 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Subiendo...
+                    </div>
+                    @error('tempFiles.*') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
 
                     @if(!empty($tempFiles))
-                    <div class="flex flex-wrap gap-2 mt-2">
+                    <div class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2 p-2 bg-gray-100 dark:bg-gray-900 rounded-lg">
                         @foreach($tempFiles as $i => $f)
-                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300">
-                            {{ $f->getClientOriginalName() }}
-                            <button type="button" wire:click="removeTempFile({{ $i }})" class="text-gray-400 hover:text-red-600">&times;</button>
-                        </span>
+                        <div class="relative group aspect-square rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
+                            @php $ext = strtolower($f->getClientOriginalExtension()); @endphp
+                            @if($ext === 'pdf')
+                                <div class="flex flex-col items-center justify-center p-2 bg-red-50 text-red-600 w-full h-full">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                    <span class="text-[9px] font-bold mt-1 truncate w-full text-center">PDF</span>
+                                </div>
+                            @elseif(in_array($ext, ['xls', 'xlsx']))
+                                <div class="flex flex-col items-center justify-center p-2 bg-green-50 text-green-600 w-full h-full">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span class="text-[9px] font-bold mt-1 truncate w-full text-center">EXCEL</span>
+                                </div>
+                            @else
+                                <img src="{{ $f->temporaryUrl() }}" class="object-cover w-full h-full">
+                            @endif
+                            <button type="button" wire:click="removeTempFile({{ $i }})" class="absolute top-0 right-0 bg-red-500 text-white p-0.5 m-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
                         @endforeach
                     </div>
                     @endif

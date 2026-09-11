@@ -8,6 +8,7 @@ use App\Models\Tenant\Instructivos\Instructivo;
 use App\Models\Tenant\Instructivos\InstructivoEntry;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -99,7 +100,7 @@ class InstructivoShow extends Component
         $this->validate([
             'entryTitle' => 'required|string|max:150',
             'entryBody' => 'required|string',
-            'tempFiles.*' => 'nullable|file|max:10240',
+            'tempFiles.*' => 'nullable|file|max:10240|mimes:png,jpg,jpeg,webp,pdf,xls,xlsx',
         ]);
 
         if ($this->editingEntryId) {
@@ -120,7 +121,7 @@ class InstructivoShow extends Component
         }
 
         foreach ($this->tempFiles as $file) {
-            $path = $file->store('instructivos', 'public');
+            $path = $this->storeKeepingOriginalName($file, 'instructivos');
             $entry->attachments()->create([
                 'file_name' => $file->getClientOriginalName(),
                 'file_path' => $path,
@@ -147,6 +148,28 @@ class InstructivoShow extends Component
     {
         unset($this->tempFiles[$index]);
         $this->tempFiles = array_values($this->tempFiles);
+    }
+
+    private function storeKeepingOriginalName($uploadedFile, string $directory): string
+    {
+        $originalName = $uploadedFile->getClientOriginalName();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+
+        $baseName = trim(preg_replace('/[^\pL\pN _\-\.]+/u', '_', $baseName));
+        if ($baseName === '') {
+            $baseName = 'archivo';
+        }
+
+        $disk = Storage::disk('public');
+        $fileName = $extension ? "{$baseName}.{$extension}" : $baseName;
+        $counter = 1;
+        while ($disk->exists("{$directory}/{$fileName}")) {
+            $fileName = $extension ? "{$baseName} ({$counter}).{$extension}" : "{$baseName} ({$counter})";
+            $counter++;
+        }
+
+        return $uploadedFile->storeAs($directory, $fileName, 'public');
     }
 
     private function resetEntryForm()
