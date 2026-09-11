@@ -212,6 +212,9 @@ require __DIR__ . '/tenants/returns.php';
 // Incluir rutas del módulo de garantías
 require __DIR__ . '/tenants/warranties.php';
 
+// Incluir rutas del módulo de instructivos
+require __DIR__ . '/tenants/instructivos.php';
+
 // Incluir rutas del módulo de despachos
 require __DIR__ . '/tenants/dispatches.php';
 

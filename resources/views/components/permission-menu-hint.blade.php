@@ -19,6 +19,7 @@
         'Proyectos'            => 'Menú: Proyectos',
         'Planeacion de Tareas' => 'Menú: Planeación de Tareas',
         'Solicitudes'          => 'Menú: Solicitudes',
+        'Instructivos'         => 'Menú: Instructivos',
         'Despachos'            => 'Sin sección de menú asignada',
     ];
     $hint = $map[$name] ?? 'Sin sección de menú asignada';
