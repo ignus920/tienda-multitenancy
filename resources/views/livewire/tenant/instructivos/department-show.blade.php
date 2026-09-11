@@ -85,14 +85,14 @@
     @if($showNewModal)
     <div wire:key="new-instructivo-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 {{ $editingInstructivoId ? 'Editar instructivo' : 'Nuevo instructivo' }}
+                <x-field-hint text='Un instructivo es como una carpeta de un tema (ej: "Manejo de caja", "Proceso de importación"). Dentro le vas agregando entradas con los pasos.' />
             </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Un instructivo es como una carpeta de un tema (ej: "Manejo de caja", "Proceso de importación"). Dentro le vas agregando entradas con los pasos.
-            </p>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">Ejemplo: "Manejo de caja menor" o "Proceso de importación marítima".</p>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                Título
+                <x-field-hint text='Ejemplo: "Manejo de caja menor" o "Proceso de importación marítima".' />
+            </label>
             <input type="text" wire:model="newTitle" wire:keydown.enter="saveNew" placeholder="Ej: Manejo de caja menor" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
             @error('newTitle') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
 
@@ -110,8 +110,10 @@
     @if($showMembersModal)
     <div wire:key="members-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Miembros de {{ $department->name }}</h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Estos usuarios verán este departamento primero en su pantalla de Instructivos.</p>
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                Miembros de {{ $department->name }}
+                <x-field-hint text="Estos usuarios verán este departamento primero en su pantalla de Instructivos." />
+            </h3>
 
             <div class="max-h-64 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
                 @foreach($this->tenantUsers as $user)

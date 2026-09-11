@@ -105,28 +105,33 @@
     @if($showEntryModal)
     <div wire:key="entry-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 {{ $editingEntryId ? 'Editar entrada' : 'Nueva entrada' }}
+                <x-field-hint text="Cada entrada es como una página de la bitácora: un tema o procedimiento explicado paso a paso." />
             </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Cada entrada es como una página de la bitácora: un tema o procedimiento explicado paso a paso.
-            </p>
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">El nombre corto de este tema. Ejemplo: "Cómo hacer el corte de caja diario".</p>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                        Título
+                        <x-field-hint text='El nombre corto de este tema. Ejemplo: "Cómo hacer el corte de caja diario".' />
+                    </label>
                     <input type="text" wire:model="entryTitle" placeholder="Ej: Cómo hacer el corte de caja diario" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                     @error('entryTitle') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contenido</label>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">La explicación completa, paso a paso. Ejemplo: "1. Contar el efectivo de la caja. 2. Comparar contra el sistema. 3. Registrar la diferencia si hay. 4. Firmar el cierre."</p>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                        Contenido
+                        <x-field-hint text='La explicación completa, paso a paso. Ejemplo: "1. Contar el efectivo. 2. Comparar contra el sistema. 3. Registrar la diferencia si hay. 4. Firmar el cierre."' />
+                    </label>
                     <textarea wire:model="entryBody" rows="6" placeholder="Ej: 1. Contar el efectivo de la caja.&#10;2. Comparar contra el sistema.&#10;3. Registrar la diferencia si hay.&#10;4. Firmar el cierre." class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"></textarea>
                     @error('entryBody') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Imágenes / archivos (Excel, PDF o imágenes)</label>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                        Imágenes / archivos (Excel, PDF o imágenes)
+                        <x-field-hint text="Opcional. Adjunta fotos, un PDF o un Excel de apoyo para esta entrada. Puedes elegir varios archivos, incluso de carpetas distintas, uno por uno." />
+                    </label>
 
                     <div x-data="{ isDropping: false }"
                          x-on:dragover.prevent="isDropping = true"

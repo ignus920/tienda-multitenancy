@@ -51,27 +51,33 @@
     @if($showDeptModal)
     <div wire:key="dept-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 {{ $editingDeptId ? 'Editar departamento' : 'Nuevo departamento' }}
+                <x-field-hint text='Un departamento agrupa los instructivos de un área (ej: "Comercial", "Bodega"). Aparece como un cuadro en la pantalla principal de Instructivos.' />
             </h3>
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
-                    <input type="text" wire:model="deptName" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                        Nombre
+                        <x-field-hint text='Ejemplo: "Comercial", "Bodega", "Mercadeo".' />
+                    </label>
+                    <input type="text" wire:model="deptName" placeholder="Ej: Comercial" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
                     @error('deptName') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ícono (emoji)</label>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                            Ícono (emoji)
+                            <x-field-hint text='Un emoji para identificar el departamento. Windows: tecla Windows + punto (.) Mac: Cmd + Ctrl + Espacio.' />
+                        </label>
                         <input type="text" wire:model="deptIcon" maxlength="10" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm">
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
-                            Windows: tecla <span class="font-semibold">Windows + .</span><br>
-                            Mac: <span class="font-semibold">Cmd + Ctrl + Espacio</span>
-                        </p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                            Color
+                            <x-field-hint text="El color de fondo del cuadro del departamento en la pantalla principal." />
+                        </label>
                         <input type="color" wire:model="deptColor" class="w-full h-9 rounded-lg border-gray-300 dark:border-gray-600">
                     </div>
                 </div>
