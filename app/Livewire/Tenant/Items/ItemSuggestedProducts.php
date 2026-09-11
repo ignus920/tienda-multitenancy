@@ -38,11 +38,25 @@ class ItemSuggestedProducts extends Component
     private function loadAssigned(): void
     {
         try {
-            $this->assignedSuggestions = InvItemSuggested::with('suggestedItem')
+            $suggestions = InvItemSuggested::with('suggestedItem.principalImage')
                 ->where('item', $this->itemId)
                 ->orderBy('id')
-                ->get()
-                ->toArray();
+                ->get();
+
+            // Se aplana a un array simple (id, nombre, código, url de miniatura) en vez de
+            // dejar la relación anidada: 'suggested_item' como key de array choca con la
+            // columna FK del mismo nombre (toArray() la pisa), y de paso ya resolvemos acá
+            // la miniatura para que la vista no tenga que llamar métodos del modelo.
+            $this->assignedSuggestions = $suggestions->map(function ($suggestion) {
+                $item = $suggestion->suggestedItem;
+                return [
+                    'id'                => $suggestion->id,
+                    'suggested_item_id' => $suggestion->suggested_item,
+                    'name'              => $item->name ?? '—',
+                    'internal_code'     => $item->internal_code ?? null,
+                    'thumbnail_url'     => ($item && $item->principalImage) ? $item->getPrincipalThumbnailUrl() : null,
+                ];
+            })->toArray();
         } catch (\Exception $e) {
             Log::error('ItemSuggestedProducts - Error cargando sugeridos: ' . $e->getMessage());
             $this->assignedSuggestions = [];
@@ -59,10 +73,7 @@ class ItemSuggestedProducts extends Component
             return;
         }
 
-        // OJO: 'suggested_item' en el array es la relación cargada (con:suggestedItem),
-        // no la columna FK -- ambas se llaman igual una vez pasa por toArray(), y la
-        // relación pisa a la columna. Por eso se saca el id desde 'suggested_item.id'.
-        $assignedIds = collect($this->assignedSuggestions)->pluck('suggested_item.id')->filter()->all();
+        $assignedIds = collect($this->assignedSuggestions)->pluck('suggested_item_id')->filter()->all();
 
         $words = array_filter(explode(' ', trim($this->search)));
 

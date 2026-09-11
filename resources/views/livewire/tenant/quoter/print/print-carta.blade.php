@@ -430,15 +430,18 @@
         }
 
         .image-card .suggested-product-item img {
-            max-width: 26px;
-            max-height: 26px;
+            width: 34px;
+            height: 34px;
             object-fit: contain;
             display: block;
+            border: 1px solid #e5e5e5;
+            border-radius: 3px;
+            background-color: #fff;
         }
 
         .image-card .suggested-no-image {
-            width: 26px;
-            height: 26px;
+            width: 34px;
+            height: 34px;
             background-color: #f5f5f5;
             border: 1px dashed #ccc;
             font-size: 5pt;
