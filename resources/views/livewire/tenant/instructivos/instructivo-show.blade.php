@@ -26,7 +26,7 @@
                 <p>Todavía no hay entradas en este instructivo.</p>
             </div>
         @else
-        <div class="space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             @foreach($entries as $entry)
             <div class="relative group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
                 <div class="flex items-start justify-between gap-2">
@@ -66,7 +66,7 @@
                     @endif
                 </div>
 
-                <p class="mt-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ $entry->body }}</p>
+                <div class="mt-3 text-sm text-gray-700 dark:text-gray-300 ql-editor entry-body-view">{!! $entry->body !!}</div>
 
                 @if($entry->attachments->isNotEmpty())
                 <div class="mt-4 flex flex-wrap gap-3">
@@ -103,7 +103,32 @@
 
     {{-- Modal nueva/editar entrada --}}
     @if($showEntryModal)
-    <div wire:key="entry-modal" x-data x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div wire:key="entry-modal"
+         x-data="{
+            quill: null,
+            initQuill() {
+                if (!this.$refs.editor) return;
+                this.quill = new Quill(this.$refs.editor, {
+                    theme: 'snow',
+                    placeholder: 'Escribe aquí los pasos de este tema...',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['clean']
+                        ]
+                    }
+                });
+                const initialContent = $wire.get('entryBody') || '';
+                this.quill.root.innerHTML = initialContent;
+                this.quill.on('text-change', () => {
+                    $wire.set('entryBody', this.quill.root.innerHTML);
+                });
+            }
+         }"
+         x-init="setTimeout(() => initQuill(), 50)"
+         x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 {{ $editingEntryId ? 'Editar entrada' : 'Nueva entrada' }}
@@ -124,7 +149,9 @@
                         Contenido
                         <x-field-hint text='La explicación completa, paso a paso. Ejemplo: "1. Contar el efectivo. 2. Comparar contra el sistema. 3. Registrar la diferencia si hay. 4. Firmar el cierre."' />
                     </label>
-                    <textarea wire:model="entryBody" rows="6" placeholder="Ej: 1. Contar el efectivo de la caja.&#10;2. Comparar contra el sistema.&#10;3. Registrar la diferencia si hay.&#10;4. Firmar el cierre." class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"></textarea>
+                    <div class="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-white">
+                        <div x-ref="editor" style="min-height: 160px;"></div>
+                    </div>
                     @error('entryBody') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
                 <div>
@@ -187,4 +214,10 @@
         </div>
     </div>
     @endif
+
+    @once
+    <style>
+        .entry-body-view.ql-editor{padding:0;overflow:visible;}
+    </style>
+    @endonce
 </div>
