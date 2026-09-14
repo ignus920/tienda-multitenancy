@@ -28,6 +28,7 @@ use App\Services\TaskPlanner\TaskService;
 use App\Services\TaskPlanner\SchedulingService;
 use App\Services\TaskPlanner\ReschedulingService;
 use App\Services\TaskPlanner\TimeTrackingService;
+use App\Services\TaskPlanner\AvailabilityCalendarService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -296,6 +297,24 @@ class ManageTasks extends Component
         $this->deadlineDate = now()->addDay()->format('Y-m-d');
         $this->deadlineTime = '17:00';
         $this->showTaskModal = true;
+    }
+
+    /**
+     * Al elegir la Fecha sugerida, proponer automáticamente la Fecha límite
+     * (sugerida + 2 días) como punto de partida razonable. El usuario puede
+     * seguir editándola manualmente después si lo necesita.
+     */
+    public function updatedSuggestedDate($value)
+    {
+        if (!$value) {
+            return;
+        }
+
+        try {
+            $this->deadlineDate = Carbon::parse($value)->addDays(2)->format('Y-m-d');
+        } catch (\Exception $e) {
+            // Fecha inválida/incompleta mientras el usuario aún la está escribiendo
+        }
     }
 
     public function saveTask(TaskService $taskService)
@@ -881,7 +900,7 @@ class ManageTasks extends Component
             $query->where('user_id', $this->calendarUserId);
         }
 
-        return $query->get()->map(function ($schedule) use ($colors) {
+        $events = $query->get()->map(function ($schedule) use ($colors) {
             $color = $colors[$schedule->task->priority] ?? '#6366f1';
 
             return [
@@ -897,6 +916,18 @@ class ManageTasks extends Component
                 ],
             ];
         })->toArray();
+
+        // Eventos de fondo (mismo color) para indisponibilidad y horas/días no
+        // laborables del trabajador filtrado — solo tiene sentido con uno solo
+        // seleccionado, no con todos los trabajadores a la vez.
+        if ($this->calendarUserId) {
+            $events = array_merge(
+                $events,
+                app(AvailabilityCalendarService::class)->backgroundEventsForUser((int) $this->calendarUserId, $start, $end)
+            );
+        }
+
+        return $events;
     }
 
     /**
