@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Instructivos;
 use App\Helpers\PermissionHelper;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Instructivos\Instructivo;
+use App\Models\Tenant\Instructivos\InstructivoAttachment;
 use App\Models\Tenant\Instructivos\InstructivoEntry;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
@@ -78,12 +79,18 @@ class InstructivoShow extends Component
         $entries = InstructivoEntry::where('instructivo_id', $this->instructivoId)
             ->where('status', 1)
             ->with(['attachments', 'author'])
+            ->orderBy('order')
             ->orderByDesc('created_at')
             ->get();
+
+        $existingAttachments = $this->editingEntryId
+            ? InstructivoAttachment::where('entry_id', $this->editingEntryId)->get()
+            : collect();
 
         return view('livewire.tenant.instructivos.instructivo-show', [
             'instructivo' => $instructivo,
             'entries' => $entries,
+            'existingAttachments' => $existingAttachments,
         ])->layout('layouts.app', ['header' => $instructivo->title]);
     }
 
@@ -124,11 +131,16 @@ class InstructivoShow extends Component
                 'updated_by' => Auth::id(),
             ]);
         } else {
+            $nextOrder = InstructivoEntry::where('instructivo_id', $this->instructivoId)
+                ->where('status', 1)
+                ->max('order');
+
             $entry = InstructivoEntry::create([
                 'instructivo_id' => $this->instructivoId,
                 'title' => $this->entryTitle,
                 'body' => $this->entryBody,
                 'status' => 1,
+                'order' => ($nextOrder ?? -1) + 1,
                 'created_by' => Auth::id(),
             ]);
         }
@@ -157,10 +169,67 @@ class InstructivoShow extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Entrada desactivada.']);
     }
 
+    public function moveEntryUp(int $id)
+    {
+        abort_unless($this->canManage, 403);
+        $this->swapEntryOrder($id, -1);
+    }
+
+    public function moveEntryDown(int $id)
+    {
+        abort_unless($this->canManage, 403);
+        $this->swapEntryOrder($id, 1);
+    }
+
+    /**
+     * Mueve la entrada $id una posición antes (-1) o después (+1) en el orden
+     * visible actual, y renumera TODA la lista de ese instructivo de forma
+     * secuencial (0, 1, 2...). Renumerar todo en cada movimiento evita que
+     * queden valores repetidos o con huecos en la columna "order" (lo que
+     * pasaba antes al tocar solo las dos filas intercambiadas).
+     */
+    private function swapEntryOrder(int $id, int $direction)
+    {
+        $ids = InstructivoEntry::where('instructivo_id', $this->instructivoId)
+            ->where('status', 1)
+            ->orderBy('order')
+            ->orderByDesc('created_at')
+            ->pluck('id')
+            ->values();
+
+        $position = $ids->search($id);
+        if ($position === false) {
+            return;
+        }
+
+        $swapWith = $position + $direction;
+        if ($swapWith < 0 || $swapWith >= $ids->count()) {
+            return;
+        }
+
+        $reordered = $ids->all();
+        [$reordered[$position], $reordered[$swapWith]] = [$reordered[$swapWith], $reordered[$position]];
+
+        foreach ($reordered as $index => $entryId) {
+            InstructivoEntry::where('id', $entryId)->update(['order' => $index]);
+        }
+    }
+
     public function removeTempFile(int $index)
     {
         unset($this->stagedFiles[$index]);
         $this->stagedFiles = array_values($this->stagedFiles);
+    }
+
+    public function deleteExistingAttachment(int $attachmentId)
+    {
+        abort_unless($this->canManage, 403);
+
+        $attachment = InstructivoAttachment::where('entry_id', $this->editingEntryId)->findOrFail($attachmentId);
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Archivo eliminado.']);
     }
 
     private function storeKeepingOriginalName($uploadedFile, string $directory): string
