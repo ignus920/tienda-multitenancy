@@ -16,12 +16,14 @@ class InstructivoEntry extends Model
         'title',
         'body',
         'status',
+        'order',
         'created_by',
         'updated_by',
     ];
 
     protected $casts = [
         'status' => 'boolean',
+        'order' => 'integer',
     ];
 
     public function instructivo()

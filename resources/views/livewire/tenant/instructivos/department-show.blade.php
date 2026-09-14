@@ -46,7 +46,7 @@
                     </p>
                 </a>
                 @if($canManage)
-                <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute top-2 right-2 flex gap-1">
                     <button wire:click="openEditInstructivo({{ $instructivo->id }})"
                         class="p-1 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-400 hover:text-indigo-600 shadow"
                         title="Editar título">
