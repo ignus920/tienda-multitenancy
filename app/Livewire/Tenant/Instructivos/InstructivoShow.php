@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Instructivos;
 use App\Helpers\PermissionHelper;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Instructivos\Instructivo;
+use App\Models\Tenant\Instructivos\InstructivoAttachment;
 use App\Models\Tenant\Instructivos\InstructivoEntry;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
@@ -78,12 +79,18 @@ class InstructivoShow extends Component
         $entries = InstructivoEntry::where('instructivo_id', $this->instructivoId)
             ->where('status', 1)
             ->with(['attachments', 'author'])
+            ->orderBy('order')
             ->orderByDesc('created_at')
             ->get();
+
+        $existingAttachments = $this->editingEntryId
+            ? InstructivoAttachment::where('entry_id', $this->editingEntryId)->get()
+            : collect();
 
         return view('livewire.tenant.instructivos.instructivo-show', [
             'instructivo' => $instructivo,
             'entries' => $entries,
+            'existingAttachments' => $existingAttachments,
         ])->layout('layouts.app', ['header' => $instructivo->title]);
     }
 
@@ -157,10 +164,71 @@ class InstructivoShow extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Entrada desactivada.']);
     }
 
+    public function moveEntryUp(int $id)
+    {
+        abort_unless($this->canManage, 403);
+        $this->swapEntryOrder($id, -1);
+    }
+
+    public function moveEntryDown(int $id)
+    {
+        abort_unless($this->canManage, 403);
+        $this->swapEntryOrder($id, 1);
+    }
+
+    /**
+     * Intercambia el orden de la entrada $id con la que está inmediatamente
+     * antes (-1) o después (+1) en el orden visible actual. Si ambas comparten
+     * el mismo valor de "order" (aún no se ha reordenado nada, todas en 0),
+     * primero se les asignan valores explícitos según su posición actual.
+     */
+    private function swapEntryOrder(int $id, int $direction)
+    {
+        $entries = InstructivoEntry::where('instructivo_id', $this->instructivoId)
+            ->where('status', 1)
+            ->orderBy('order')
+            ->orderByDesc('created_at')
+            ->get(['id', 'order']);
+
+        $position = $entries->search(fn ($entry) => $entry->id === $id);
+        if ($position === false) {
+            return;
+        }
+
+        $swapWith = $position + $direction;
+        if ($swapWith < 0 || $swapWith >= $entries->count()) {
+            return;
+        }
+
+        $a = $entries[$position];
+        $b = $entries[$swapWith];
+
+        if ($a->order === $b->order) {
+            $a->order = $position;
+            $b->order = $swapWith;
+        }
+
+        [$a->order, $b->order] = [$b->order, $a->order];
+
+        $a->save();
+        $b->save();
+    }
+
     public function removeTempFile(int $index)
     {
         unset($this->stagedFiles[$index]);
         $this->stagedFiles = array_values($this->stagedFiles);
+    }
+
+    public function deleteExistingAttachment(int $attachmentId)
+    {
+        abort_unless($this->canManage, 403);
+
+        $attachment = InstructivoAttachment::where('entry_id', $this->editingEntryId)->findOrFail($attachmentId);
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Archivo eliminado.']);
     }
 
     private function storeKeepingOriginalName($uploadedFile, string $directory): string

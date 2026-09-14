@@ -36,7 +36,7 @@
                 </a>
                 @if($canManage)
                 <button wire:click="openEditDept({{ $dept->id }})"
-                    class="absolute top-1.5 right-1.5 p-1 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-500 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                    class="absolute top-1.5 right-1.5 p-1 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-500 hover:text-indigo-600 transition-opacity shadow"
                     title="Editar departamento">
                     <x-heroicon-o-pencil class="w-3.5 h-3.5" />
                 </button>
