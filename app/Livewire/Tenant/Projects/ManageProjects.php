@@ -353,7 +353,12 @@ class ManageProjects extends Component
         if ($this->search) {
             $words = array_filter(explode(' ', trim($this->search)));
             foreach ($words as $word) {
-                $query->where(function ($q) use ($word) {
+                // 'creator' (users) vive en la BD central y 'inv_projects' en la BD
+                // del tenant: whereHas() no puede unir ambas conexiones en una sola
+                // subconsulta EXISTS, así que resolvemos los IDs de usuario aparte.
+                $matchingCreatorIds = User::where('name', 'like', '%' . $word . '%')->pluck('id');
+
+                $query->where(function ($q) use ($word, $matchingCreatorIds) {
                     $q->where('title', 'like', '%' . $word . '%')
                       ->orWhere('description', 'like', '%' . $word . '%')
                       ->orWhere('status', 'like', '%' . $word . '%')
@@ -363,9 +368,7 @@ class ManageProjects extends Component
                                ->orWhere('firstName', 'like', '%' . $word . '%')
                                ->orWhere('lastName', 'like', '%' . $word . '%');
                       })
-                      ->orWhereHas('creator', function ($qSub) use ($word) {
-                          $qSub->where('name', 'like', '%' . $word . '%');
-                      });
+                      ->orWhereIn('created_by', $matchingCreatorIds);
                 });
             }
         }
