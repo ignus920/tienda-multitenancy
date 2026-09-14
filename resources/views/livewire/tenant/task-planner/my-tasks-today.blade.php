@@ -6,27 +6,43 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Mis Tareas de Hoy</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 capitalize">{{ $today->translatedFormat('l j \d\e F') }}</p>
         </div>
-        <div class="flex flex-wrap gap-2">
-            @if($daySchedule)
-            <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
-                <p class="text-[10px] uppercase tracking-wide text-gray-400">Horario</p>
-                <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ substr($daySchedule->start_time, 0, 5) }}–{{ substr($daySchedule->end_time, 0, 5) }}</p>
-            </div>
+        <div class="flex flex-wrap items-center gap-2">
+            @if($activeView === 'today')
+                @if($daySchedule)
+                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
+                    <p class="text-[10px] uppercase tracking-wide text-gray-400">Horario</p>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ substr($daySchedule->start_time, 0, 5) }}–{{ substr($daySchedule->end_time, 0, 5) }}</p>
+                </div>
+                @endif
+                @if($availableMinutes > 0)
+                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
+                    <p class="text-[10px] uppercase tracking-wide text-gray-400">Disponible</p>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ intdiv($availableMinutes, 60) }}h {{ $availableMinutes % 60 }}m</p>
+                </div>
+                @endif
+                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
+                    <p class="text-[10px] uppercase tracking-wide text-gray-400">Programado</p>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ intdiv($scheduledMinutes, 60) }}h {{ $scheduledMinutes % 60 }}m</p>
+                </div>
             @endif
-            @if($availableMinutes > 0)
-            <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
-                <p class="text-[10px] uppercase tracking-wide text-gray-400">Disponible</p>
-                <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ intdiv($availableMinutes, 60) }}h {{ $availableMinutes % 60 }}m</p>
-            </div>
-            @endif
-            <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
-                <p class="text-[10px] uppercase tracking-wide text-gray-400">Programado</p>
-                <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ intdiv($scheduledMinutes, 60) }}h {{ $scheduledMinutes % 60 }}m</p>
+
+            <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <button wire:click="$set('activeView', 'today')"
+                    class="px-3 py-1.5 text-xs font-semibold {{ $activeView === 'today' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">Hoy</button>
+                <button wire:click="$set('activeView', 'calendar')"
+                    class="px-3 py-1.5 text-xs font-semibold {{ $activeView === 'calendar' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">Mi Calendario</button>
             </div>
         </div>
     </div>
 
-    @if($currentSchedule)
+    @if($activeView === 'calendar')
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3"
+         x-data="myTaskCalendar($wire)" x-init="init($el)" wire:ignore>
+        <div id="my-task-calendar-el"></div>
+    </div>
+    @endif
+
+    @if($activeView === 'today' && $currentSchedule)
     @php
         $task = $currentSchedule->task;
         $accentBg = match ($task->priority) {
@@ -61,6 +77,7 @@
                     @if($task->description)
                     <p class="text-sm text-gray-600 dark:text-gray-300 mt-1.5">{{ $task->description }}</p>
                     @endif
+                    <button type="button" wire:click="openDetailModal({{ $task->id }})" class="mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Ver detalle completo →</button>
 
                     <div class="flex flex-wrap items-center gap-2 mt-4 text-xs">
                         <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-2.5 py-1 font-semibold">⏱ {{ intdiv($task->estimated_minutes, 60) }}h {{ $task->estimated_minutes % 60 }}min</span>
@@ -182,7 +199,7 @@
         </div>
     </div>
 
-    @elseif($fillerTasks->isNotEmpty())
+    @elseif($activeView === 'today' && $fillerTasks->isNotEmpty())
     <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 max-w-xl">
         <p class="text-base font-semibold text-gray-800 dark:text-gray-100 mb-1">Nada prioritario ahora mismo ✨</p>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Puedes aprovechar el tiempo con:</p>
@@ -195,7 +212,7 @@
             @endforeach
         </ul>
     </div>
-    @else
+    @elseif($activeView === 'today')
     <div class="bg-white dark:bg-gray-800 rounded-2xl p-10 border border-gray-100 dark:border-gray-700 text-center max-w-xl">
         <p class="text-4xl mb-2">🎉</p>
         <p class="text-base font-semibold text-gray-800 dark:text-gray-100">No tienes tareas programadas por ahora.</p>
@@ -203,8 +220,8 @@
     </div>
     @endif
 
-    {{-- ============ AGENDA (siempre visible) ============ --}}
-    @if($upcomingSchedules->isNotEmpty() || $upcomingDays->isNotEmpty())
+    {{-- ============ AGENDA ============ --}}
+    @if($activeView === 'today' && ($upcomingSchedules->isNotEmpty() || $upcomingDays->isNotEmpty()))
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
 
         @if($upcomingSchedules->isNotEmpty())
@@ -214,13 +231,13 @@
             </div>
             <div class="divide-y divide-gray-100 dark:divide-gray-700">
                 @foreach($upcomingSchedules as $schedule)
-                <div class="flex items-center justify-between px-4 py-3 gap-3">
+                <button type="button" wire:click="openDetailModal({{ $schedule->task_id }})" class="w-full flex items-center justify-between px-4 py-3 gap-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div class="min-w-0">
                         <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ $schedule->task->title }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ $schedule->scheduled_start->format('H:i') }} - {{ $schedule->scheduled_end->format('H:i') }} · {{ $schedule->task->priority_label }}</p>
                     </div>
                     @include('livewire.tenant.task-planner.partials.status-badge', ['task' => $schedule->task])
-                </div>
+                </button>
                 @endforeach
             </div>
         </div>
@@ -237,9 +254,11 @@
                     <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 capitalize">{{ \Carbon\Carbon::parse($date)->translatedFormat('l j \d\e F') }}</p>
                     <ul class="space-y-1">
                         @foreach($daySchedules as $schedule)
-                        <li class="flex items-center justify-between gap-2 text-sm">
-                            <span class="text-gray-700 dark:text-gray-200 truncate">{{ $schedule->task->title }}</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ $schedule->scheduled_start->format('H:i') }}</span>
+                        <li>
+                            <button type="button" wire:click="openDetailModal({{ $schedule->task_id }})" class="w-full flex items-center justify-between gap-2 text-sm text-left hover:text-indigo-600 dark:hover:text-indigo-400">
+                                <span class="text-gray-700 dark:text-gray-200 truncate">{{ $schedule->task->title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ $schedule->scheduled_start->format('H:i') }}</span>
+                            </button>
                         </li>
                         @endforeach
                     </ul>
@@ -368,6 +387,12 @@
     </div>
     @endif
 
+    {{-- Detalle completo de la tarea (solo lectura de datos de creación: no hay
+         edición de título/descripción/fechas ni reprogramación, solo lo operativo
+         que el trabajador ya puede hacer: comentar y bloquear/desbloquear). --}}
+    @include('livewire.tenant.task-planner.partials.detail-modal')
+    @include('livewire.tenant.task-planner.partials.block-modal')
+
     {{-- Visor de imagen (lightbox) — se abre aquí mismo, sin ventana nueva --}}
     <div x-show="lightboxImg" x-cloak style="display: none;"
          x-transition.opacity
@@ -381,3 +406,69 @@
         <img :src="lightboxImg" @click.stop alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
     </div>
 </div>
+
+@once
+<script>
+    function tpLoadScript(src) {
+        window.__tpScriptPromises = window.__tpScriptPromises || {};
+        if (window.__tpScriptPromises[src]) return window.__tpScriptPromises[src];
+
+        window.__tpScriptPromises[src] = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+
+        return window.__tpScriptPromises[src];
+    }
+
+    function myTaskCalendar($wire) {
+        return {
+            calendar: null,
+            init(el) {
+                this.loadAssets().then(() => this.renderCalendar(el));
+
+                $wire.on('calendar-refresh', () => {
+                    if (this.calendar) this.calendar.refetchEvents();
+                });
+            },
+            loadAssets() {
+                if (window.FullCalendar) return Promise.resolve();
+
+                return tpLoadScript('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js')
+                    .then(() => tpLoadScript('https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/es.global.min.js'));
+            },
+            renderCalendar(el) {
+                const calendarEl = el.querySelector('#my-task-calendar-el');
+
+                this.calendar = new FullCalendar.Calendar(calendarEl, {
+                    locale: 'es',
+                    height: 'auto',
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
+                    initialView: 'timeGridWeek',
+                    slotMinTime: '06:00:00',
+                    slotMaxTime: '20:00:00',
+                    nowIndicator: true,
+                    editable: false,
+                    droppable: false,
+                    eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+                    events: (fetchInfo, successCallback, failureCallback) => {
+                        $wire.getMyCalendarEvents(fetchInfo.startStr, fetchInfo.endStr)
+                            .then(successCallback)
+                            .catch(failureCallback);
+                    },
+                    eventClick: (info) => {
+                        if (info.event.extendedProps.taskId) {
+                            $wire.openDetailModal(info.event.extendedProps.taskId);
+                        }
+                    },
+                });
+
+                this.calendar.render();
+            },
+        };
+    }
+</script>
+@endonce
