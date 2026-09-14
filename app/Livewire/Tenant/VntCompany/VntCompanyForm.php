@@ -2180,7 +2180,7 @@ class VntCompanyForm extends Component
             $city = \App\Models\Central\CnfCity::find($cityId);
             return [
                 'cityName' => $city->name ?? 'Bogotá',
-                'departmentName' => $city->department->name ?? 'Cundinamarca'
+                'departmentName' => $city->state->name ?? 'Cundinamarca'
             ];
         } catch (\Exception $e) {
             return [
