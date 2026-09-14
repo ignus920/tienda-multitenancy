@@ -16,11 +16,13 @@ class InstructivoDepartment extends Model
         'color',
         'status',
         'order',
+        'is_private',
     ];
 
     protected $casts = [
         'status' => 'boolean',
         'order' => 'integer',
+        'is_private' => 'boolean',
     ];
 
     public function instructivos()

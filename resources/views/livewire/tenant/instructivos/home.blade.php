@@ -81,6 +81,14 @@
                         <input type="color" wire:model="deptColor" class="w-full h-9 rounded-lg border-gray-300 dark:border-gray-600">
                     </div>
                 </div>
+
+                <label class="flex items-center gap-2 mt-4">
+                    <input type="checkbox" wire:model="deptIsPrivate" class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                        Privado (solo Gerencia y miembros)
+                        <x-field-hint text="Si lo marcas, este departamento no aparecerá para los demás usuarios. Solo lo verán quienes administran Instructivos y las personas que agregues como Miembros dentro del departamento." />
+                    </span>
+                </label>
             </div>
 
             <div class="flex items-center justify-between mt-6">
