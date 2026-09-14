@@ -54,7 +54,7 @@
                         <button wire:click="openEditEntry({{ $entry->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30" title="Editar">
                             <x-heroicon-o-pencil class="w-4 h-4" />
                         </button>
-                        <button wire:click="
+                        <button x-on:click="
                             Swal.fire({
                                 title: '¿Desactivar entrada?',
                                 text: 'Dejará de verse en la bitácora. No se elimina la información.',
@@ -214,7 +214,7 @@
                                         <x-heroicon-o-paper-clip class="w-6 h-6 text-gray-400" />
                                     </div>
                                 @endif
-                                <button type="button" wire:click="
+                                <button type="button" x-on:click="
                                     Swal.fire({
                                         title: '¿Eliminar archivo?',
                                         text: 'Esta acción no se puede deshacer.',

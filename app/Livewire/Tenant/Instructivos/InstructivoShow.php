@@ -131,11 +131,16 @@ class InstructivoShow extends Component
                 'updated_by' => Auth::id(),
             ]);
         } else {
+            $nextOrder = InstructivoEntry::where('instructivo_id', $this->instructivoId)
+                ->where('status', 1)
+                ->max('order');
+
             $entry = InstructivoEntry::create([
                 'instructivo_id' => $this->instructivoId,
                 'title' => $this->entryTitle,
                 'body' => $this->entryBody,
                 'status' => 1,
+                'order' => ($nextOrder ?? -1) + 1,
                 'created_by' => Auth::id(),
             ]);
         }
@@ -177,41 +182,37 @@ class InstructivoShow extends Component
     }
 
     /**
-     * Intercambia el orden de la entrada $id con la que está inmediatamente
-     * antes (-1) o después (+1) en el orden visible actual. Si ambas comparten
-     * el mismo valor de "order" (aún no se ha reordenado nada, todas en 0),
-     * primero se les asignan valores explícitos según su posición actual.
+     * Mueve la entrada $id una posición antes (-1) o después (+1) en el orden
+     * visible actual, y renumera TODA la lista de ese instructivo de forma
+     * secuencial (0, 1, 2...). Renumerar todo en cada movimiento evita que
+     * queden valores repetidos o con huecos en la columna "order" (lo que
+     * pasaba antes al tocar solo las dos filas intercambiadas).
      */
     private function swapEntryOrder(int $id, int $direction)
     {
-        $entries = InstructivoEntry::where('instructivo_id', $this->instructivoId)
+        $ids = InstructivoEntry::where('instructivo_id', $this->instructivoId)
             ->where('status', 1)
             ->orderBy('order')
             ->orderByDesc('created_at')
-            ->get(['id', 'order']);
+            ->pluck('id')
+            ->values();
 
-        $position = $entries->search(fn ($entry) => $entry->id === $id);
+        $position = $ids->search($id);
         if ($position === false) {
             return;
         }
 
         $swapWith = $position + $direction;
-        if ($swapWith < 0 || $swapWith >= $entries->count()) {
+        if ($swapWith < 0 || $swapWith >= $ids->count()) {
             return;
         }
 
-        $a = $entries[$position];
-        $b = $entries[$swapWith];
+        $reordered = $ids->all();
+        [$reordered[$position], $reordered[$swapWith]] = [$reordered[$swapWith], $reordered[$position]];
 
-        if ($a->order === $b->order) {
-            $a->order = $position;
-            $b->order = $swapWith;
+        foreach ($reordered as $index => $entryId) {
+            InstructivoEntry::where('id', $entryId)->update(['order' => $index]);
         }
-
-        [$a->order, $b->order] = [$b->order, $a->order];
-
-        $a->save();
-        $b->save();
     }
 
     public function removeTempFile(int $index)
