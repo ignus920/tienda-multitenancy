@@ -52,8 +52,15 @@ class DepartmentShow extends Component
 
     public function mount(int $department)
     {
-        $exists = InstructivoDepartment::where('status', 1)->where('id', $department)->exists();
-        abort_unless($exists, 404);
+        $dept = InstructivoDepartment::where('status', 1)->where('id', $department)->first();
+        abort_unless($dept, 404);
+
+        if ($dept->is_private && !$this->canManage) {
+            $isMember = InstructivoDepartmentUser::where('department_id', $department)
+                ->where('user_id', Auth::id())
+                ->exists();
+            abort_unless($isMember, 404);
+        }
 
         $this->departmentId = $department;
     }

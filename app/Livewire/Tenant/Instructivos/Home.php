@@ -19,6 +19,7 @@ class Home extends Component
     public string $deptName = '';
     public string $deptIcon = '📄';
     public string $deptColor = '#6366f1';
+    public bool $deptIsPrivate = false;
 
     public function boot()
     {
@@ -50,6 +51,12 @@ class Home extends Component
         $myDeptIds = InstructivoDepartmentUser::where('user_id', Auth::id())->pluck('department_id')->all();
 
         $departments = InstructivoDepartment::where('status', 1)
+            ->when(!$this->canManage, function ($q) use ($myDeptIds) {
+                // No-Gerencia: solo ve departamentos públicos o donde es miembro explícito.
+                $q->where(function ($q2) use ($myDeptIds) {
+                    $q2->where('is_private', 0)->orWhereIn('id', $myDeptIds);
+                });
+            })
             ->orderBy('order')
             ->orderBy('name')
             ->get()
@@ -77,6 +84,7 @@ class Home extends Component
         $this->deptName = $dept->name;
         $this->deptIcon = $dept->icon ?: '📄';
         $this->deptColor = $dept->color ?: '#6366f1';
+        $this->deptIsPrivate = (bool) $dept->is_private;
         $this->showDeptModal = true;
     }
 
@@ -97,6 +105,7 @@ class Home extends Component
                 'icon' => $this->deptIcon,
                 'color' => $this->deptColor,
                 'status' => 1,
+                'is_private' => $this->deptIsPrivate,
             ]
         );
 
@@ -120,6 +129,7 @@ class Home extends Component
         $this->deptName = '';
         $this->deptIcon = '📄';
         $this->deptColor = '#6366f1';
+        $this->deptIsPrivate = false;
         $this->resetErrorBag();
     }
 }
