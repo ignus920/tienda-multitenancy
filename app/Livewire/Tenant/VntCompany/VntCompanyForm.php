@@ -2155,6 +2155,7 @@ class VntCompanyForm extends Component
                 'address' => $this->warehouseAddress ?: 'Dirección',
                 'city' => $cityInfo['cityName'] ?? 'Bogotá',
                 'department' => $cityInfo['departmentName'] ?? 'Cundinamarca',
+                'country' => 'Colombia',
                 'zipCode' => $this->warehousePostcode
             ],
             'accounting' => [
@@ -2172,7 +2173,7 @@ class VntCompanyForm extends Component
         if (!$cityId) {
             return [
                 'cityName' => 'Bogotá',
-                'departmentName' => 'Cundinamarca'
+                'departmentName' => self::normalizeDepartmentNameForAlegra('Cundinamarca')
             ];
         }
 
@@ -2180,14 +2181,31 @@ class VntCompanyForm extends Component
             $city = \App\Models\Central\CnfCity::find($cityId);
             return [
                 'cityName' => $city->name ?? 'Bogotá',
-                'departmentName' => $city->state->name ?? 'Cundinamarca'
+                'departmentName' => self::normalizeDepartmentNameForAlegra($city->state->name ?? 'Cundinamarca')
             ];
         } catch (\Exception $e) {
             return [
                 'cityName' => 'Bogotá',
-                'departmentName' => 'Cundinamarca'
+                'departmentName' => self::normalizeDepartmentNameForAlegra('Cundinamarca')
             ];
         }
+    }
+
+    /**
+     * Normalizar el nombre del departamento al valor exacto que espera el catálogo
+     * de parámetros de Alegra para Colombia (ver soporte Alegra, ticket municipio/
+     * departamento vacío: el nombre debe coincidir carácter a carácter con su catálogo).
+     * Nuestra BD central guarda "Bogotá D.C." (sin coma), pero Alegra solo reconoce
+     * "Bogotá, D.C." (con coma) — de lo contrario el selector queda vacío en su interfaz.
+     */
+    private static function normalizeDepartmentNameForAlegra(string $departmentName): string
+    {
+        $map = [
+            'Bogotá D.C.' => 'Bogotá, D.C.',
+            'Bogota D.C.' => 'Bogotá, D.C.',
+        ];
+
+        return $map[$departmentName] ?? $departmentName;
     }
 
     /**
