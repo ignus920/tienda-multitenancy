@@ -377,6 +377,8 @@
                                 <option value="sin_venta">Productos que no se están vendiendo</option>
                                 <option value="poca_venta">Productos con poca venta</option>
                                 <option value="con_reservas">Con reservas activas</option>
+                                <option value="cuarentena">En cuarentena</option>
+                                <option value="en_vitrina">En vitrina</option>
                             </select>
                         </div>
 
