@@ -635,46 +635,12 @@ class CustomerForm extends Component
 
     /**
      * Obtener información de la ciudad a partir del city_id del cliente
+     * (nombre de ciudad/departamento ya normalizado para Alegra — ver
+     * App\Services\Facturacion\AlegraAddressResolver).
      */
     private function getCityInfo($cityId): array
     {
-        if (!$cityId) {
-            return [
-                'cityName' => self::normalizeCityNameForAlegra('Bogotá'),
-                'departmentName' => 'Cundinamarca'
-            ];
-        }
-
-        try {
-            $city = \App\Models\Central\CnfCity::find($cityId);
-            return [
-                'cityName' => self::normalizeCityNameForAlegra($city->name ?? 'Bogotá'),
-                'departmentName' => $city->state->name ?? 'Cundinamarca'
-            ];
-        } catch (\Exception $e) {
-            return [
-                'cityName' => self::normalizeCityNameForAlegra('Bogotá'),
-                'departmentName' => 'Cundinamarca'
-            ];
-        }
-    }
-
-    /**
-     * Normalizar el nombre de la ciudad al valor exacto que espera el catálogo
-     * de parámetros de Alegra para Colombia. Para Bogotá, Alegra exige la coma
-     * en el campo "city" ("Bogotá, D.C."), NO en "department" (ese va tal cual
-     * está en nuestra BD: "Bogotá D.C.") — es el orden contrario al que Alegra
-     * indicó la primera vez; lo confirmaron en un segundo correo de soporte.
-     */
-    private static function normalizeCityNameForAlegra(string $cityName): string
-    {
-        $map = [
-            'Bogotá D.C.' => 'Bogotá, D.C.',
-            'Bogota D.C.' => 'Bogotá, D.C.',
-            'Bogotá' => 'Bogotá, D.C.',
-        ];
-
-        return $map[$cityName] ?? $cityName;
+        return \App\Services\Facturacion\AlegraAddressResolver::resolve($cityId ? (int) $cityId : null);
     }
 
     /**
