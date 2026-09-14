@@ -506,12 +506,12 @@
 
             <div class="flex items-center gap-x-2 gap-y-1.5 flex-wrap border-t border-green-200 dark:border-green-800/60 pt-2 text-[9px] text-green-700 dark:text-green-400">
                 @if(!empty($branches) && count($branches) > 1 && !$isEditing)
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 flex-1 min-w-0">
                     <span class="font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
                     <select
                         wire:model.live="selectedBranchId"
                         wire:change="selectBranch($event.target.value)"
-                        class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                        class="block w-full flex-1 min-w-0 text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
                       >
                         <option value="">-- Seleccionar --</option>
                         @foreach($branches as $branch)
@@ -549,7 +549,7 @@
                         })
                     "
                     aria-label="Limpiar cotizador"
-                    class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors shrink-0">
+                    class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors shrink-0 ml-auto"
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
