@@ -498,7 +498,13 @@
                 </div>
             </div>
 
-            @if(!empty($selectedCustomer['address']) || !empty($selectedCustomer['cityName']) || $this->quoterCount > 0)
+            @php
+                $hasAddressBlock = !empty($selectedCustomer['address']) || !empty($selectedCustomer['cityName']);
+                $hasBranchSelector = !empty($branches) && count($branches) > 1 && !$isEditing;
+                $showClearButton = $this->quoterCount > 0;
+            @endphp
+
+            @if($hasAddressBlock)
             <div class="flex items-start justify-between gap-2 border-t border-green-200 dark:border-green-800/60 pt-2">
                 <div class="text-[9px] text-green-700 dark:text-green-400 leading-tight">
                     @if(!empty($selectedCustomer['address']))
@@ -509,38 +515,13 @@
                     @endif
                 </div>
 
-                @if($this->quoterCount > 0)
-                <button
-                    title="Limpiar cotizador"
-                    @click="
-                        Swal.fire({
-                            title: '¿Limpiar cotizador?',
-                            text: 'Se eliminarán todos los productos seleccionados.',
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#4f46e5',
-                            cancelButtonColor: '#ef4444',
-                            confirmButtonText: 'Sí, limpiar',
-                            cancelButtonText: 'Cancelar',
-                            background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                            color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                $wire.clearQuoter()
-                            }
-                        })
-                    "
-                    aria-label="Limpiar cotizador"
-                    class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors shrink-0">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
+                @if($showClearButton)
+                    @include('livewire.tenant.quoter.components.partials.quoter-clear-button')
                 @endif
             </div>
             @endif
 
-            @if(!empty($branches) && count($branches) > 1 && !$isEditing)
+            @if($hasBranchSelector)
             <div class="flex items-center gap-1.5 border-t border-green-200 dark:border-green-800/60 pt-2 text-[9px] text-green-700 dark:text-green-400">
                 <span class="font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
                 <select
@@ -555,6 +536,16 @@
                         </option>
                     @endforeach
                 </select>
+
+                @if($showClearButton && !$hasAddressBlock)
+                    @include('livewire.tenant.quoter.components.partials.quoter-clear-button')
+                @endif
+            </div>
+            @endif
+
+            @if($showClearButton && !$hasAddressBlock && !$hasBranchSelector)
+            <div class="flex items-center justify-end border-t border-green-200 dark:border-green-800/60 pt-2">
+                @include('livewire.tenant.quoter.components.partials.quoter-clear-button')
             </div>
             @endif
         </div>
