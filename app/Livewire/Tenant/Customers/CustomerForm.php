@@ -624,7 +624,7 @@ class CustomerForm extends Component
                 'city' => $cityInfo['cityName'] ?? 'city',
                 'department' => $cityInfo['departmentName'] ?? 'department',
                 'country' => 'Colombia',
-                'zipCode' => $this->postcode
+                'zipCode' => $this->postcode ?: ''
             ],
             'accounting' => [
                 'debtToPay'         => 6641,
@@ -994,7 +994,7 @@ class CustomerForm extends Component
                 'city' => $cityInfo['cityName'] ?? 'city',
                 'department' => $cityInfo['departmentName'] ?? 'department',
                 'country' => 'Colombia',
-                'zipCode' => $customer->postcode
+                'zipCode' => $customer->postcode ?: ''
             ],
             'accounting' => [
                 'debtToPay'         => 6641,

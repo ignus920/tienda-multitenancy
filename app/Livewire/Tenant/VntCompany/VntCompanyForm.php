@@ -2156,7 +2156,7 @@ class VntCompanyForm extends Component
                 'city' => $cityInfo['cityName'] ?? 'Bogotá',
                 'department' => $cityInfo['departmentName'] ?? 'Cundinamarca',
                 'country' => 'Colombia',
-                'zipCode' => $this->warehousePostcode
+                'zipCode' => $this->warehousePostcode ?: ''
             ],
             'accounting' => [
                 'debtToPay'         => 6641,
