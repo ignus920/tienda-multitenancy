@@ -581,6 +581,14 @@ class ProductQuoter extends Component
                     // reservas Registradas -status_id=1- y con due_date >= hoy, en tiempo real).
                     $query->havingRaw('(reserved_stock > 0 OR reserved_transit > 0)');
                 })
+                ->when($this->productFilter === 'cuarentena', function ($query) {
+                    // Reutiliza reserved_quarantine (ya calculada arriba, filtrada por bodega del usuario).
+                    $query->havingRaw('reserved_quarantine > 0');
+                })
+                ->when($this->productFilter === 'en_vitrina', function ($query) {
+                    // Reutiliza showroom_stock (ya calculada arriba, filtrada por bodega del usuario).
+                    $query->havingRaw('showroom_stock > 0');
+                })
                 ->groupBy(
                     'inv_items.id',
                     'inv_items.api_data_id',
