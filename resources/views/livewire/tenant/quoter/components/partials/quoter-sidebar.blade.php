@@ -407,6 +407,41 @@
         @endif
         @else
         @if(!$selectedCustomer)
+        <!-- Buscador de cliente en el carrito -->
+        <div class="relative w-full">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </span>
+                <input
+                    wire:model.live.debounce.300ms="customerSearch"
+                    type="text"
+                    placeholder="Buscar cliente (nombre, NIT o cédula)..."
+                    class="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all outline-none focus:ring-1 focus:ring-indigo-500 animate-soft-glow"
+                    @keydown.enter="$wire.searchCustomer()">
+            </div>
+
+            <!-- Resultados de búsqueda -->
+            @if(!empty($customerResults))
+            <div class="absolute z-50 left-0 right-0 bottom-full mb-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-60 overflow-y-auto">
+                @foreach($customerResults as $result)
+                <button
+                    wire:click="selectCustomer({{ $result['id'] }})"
+                    class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors">
+                    <div class="font-semibold text-xs text-gray-900 dark:text-white">
+                        {{ $result['businessName'] ?: trim(($result['firstName'] ?? '') . ' ' . ($result['secondName'] ?? '') . ' ' . ($result['lastName'] ?? '') . ' ' . ($result['secondLastName'] ?? '')) }}
+                    </div>
+                    <div class="text-[9px] text-gray-500 dark:text-gray-400">
+                        {{ $result['identification'] }}
+                    </div>
+                </button>
+                @endforeach
+            </div>
+            @endif
+        </div>
+
         <button disabled
             class="w-full bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 font-medium py-3 px-4 rounded-lg cursor-not-allowed flex items-center justify-center">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,6 +450,115 @@
             Seleccione un Cliente
         </button>
         @else
+        <!-- Cliente Seleccionado en el carrito -->
+        <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/60 rounded-lg px-3 py-2 text-xs w-full shadow-sm space-y-2">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <h4 class="font-bold text-green-800 dark:text-green-300 truncate text-[11px] leading-tight">
+                        {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) }}
+                    </h4>
+                    <p class="text-[9px] text-green-600 dark:text-green-400">
+                        ID: {{ $selectedCustomer['identification'] }}
+                    </p>
+                </div>
+
+                <!-- Botones Editar / Quitar con Tooltips Alpine.js -->
+                <div class="flex items-center gap-1 shrink-0">
+                    <!-- Botón Editar -->
+                    <div x-data="{ showTooltip: false }" class="relative inline-block">
+                        <button wire:click="editCustomer" wire:loading.attr="disabled"
+                            @mouseenter="showTooltip = true" @mouseleave="showTooltip = false"
+                            class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                            aria-label="Editar cliente">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <!-- Tooltip personalizado -->
+                        <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full right-0 mb-2 px-2 py-1 text-[10px] font-medium text-white bg-gray-900 rounded shadow-lg whitespace-nowrap">
+                            Editar información del cliente
+                        </div>
+                    </div>
+
+                    <!-- Botón Quitar -->
+                    <div x-data="{ showTooltip: false }" class="relative inline-block">
+                        <button wire:click="clearCustomer"
+                            @mouseenter="showTooltip = true" @mouseleave="showTooltip = false"
+                            class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                            aria-label="Quitar cliente">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <!-- Tooltip personalizado -->
+                        <div x-show="showTooltip" x-transition x-cloak class="absolute z-50 bottom-full right-0 mb-2 px-2 py-1 text-[10px] font-medium text-white bg-gray-900 rounded shadow-lg whitespace-nowrap">
+                            Quitar cliente actual
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if(!empty($selectedCustomer['address']) || !empty($selectedCustomer['cityName']))
+            <div class="text-[9px] text-green-700 dark:text-green-400 leading-tight">
+                @if(!empty($selectedCustomer['address']))
+                    <div><span class="font-semibold text-green-800/80 dark:text-green-300/80">Dir:</span> {{ $selectedCustomer['address'] }}</div>
+                @endif
+                @if(!empty($selectedCustomer['cityName']))
+                    <div><span class="font-semibold text-green-800/80 dark:text-green-300/80">Ciudad:</span> {{ $selectedCustomer['cityName'] }}</div>
+                @endif
+            </div>
+            @endif
+
+            <div class="flex items-center justify-between gap-2 flex-wrap border-t border-green-200 dark:border-green-800/60 pt-2">
+                @if(!empty($branches) && count($branches) > 1 && !$isEditing)
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
+                        <select
+                            wire:model.live="selectedBranchId"
+                            wire:change="selectBranch($event.target.value)"
+                            class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                          >
+                            <option value="">-- Seleccionar --</option>
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch['id'] }}">
+                                    {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                @if($this->quoterCount > 0)
+                <div class="flex items-center gap-2 ml-auto">
+                    <span class="text-[11px] font-bold text-green-800 dark:text-green-300">
+                        {{ $this->quoterCount }} {{ $this->quoterCount === 1 ? 'Producto' : 'Productos' }}
+                    </span>
+                    <button
+                        @click="
+                            Swal.fire({
+                                title: '¿Limpiar cotizador?',
+                                text: 'Se eliminarán todos los productos seleccionados.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#4f46e5',
+                                cancelButtonColor: '#ef4444',
+                                confirmButtonText: 'Sí, limpiar',
+                                cancelButtonText: 'Cancelar',
+                                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    $wire.clearQuoter()
+                                }
+                            })
+                        "
+                        class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-[10px] font-extrabold uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900 transition-colors">
+                        Limpiar
+                    </button>
+                </div>
+                @endif
+            </div>
+        </div>
         <button wire:click="saveQuote"
             wire:loading.attr="disabled"
             wire:target="saveQuote"
