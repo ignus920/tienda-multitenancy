@@ -498,34 +498,34 @@
                 </div>
             </div>
 
-            @if(!empty($selectedCustomer['address']) || !empty($selectedCustomer['cityName']))
+            @if(!empty($selectedCustomer['address']))
             <div class="text-[9px] text-green-700 dark:text-green-400 leading-tight">
-                @if(!empty($selectedCustomer['address']))
-                    <div><span class="font-semibold text-green-800/80 dark:text-green-300/80">Dir:</span> {{ $selectedCustomer['address'] }}</div>
-                @endif
-                @if(!empty($selectedCustomer['cityName']))
-                    <div><span class="font-semibold text-green-800/80 dark:text-green-300/80">Ciudad:</span> {{ $selectedCustomer['cityName'] }}</div>
-                @endif
+                <div><span class="font-semibold text-green-800/80 dark:text-green-300/80">Dir:</span> {{ $selectedCustomer['address'] }}</div>
             </div>
             @endif
 
-            <div class="flex items-center justify-between gap-2 flex-wrap border-t border-green-200 dark:border-green-800/60 pt-2">
-                @if(!empty($branches) && count($branches) > 1 && !$isEditing)
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
-                        <select
-                            wire:model.live="selectedBranchId"
-                            wire:change="selectBranch($event.target.value)"
-                            class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
-                          >
-                            <option value="">-- Seleccionar --</option>
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch['id'] }}">
-                                    {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+            @if(!empty($branches) && count($branches) > 1 && !$isEditing)
+            <div class="flex items-center gap-1.5 border-t border-green-200 dark:border-green-800/60 pt-2">
+                <span class="text-[9px] font-bold text-green-700 dark:text-green-300 uppercase shrink-0">Sucursal:</span>
+                <select
+                    wire:model.live="selectedBranchId"
+                    wire:change="selectBranch($event.target.value)"
+                    class="block text-[11px] py-0.5 px-2 border border-green-300 dark:border-green-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 shadow-sm"
+                  >
+                    <option value="">-- Seleccionar --</option>
+                    @foreach($branches as $branch)
+                        <option value="{{ $branch['id'] }}">
+                            {{ $branch['name'] }} {{ !empty($branch['city']['name']) ? '('.$branch['city']['name'].')' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+
+            @if(!empty($selectedCustomer['cityName']) || $this->quoterCount > 0)
+            <div class="flex items-center justify-between gap-2 flex-wrap text-[9px] text-green-700 dark:text-green-400 {{ (empty($branches) || count($branches) <= 1 || $isEditing) ? 'border-t border-green-200 dark:border-green-800/60 pt-2' : '' }}">
+                @if(!empty($selectedCustomer['cityName']))
+                    <div><span class="font-semibold text-green-800/80 dark:text-green-300/80">Ciudad:</span> {{ $selectedCustomer['cityName'] }}</div>
                 @endif
 
                 @if($this->quoterCount > 0)
@@ -558,6 +558,7 @@
                 </div>
                 @endif
             </div>
+            @endif
         </div>
         <button wire:click="saveQuote"
             wire:loading.attr="disabled"
