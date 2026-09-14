@@ -640,39 +640,41 @@ class CustomerForm extends Component
     {
         if (!$cityId) {
             return [
-                'cityName' => 'Bogotá',
-                'departmentName' => self::normalizeDepartmentNameForAlegra('Cundinamarca')
+                'cityName' => self::normalizeCityNameForAlegra('Bogotá'),
+                'departmentName' => 'Cundinamarca'
             ];
         }
 
         try {
             $city = \App\Models\Central\CnfCity::find($cityId);
             return [
-                'cityName' => $city->name ?? 'Bogotá',
-                'departmentName' => self::normalizeDepartmentNameForAlegra($city->state->name ?? 'Cundinamarca')
+                'cityName' => self::normalizeCityNameForAlegra($city->name ?? 'Bogotá'),
+                'departmentName' => $city->state->name ?? 'Cundinamarca'
             ];
         } catch (\Exception $e) {
             return [
-                'cityName' => 'Bogotá',
-                'departmentName' => self::normalizeDepartmentNameForAlegra('Cundinamarca')
+                'cityName' => self::normalizeCityNameForAlegra('Bogotá'),
+                'departmentName' => 'Cundinamarca'
             ];
         }
     }
 
     /**
-     * Normalizar el nombre del departamento al valor exacto que espera el catálogo
-     * de parámetros de Alegra para Colombia. Nuestra BD central guarda "Bogotá D.C."
-     * (sin coma), pero Alegra solo reconoce "Bogotá, D.C." (con coma) — de lo contrario
-     * el selector Municipio/Departamento queda vacío en su interfaz.
+     * Normalizar el nombre de la ciudad al valor exacto que espera el catálogo
+     * de parámetros de Alegra para Colombia. Para Bogotá, Alegra exige la coma
+     * en el campo "city" ("Bogotá, D.C."), NO en "department" (ese va tal cual
+     * está en nuestra BD: "Bogotá D.C.") — es el orden contrario al que Alegra
+     * indicó la primera vez; lo confirmaron en un segundo correo de soporte.
      */
-    private static function normalizeDepartmentNameForAlegra(string $departmentName): string
+    private static function normalizeCityNameForAlegra(string $cityName): string
     {
         $map = [
             'Bogotá D.C.' => 'Bogotá, D.C.',
             'Bogota D.C.' => 'Bogotá, D.C.',
+            'Bogotá' => 'Bogotá, D.C.',
         ];
 
-        return $map[$departmentName] ?? $departmentName;
+        return $map[$cityName] ?? $cityName;
     }
 
     /**
