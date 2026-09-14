@@ -1,20 +1,22 @@
 <div>
     <!-- Info de referencia en el header al editar (solo lectura: cotización # + cliente) -->
     <template x-teleport="#customer-header-container">
-        @if(($isEditing || $isEditingRemission) && $selectedCustomer)
-        <div class="flex items-center justify-end gap-2 text-xs w-full">
-            @if($isEditing && $editingQuoteConsecutive)
-                <span class="font-bold text-indigo-600 dark:text-indigo-400 shrink-0">Cotización #{{ $editingQuoteConsecutive }}</span>
-                <span class="text-gray-300 dark:text-gray-600">·</span>
-            @elseif($isEditingRemission)
-                <span class="font-bold text-indigo-600 dark:text-indigo-400 shrink-0">Remisión</span>
-                <span class="text-gray-300 dark:text-gray-600">·</span>
+        <div class="w-full flex items-center justify-end">
+            @if(($isEditing || $isEditingRemission) && $selectedCustomer)
+            <div class="flex items-center justify-end gap-2 text-xs w-full">
+                @if($isEditing && $editingQuoteConsecutive)
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400 shrink-0">Cotización #{{ $editingQuoteConsecutive }}</span>
+                    <span class="text-gray-300 dark:text-gray-600">·</span>
+                @elseif($isEditingRemission)
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400 shrink-0">Remisión</span>
+                    <span class="text-gray-300 dark:text-gray-600">·</span>
+                @endif
+                <span class="font-medium text-gray-900 dark:text-white truncate">
+                    {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) }}
+                </span>
+            </div>
             @endif
-            <span class="font-medium text-gray-900 dark:text-white truncate">
-                {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) }}
-            </span>
         </div>
-        @endif
     </template>
 
     <style>
