@@ -330,7 +330,7 @@ class ManageProjects extends Component
                 ->whereNotIn('status', ['terminado', 'cerrado_entregado'])
                 ->whereNotNull('delivery_date')
                 ->whereDate('delivery_date', '>=', now())
-                ->whereRaw('DATEDIFF(delivery_date, NOW()) / GREATEST(DATEDIFF(delivery_date, created_at), 1) <= 0.30');
+                ->whereRaw('DATEDIFF(delivery_date, NOW()) / GREATEST(DATEDIFF(delivery_date, COALESCE(phase_started_at, created_at)), 1) <= 0.30');
         }
 
         // Más filtros: rango de fechas de creación y participante

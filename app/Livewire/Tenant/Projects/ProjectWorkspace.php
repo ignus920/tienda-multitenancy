@@ -15,6 +15,7 @@ use App\Models\Tenant\Projects\ProjectAdvance;
 use App\Models\Tenant\Projects\ProjectStatusHistory;
 use App\Models\Tenant\Projects\ProjectFile;
 use App\Models\Tenant\Projects\ProjectEditHistory;
+use App\Models\Tenant\Projects\ProjectPhaseHistory;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Projects\ProjectTask;
@@ -84,6 +85,9 @@ class ProjectWorkspace extends Component
     public $showAdvanceModal = false;
     public $showLabFinishModal = false;
     public $showCloseModal = false;
+    public $showReactivateModal = false;
+    public $new_delivery_date;
+    public $reactivation_reason;
     public $showStartDevelopmentModal = false;
     public $showNoveltyModal = false;
     public $noveltyDescription = '';
@@ -845,8 +849,72 @@ class ProjectWorkspace extends Component
 
         $this->showCloseModal = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Proyecto finalizado correctamente']);
-        
+
         return redirect()->route('tenant.projects');
+    }
+
+    // Reactivar un proyecto ya cerrado (nueva fase) — solo el creador o un
+    // perfil de acceso total. Preserva el detalle del cierre anterior en
+    // inv_project_phase_history antes de reutilizar esas columnas para la
+    // fase que empieza ahora.
+    public function reactivateProject()
+    {
+        $this->ensureTenantConnection();
+
+        $project = Project::findOrFail($this->projectId);
+
+        if (!$project->canBeReactivatedBy(Auth::user())) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para reactivar este proyecto.']);
+            return;
+        }
+
+        $this->validate([
+            'new_delivery_date' => 'required|date',
+            'reactivation_reason' => 'nullable|string',
+        ]);
+
+        ProjectPhaseHistory::create([
+            'project_id' => $project->id,
+            'phase_number' => $project->phase ?? 1,
+            'delivery_date' => $project->delivery_date,
+            'completion_date' => $project->completion_date,
+            'lab_observations' => $project->lab_observations,
+            'real_delivery_date' => $project->real_delivery_date,
+            'close_observations' => $project->close_observations,
+            'closed_by' => $project->created_by,
+            'reactivated_by' => Auth::id(),
+            'reactivated_at' => now(),
+            'created_at' => now(),
+        ]);
+
+        $this->logStatusChange($project, 'en_produccion');
+        $project->update([
+            'status' => 'en_produccion',
+            'delivery_date' => $this->new_delivery_date,
+            'phase' => ($project->phase ?? 1) + 1,
+            'phase_started_at' => now(),
+            'completion_date' => null,
+            'lab_observations' => null,
+            'real_delivery_date' => null,
+            'close_observations' => null,
+        ]);
+
+        $announceText = "🔄 El proyecto fue reactivado. Nueva fecha de entrega solicitada: "
+            . \Illuminate\Support\Carbon::parse($this->new_delivery_date)->format('d/m/Y')
+            . ($this->reactivation_reason ? "\nMotivo: {$this->reactivation_reason}" : '');
+
+        $message = ProjectMessage::create([
+            'project_id' => $this->projectId,
+            'user_id' => Auth::id(),
+            'message' => $announceText,
+        ]);
+
+        broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
+
+        $this->reset(['new_delivery_date', 'reactivation_reason']);
+        $this->showReactivateModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Proyecto reactivado correctamente']);
+        $this->dispatch('refresh-component');
     }
 
     // TAREAS: Crear
