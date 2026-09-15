@@ -475,8 +475,8 @@ class TicketRequestModal extends Component
                     TickRequest::class,
                     $request->id,
                     'Nueva solicitud: ' . ($department->name ?? 'Departamento'),
-                    $this->detail,
-                    route('tenant.tickets'),
+                    trim(strip_tags($this->detail)),
+                    route('tenant.tickets', ['requestId' => $request->id, 'type' => 'internal']),
                     auth()->id()
                 );
 
