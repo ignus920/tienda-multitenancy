@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Tenant\Imports\ImpLabels;
 use App\Models\Tenant\Imports\ImpShippments;
 use App\Models\Tenant\Imports\ImpShipmentComments;
+use App\Models\Tenant\Tickets\TickDepartment;
+use App\Models\Tenant\UsrNotification;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -3219,16 +3221,39 @@ class Orders extends Component
         $jsonImagePaths = !empty($imagePaths) ? json_encode($imagePaths) : null;
 
         try {
+            // Esta solicitud siempre es sobre Importaciones: se fija directo al
+            // departamento "Importaciones" (Parámetros Departamentos) para poder
+            // avisar a sus usuarios asignados al crearse, sin pedirle al usuario
+            // que elija un departamento (aquí no aplica ninguno más).
+            $importsDepartmentId = TickDepartment::where('name', 'like', 'Importaciones%')->value('id');
+
             $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
                 'observations' => $this->newProductObservations,
                 'image_path' => $jsonImagePaths,
                 'status' => 'PENDING',
+                'department_id' => $importsDepartmentId,
                 'created_by' => Auth::id(),
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            if ($importsDepartmentId) {
+                $recipientIds = TickDepartment::find($importsDepartmentId)
+                    ->users()->wherePivot('status', 1)->pluck('users.id')->toArray();
+
+                UsrNotification::notify(
+                    $recipientIds,
+                    'importaciones',
+                    'ImpNewProduct',
+                    $newProductId,
+                    'Nuevo producto por confirmar: ' . $this->newProductCode,
+                    $this->newProductDescription,
+                    route('imports.imports-orders'),
+                    Auth::id()
+                );
+            }
 
             // Siempre guardamos la información inicial para que el proveedor la vea
             $commentData = [

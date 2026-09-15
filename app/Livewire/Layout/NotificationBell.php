@@ -196,6 +196,7 @@ class NotificationBell extends Component
                 'type' => $n->type,
                 'message' => $n->message,
                 'time_ago' => Carbon::parse($n->created_at)->locale('es')->diffForHumans(),
+                'sort_at' => $n->created_at,
             ])->toArray();
         } catch (\Throwable $e) {
             $this->operativeNotifications = [];
@@ -261,6 +262,7 @@ class NotificationBell extends Component
                 'message' => $n->message,
                 'link' => $n->link,
                 'time_ago' => Carbon::parse($n->created_at)->locale('es')->diffForHumans(),
+                'sort_at' => $n->created_at,
             ])->toArray();
         } catch (\Throwable $e) {
             $this->taskTodoNotifications = [];
@@ -356,6 +358,7 @@ class NotificationBell extends Component
                 'creator_name' => $t->creator ? $t->creator->name : 'Usuario',
                 'creator_avatar' => $t->creator ? $t->creator->getAvatarUrl() : '',
                 'time_ago' => Carbon::parse($t->created_at)->locale('es')->diffForHumans(),
+                'sort_at' => $t->created_at,
             ];
         })->toArray();
     }
@@ -402,6 +405,70 @@ class NotificationBell extends Component
     public function toggleDropdown()
     {
         $this->showDropdown = !$this->showDropdown;
+    }
+
+    /**
+     * "Tareas asignadas" — vista UNIFICADA de las 3 listas que ya existen
+     * (pendingTasks/ProjectTask, operativeNotifications/TaskNotification,
+     * taskTodoNotifications/UsrNotification). Esto es SOLO de presentación:
+     * no reemplaza ni toca ninguno de los métodos de carga/marcar-leído de
+     * arriba — cada fila sigue apuntando al método original de su origen
+     * (o a ninguno, en el caso de ProjectTask, que nunca tuvo "marcar
+     * leído": solo se quita de la lista cuando la tarea se completa).
+     */
+    public function getUnifiedTasksProperty()
+    {
+        $rows = collect();
+
+        foreach ($this->pendingTasks as $t) {
+            $rows->push([
+                'source' => 'project_task',
+                'title' => $t['title'],
+                'subtitle' => $t['project_title'],
+                'tag_label' => 'Proyecto',
+                'tag_color' => 'indigo',
+                'time_ago' => $t['time_ago'],
+                'sort_at' => $t['sort_at'],
+                'unread' => false, // no existe "leído" para esto: solo se quita al completarse
+                'href' => route('tenant.projects.workspace', $t['project_id']),
+                'mark_method' => null,
+                'mark_id' => null,
+            ]);
+        }
+
+        foreach ($this->operativeNotifications as $n) {
+            $rows->push([
+                'source' => 'operativa',
+                'title' => $n['message'],
+                'subtitle' => null,
+                'tag_label' => 'Planificador',
+                'tag_color' => 'amber',
+                'time_ago' => $n['time_ago'],
+                'sort_at' => $n['sort_at'],
+                'unread' => true,
+                'href' => $n['type'] === 'mas_tiempo' ? route('tenant.task-planner') : route('tenant.task-planner.my-tasks'),
+                'mark_method' => 'markOperativeAsRead',
+                'mark_id' => $n['id'],
+            ]);
+        }
+
+        foreach ($this->taskTodoNotifications as $n) {
+            $rows->push([
+                'source' => 'usr_notification',
+                'title' => $n['title'],
+                'subtitle' => $n['message'],
+                'tag_label' => 'Solicitud',
+                'tag_color' => 'emerald',
+                'time_ago' => $n['time_ago'],
+                'sort_at' => $n['sort_at'],
+                'unread' => true,
+                'href' => $n['link'] ?: '#',
+                'mark_method' => 'markTaskTodoAsRead',
+                'mark_id' => $n['id'],
+            ]);
+        }
+
+        return $rows->sortByDesc('sort_at')->values();
     }
 
     public function render()
