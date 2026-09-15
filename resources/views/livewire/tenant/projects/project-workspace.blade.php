@@ -313,9 +313,47 @@
                                 {{ $project->type === 'internal' ? 'Finalizar Proyecto' : 'Registrar Entrega' }}
                             </button>
                         @endif
+
+                        @if($project->status === 'cerrado_entregado' && $project->canBeReactivatedBy(Auth::user()))
+                            <div class="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 p-2.5 rounded-lg text-center font-semibold mb-2">
+                                Este proyecto ya fue finalizado. Si llegó una solicitud nueva, puedes reactivarlo.
+                            </div>
+                            <button wire:click="$set('showReactivateModal', true)"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                Reactivar Proyecto
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
+
+            @if($project->phaseHistory->isNotEmpty())
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700" x-data="{ open: false }">
+                <button type="button" @click="open = !open" class="w-full flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Fases Anteriores ({{ $project->phaseHistory->count() }})</h2>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-cloak class="space-y-3 max-h-[260px] overflow-y-auto pr-1 mt-4">
+                    @foreach($project->phaseHistory as $phase)
+                        <div class="relative pl-4 border-l-2 border-amber-300 dark:border-amber-700 text-xs">
+                            <div class="flex items-center justify-between mb-0.5">
+                                <span class="font-bold text-gray-900 dark:text-white">Fase {{ $phase->phase_number }}</span>
+                                <span class="text-gray-400 text-3xs">{{ $phase->reactivated_at ? $phase->reactivated_at->format('d/m/Y H:i') : '' }}</span>
+                            </div>
+                            <p class="text-gray-500 dark:text-gray-400">
+                                Entregada: {{ $phase->real_delivery_date ? $phase->real_delivery_date->format('d/m/Y') : 'N/A' }}
+                                @if($phase->close_observations)
+                                    — {{ $phase->close_observations }}
+                                @endif
+                            </p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             {{--
             <!-- Panel de Preguntas Pendientes para el Cliente -->
@@ -1117,6 +1155,41 @@
             <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                 <button wire:click="$set('showCloseModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
                 <button wire:click="closeProject" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow">{{ $project->type === 'internal' ? 'Finalizar Proyecto' : 'Registrar Entrega' }}</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- 6b. Modal Reactivar Proyecto -->
+    @if($showReactivateModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase">Reactivar Proyecto</h3>
+                <button wire:click="$set('showReactivateModal', false)" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    El cierre actual del proyecto quedará guardado como fase anterior. El chat, materiales y archivos se reactivan automáticamente.
+                </p>
+                <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Nueva Fecha de Entrega Solicitada *</label>
+                    <input wire:model="new_delivery_date" type="date"
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none">
+                    @error('new_delivery_date') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-3xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Motivo de la Reactivación</label>
+                    <textarea wire:model="reactivation_reason" rows="3" placeholder="Ej: llegó una solicitud nueva no contemplada en el cierre anterior..."
+                        class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"></textarea>
+                    @error('reactivation_reason') <span class="text-2xs text-red-500 block mt-0.5 font-semibold">{{ $message }}</span> @enderror
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button wire:click="$set('showReactivateModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 rounded">Cancelar</button>
+                <button wire:click="reactivateProject" type="button" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded shadow">Reactivar Proyecto</button>
             </div>
         </div>
     </div>

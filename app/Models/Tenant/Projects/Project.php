@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Tenant\Customer\VntCompany;
 use App\Models\Auth\User;
+use App\Helpers\PermissionHelper;
 
 class Project extends Model
 {
@@ -23,6 +24,8 @@ class Project extends Model
         'created_by',
         'assigned_to',
         'status',
+        'phase',
+        'phase_started_at',
         'qty',
         'price_unit',
         'total_value',
@@ -40,6 +43,7 @@ class Project extends Model
         'suggested_delivery_date' => 'date',
         'completion_date' => 'date',
         'real_delivery_date' => 'date',
+        'phase_started_at' => 'datetime',
         'qty' => 'integer',
         'price_unit' => 'decimal:2',
         'total_value' => 'decimal:2',
@@ -47,21 +51,49 @@ class Project extends Model
 
     /**
      * Perfiles que ven TODOS los proyectos. El resto solo ve los proyectos
-     * donde son creador, "dirigido a" o participante del chat.
-     * 1 = Super Administrador, 2 = Administrador, 15 = Gestión operativa
+     * donde es participante (el creador y el "dirigido a" ya quedan
+     * registrados como participante automáticamente al crear el proyecto).
+     * 1 = Super Administrador, 2 = Administrador.
      */
-    const FULL_ACCESS_PROFILES = [1, 2, 15];
+    const FULL_ACCESS_PROFILES = [1, 2];
+
+    /**
+     * Nombre del permiso (catálogo usr_permissions) que da acceso a TODOS
+     * los proyectos sin importar el perfil — excepción puntual por usuario
+     * (ej. la coordinadora de proyectos), asignable desde Usuarios sin
+     * tocar el perfil completo.
+     */
+    const VIEW_ALL_PERMISSION = 'Proyectos - Ver Todos';
+
+    /**
+     * ¿Este usuario tiene acceso total a proyectos (por perfil o por
+     * excepción individual de permisos)?
+     */
+    protected static function hasFullProjectAccess($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return in_array($user->profile_id, self::FULL_ACCESS_PROFILES)
+            || PermissionHelper::userCan(self::VIEW_ALL_PERMISSION);
+    }
 
     /**
      * Limita la consulta a los proyectos visibles para el usuario dado.
-     * Los perfiles con acceso total no se filtran.
+     * Los perfiles/usuarios con acceso total no se filtran.
      */
     public function scopeVisibleTo($query, $user)
     {
-        if (!$user || in_array($user->profile_id, self::FULL_ACCESS_PROFILES)) {
+        if (!$user || self::hasFullProjectAccess($user)) {
             return $query;
         }
 
+        // Nota: created_by/assigned_to quedan como respaldo por si algún
+        // proyecto antiguo no tiene fila en inv_project_participants (la
+        // auto-inscripción del creador/asignado se agregó después) — en la
+        // práctica hoy ya son participantes siempre, así que esto no amplía
+        // el acceso, solo evita ocultar proyectos viejos por datos previos.
         return $query->where(function ($q) use ($user) {
             $q->where('created_by', $user->id)
               ->orWhere('assigned_to', $user->id)
@@ -78,13 +110,31 @@ class Project extends Model
             return false;
         }
 
-        if (in_array($user->profile_id, self::FULL_ACCESS_PROFILES)) {
+        if (self::hasFullProjectAccess($user)) {
             return true;
         }
 
         return (int) $this->created_by === (int) $user->id
             || (int) $this->assigned_to === (int) $user->id
             || $this->participants()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * ¿Este usuario puede reactivar el proyecto (una vez cerrado_entregado)?
+     * Solo el creador o un perfil de acceso total — decisión explícita del
+     * cliente: es una acción más sensible que ver o cerrar el proyecto.
+     */
+    public function canBeReactivatedBy($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (in_array($user->profile_id, self::FULL_ACCESS_PROFILES)) {
+            return true;
+        }
+
+        return (int) $this->created_by === (int) $user->id;
     }
 
     public function customer()
@@ -152,6 +202,16 @@ class Project extends Model
         return $this->hasMany(ProjectStatusHistory::class, 'project_id')->orderBy('created_at', 'desc');
     }
 
+    /**
+     * Fases anteriores ya cerradas (snapshot permanente de cada cierre,
+     * para auditoría, ya que las columnas de cierre en inv_projects se
+     * reutilizan para la fase actual tras cada reactivación).
+     */
+    public function phaseHistory()
+    {
+        return $this->hasMany(ProjectPhaseHistory::class, 'project_id')->orderBy('phase_number', 'desc');
+    }
+
     public function orders()
     {
         return $this->hasMany(ProjectOrder::class, 'project_id');
@@ -182,7 +242,8 @@ class Project extends Model
             return 'vencido';
         }
 
-        $totalDays = max($this->created_at->diffInDays($this->delivery_date), 1);
+        $phaseStart = $this->phase_started_at ?? $this->created_at;
+        $totalDays = max($phaseStart->diffInDays($this->delivery_date), 1);
         $remainingDays = $now->diffInDays($this->delivery_date, false);
         $remainingPct = $remainingDays / $totalDays;
 
