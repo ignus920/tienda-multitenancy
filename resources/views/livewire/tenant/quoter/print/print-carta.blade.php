@@ -414,6 +414,7 @@
             font-weight: bold;
             color: #555;
             margin: 4px 0 6px 0;
+            text-align: center;
         }
 
         .image-card.suggested-card {
@@ -953,6 +954,7 @@
     <div class="images-page">
         <div class="images-page-title">Imágenes de Productos</div>
         <div class="images-grid">
+            <div class="suggested-header">Fotos productos cotizados</div>
             @foreach($detallesConImagen as $detalle)
                 <div class="image-card">
                     @if($detalle->item->internal_code)
