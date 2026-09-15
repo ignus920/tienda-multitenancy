@@ -128,6 +128,14 @@ class ProjectWorkspace extends Component
         // son creador, "dirigido a" o participante del chat.
         abort_unless($project->canBeViewedBy(\Illuminate\Support\Facades\Auth::user()), 403);
 
+        // Marcar el chat como leído para este usuario (bandera "no leído" en
+        // el listado de tarjetas). Solo actualiza si ya es participante —
+        // no lo inscribe automáticamente como participante por el solo
+        // hecho de poder ver el proyecto.
+        ProjectParticipant::where('project_id', $id)
+            ->where('user_id', Auth::id())
+            ->update(['last_read_at' => now()]);
+
         // Inicializar campos de la orden
         $this->qty = $project->qty;
         $this->price_unit = $project->price_unit;

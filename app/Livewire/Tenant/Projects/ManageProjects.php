@@ -298,7 +298,8 @@ class ManageProjects extends Component
         //    creador, "dirigido a" o participante del chat.
         $query = Project::query()
             ->visibleTo(Auth::user())
-            ->with(['customer', 'creator', 'assignedUser'])
+            ->with(['customer', 'creator', 'assignedUser', 'latestMessage'])
+            ->with(['participants' => fn($q) => $q->where('user_id', $userId)])
             ->withCount(['questions' => function ($q) {
                 $q->where('status', 'pendiente');
             }]);
@@ -374,6 +375,32 @@ class ManageProjects extends Component
         }
 
         $projects = $query->orderBy('created_at', 'desc')->paginate(12);
+
+        // Bandera "no leído" (estilo WhatsApp): comparar el último mensaje del
+        // chat contra la marca personal de lectura del usuario actual en ese
+        // proyecto. Solo se cuenta el detalle de mensajes sin leer para los
+        // proyectos que sí quedaron marcados como no leídos (no para todos),
+        // para no multiplicar consultas en listados largos.
+        $projects->getCollection()->transform(function ($project) use ($userId) {
+            $participant = $project->participants->first();
+            $lastReadAt = $participant?->last_read_at;
+            $latest = $project->latestMessage;
+
+            $project->has_unread_chat = false;
+            $project->unread_chat_count = 0;
+
+            if ($latest && (int) $latest->user_id !== (int) $userId) {
+                if (!$lastReadAt || $latest->created_at->gt($lastReadAt)) {
+                    $project->has_unread_chat = true;
+                    $project->unread_chat_count = $project->messages()
+                        ->where('user_id', '!=', $userId)
+                        ->when($lastReadAt, fn($q) => $q->where('created_at', '>', $lastReadAt))
+                        ->count();
+                }
+            }
+
+            return $project;
+        });
 
         // Usuarios del tenant para asignar proyectos internos
         $assignableUsers = User::whereHas('tenants', function ($q) {

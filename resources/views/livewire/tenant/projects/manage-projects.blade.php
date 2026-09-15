@@ -203,6 +203,15 @@
                                             {{ $project->questions_count }}
                                         </span>
                                     @endif
+                                    @if($project->has_unread_chat)
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-2xs font-bold bg-green-500 text-white" title="Tienes mensajes sin leer en el chat de este proyecto">
+                                            <span class="relative flex h-2 w-2 shrink-0">
+                                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                                <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                            </span>
+                                            {{ $project->unread_chat_count }}
+                                        </span>
+                                    @endif
                                 </div>
                                 
                                 @if($project->type === 'internal')
