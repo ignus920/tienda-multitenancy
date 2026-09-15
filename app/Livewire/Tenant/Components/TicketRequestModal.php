@@ -466,7 +466,7 @@ class TicketRequestModal extends Component
                 // quedaba solo en el listado, sin que nadie se enterara.
                 $department = TickDepartment::find($this->department_id);
                 $recipientIds = $department
-                    ? $department->users()->wherePivot('status', 1)->pluck('id')->toArray()
+                    ? $department->users()->wherePivot('status', 1)->pluck('users.id')->toArray()
                     : [];
 
                 UsrNotification::notify(
