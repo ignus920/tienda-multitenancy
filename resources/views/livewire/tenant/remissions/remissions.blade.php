@@ -512,11 +512,11 @@
                                             </button>
                                             @endif
                                             @if($remission->status !== 'ANULADO' && !in_array(auth()->user()?->profile_id, [4, 6, 7]))
-                                                @if($remission->invoice && $remission->invoice->status === 'FACTURADO')
+                                                @if($remission->invoice && $remission->invoice->api_data_id)
                                                 <button disabled
-                                                    title="No se puede anular un pedido que ya está facturado"
+                                                    title="No se puede anular un pedido que ya está facturado en Alegra"
                                                     class="w-full text-left px-4 py-2 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed flex items-center">
-                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"/></svg>
                                                     Anular Pedido
                                                 </button>
                                                 @else
