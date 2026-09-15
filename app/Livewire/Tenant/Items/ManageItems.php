@@ -141,6 +141,7 @@ class ManageItems extends Component
     public $showProductionSection = false;
     public $showDimensionSection = false;
     public $showAccesoriosSection = false;
+    public $showSuggestedProductsSection = false;
     public $showWebB2bSection = false;
     public $scale_1_qty;
     public $scale_1_discount;
@@ -382,6 +383,7 @@ class ManageItems extends Component
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
 
         $this->showModal = true;
@@ -891,7 +893,7 @@ class ManageItems extends Component
     #[On('closeItemsModal')]
     public function handleNestedTabClosed()
     {
-        if ($this->showProductionSection || $this->showDimensionSection || $this->showAccesoriosSection) {
+        if ($this->showProductionSection || $this->showDimensionSection || $this->showAccesoriosSection || $this->showSuggestedProductsSection) {
             $this->showGeneralInfo();
             return;
         }
@@ -1594,6 +1596,7 @@ class ManageItems extends Component
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
         $this->internal_codeExists = false;
         $this->validatingInternal_code = false;
         $this->skuExists = false;
@@ -2409,6 +2412,7 @@ class ManageItems extends Component
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
     }
 
@@ -2418,6 +2422,17 @@ class ManageItems extends Component
         $this->showAccesoriosSection = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
+        $this->showSuggestedProductsSection = false;
+        $this->showWebB2bSection = false;
+    }
+
+    public function activateSuggestedProductsSection(int $item_id): void
+    {
+        $this->item_id = $item_id;
+        $this->showSuggestedProductsSection = true;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
         $this->showWebB2bSection = false;
     }
 
@@ -2427,6 +2442,7 @@ class ManageItems extends Component
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
     }
 
@@ -2440,6 +2456,7 @@ class ManageItems extends Component
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
     }
 
@@ -2454,6 +2471,7 @@ class ManageItems extends Component
         $this->showDimensionSection = true;
         $this->showProductionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
     }
 
@@ -2466,6 +2484,7 @@ class ManageItems extends Component
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
 
         $storeRecord = InvItemsStore::where('itemId', $item_id)->first();
         if ($storeRecord) {

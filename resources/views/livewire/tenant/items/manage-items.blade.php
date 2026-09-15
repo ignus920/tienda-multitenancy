@@ -480,33 +480,41 @@
                 <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
                 @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1 || $item_id))
                     <div class="px-6 pt-4">
-                        <div class="pb-1">
-                            <nav class="inline-flex flex-wrap gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5" aria-label="Tabs">
+                        <div class="pb-1 relative"
+                            x-data="{
+                                tipVisible: false,
+                                tipText: '',
+                                tipStyle: '',
+                                showTip(event, text) {
+                                    const rect = event.currentTarget.getBoundingClientRect();
+                                    this.tipText = text;
+                                    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 248));
+                                    this.tipStyle = 'top:' + (rect.bottom + 8) + 'px; left:' + left + 'px;';
+                                    this.tipVisible = true;
+                                }
+                            }">
+
+                            <nav class="flex flex-nowrap items-center gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5 overflow-x-auto scroll-smooth"
+                                style="scrollbar-width: thin;" aria-label="Tabs">
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
-                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
-                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
-                                    <span>Información General</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-0 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.
-                                    </span>
+                                    @mouseenter="showTip($event, 'Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showSuggestedProductsSection) && !@js($showWebB2bSection),
+                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showSuggestedProductsSection) || @js($showWebB2bSection)}">
+                                    Información General
                                 </button>
 
                                 <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
                                 @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Datos de importación del producto: costos, etiquetas y seguimiento del embarque.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showProductionSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
-                                    <span>Importado</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Datos de importación del producto: costos, etiquetas y seguimiento del embarque.
-                                    </span>
+                                    Importado
                                 </button>
                                 @endif
 
@@ -514,14 +522,11 @@
                                 @if($type == 'PRODUCIDO')
                                 <button type="button" wire:click="$set('showProductionSection', true)"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Proceso, pasos y materiales necesarios para fabricar este producto.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showProductionSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
-                                    <span>Proceso de Producción</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Proceso, pasos y materiales necesarios para fabricar este producto.
-                                    </span>
+                                    Proceso de Producción
                                 </button>
                                 @endif
 
@@ -529,14 +534,23 @@
                                 @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Productos que se venden o instalan junto con este item (complementos, repuestos, kits).')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showAccesoriosSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showAccesoriosSection)}">
-                                    <span>Accesorios</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Productos que se venden o instalan junto con este item (complementos, repuestos, kits).
-                                    </span>
+                                    Accesorios
+                                </button>
+                                @endif
+
+                                <!-- Pestaña Productos Sugeridos - No visible para items tipo INSUMO -->
+                                @if($type !== 'INSUMO')
+                                <button type="button" wire:click="activateSuggestedProductsSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
+                                    @mouseenter="showTip($event, 'Productos que se mostrarán como sugerencia debajo de este producto en el PDF de cotización.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showSuggestedProductsSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showSuggestedProductsSection)}">
+                                    Sugeridos
                                 </button>
                                 @endif
 
@@ -544,47 +558,47 @@
                                 @if ($inventoriable === 1)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Dimensiones del producto y escalas de corte / venta por cantidad.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showDimensionSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showDimensionSection)}">
-                                    <span>Medidas</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Dimensiones del producto y escalas de corte / venta por cantidad.
-                                    </span>
+                                    Medidas
                                 </button>
                                 @endif
 
                                 <!-- Pestaña Página Web / B2B - Siempre visible al editar -->
                                 @if($item_id)
                                 <button type="button" wire:click="activateWebB2bSection({{$item_id}})"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Parámetros para la tienda web (WooCommerce): % de stock a publicar y cantidad mínima; y escalas de descuento por volumen para clientes B2B.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showWebB2bSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showWebB2bSection)}">
-                                    <span>Página Web / B2B</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full right-0 mt-2 w-64 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Parámetros para la tienda web (WooCommerce): % de stock a publicar y cantidad mínima; y escalas de descuento por volumen para clientes B2B.
-                                    </span>
+                                    Página Web / B2B
                                 </button>
                                 @endif
                             </nav>
+
+                            <!-- Tooltip flotante único: fixed para no recortarse con el scroll horizontal del nav.
+                                 La visibilidad y la posición se resuelven en el mismo :style (evita que
+                                 x-show y :style compitan por la propiedad display del mismo elemento). -->
+                            <span x-cloak style="display:none" :style="(tipVisible ? '' : 'display:none;') + tipStyle" x-text="tipText"
+                                class="fixed w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-[9999] pointer-events-none"></span>
                         </div>
                     </div>
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
                 @php
-                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
+                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection))
                         ? 'general'
-                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web')));
+                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web'))));
                 @endphp
                 {{-- Wrapper con key que CAMBIA por pestaña: fuerza a Livewire a reemplazar
                      todo el subarbol al cambiar de pestana, en vez de intentar hacer patch
                      de los bloques condicionales de una pestana sobre los de otra (eso
                      desbalanceaba los marcadores de bloque y reventaba el morph). --}}
                 <div wire:key="items-tabcontent-{{ $item_id ?: 'new' }}-{{ $__activeItemTab }}">
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection))
                 <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
@@ -1072,9 +1086,9 @@
                     </div>
                 </form>
                 </div>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showWebB2bSection))
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection))
                     @php
-                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web_b2b'));
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web_b2b')));
                     @endphp
                     <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
@@ -1088,6 +1102,8 @@
                         @livewire('tenant.items.manage-dimensions', ['itemId' => $item_id], key('dim-'.$item_id))
                     @elseif($showAccesoriosSection)
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
+                    @elseif($showSuggestedProductsSection)
+                        @livewire('tenant.items.item-suggested-products', ['itemId' => $item_id], key('sugg-'.$item_id))
                     @elseif($showWebB2bSection)
                         <div class="p-6 space-y-6">
                             <!-- SECCIÓN 1: PARÁMETROS DE PÁGINA WEB (WOOCOMMERCE) -->

@@ -165,6 +165,14 @@ class Items extends Model
         return $this->hasMany(InvItemAccesorios::class, 'item', 'id')->with('insumo');
     }
 
+    /**
+     * Relación con los productos sugeridos del item (configurados en el catálogo)
+     */
+    public function suggestedProducts()
+    {
+        return $this->hasMany(InvItemSuggested::class, 'item', 'id')->with('suggestedItem')->orderBy('id');
+    }
+
 
     /**
      * Obtener solo imágenes activas (no eliminadas)
