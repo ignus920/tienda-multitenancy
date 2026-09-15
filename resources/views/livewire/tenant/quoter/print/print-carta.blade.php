@@ -935,6 +935,19 @@
     <!-- Images Page -->
     @php
         $detallesConImagen = $quote->detalles->filter(fn($d) => $d->item);
+        $quotedItemIds = $detallesConImagen->pluck('item.id')->filter()->unique();
+
+        $suggestedItems = collect();
+        foreach ($detallesConImagen as $detalle) {
+            foreach ($detalle->item->suggestedProducts ?? [] as $suggestion) {
+                $suggestedItem = $suggestion->suggestedItem ?? null;
+                if ($suggestedItem
+                    && !$quotedItemIds->contains($suggestedItem->id)
+                    && !$suggestedItems->contains('id', $suggestedItem->id)) {
+                    $suggestedItems->push($suggestedItem);
+                }
+            }
+        }
     @endphp
     @if($detallesConImagen->count() > 0)
     <div class="images-page">
@@ -953,27 +966,25 @@
                     @endif
                     <div class="product-name">{{ $detalle->item->name ?? $detalle->item->display_name }}</div>
                 </div>
-
-                @if($detalle->item->suggestedProducts && $detalle->item->suggestedProducts->count() > 0)
-                    <div class="suggested-header">Sugeridos de {{ $detalle->item->name ?? $detalle->item->display_name }}:</div>
-                    @foreach($detalle->item->suggestedProducts as $suggestion)
-                        @if($suggestion->suggestedItem)
-                            <div class="image-card suggested-card">
-                                @if($suggestion->suggestedItem->internal_code)
-                                    <div class="product-code">{{ $suggestion->suggestedItem->internal_code }}</div>
-                                @endif
-                                @if($suggestion->suggestedItem->principalImage)
-                                    <img src="{{ $suggestion->suggestedItem->getPrincipalThumbnailUrl() }}"
-                                         alt="{{ $suggestion->suggestedItem->name }}">
-                                @else
-                                    <div class="no-image-placeholder">Sin imagen</div>
-                                @endif
-                                <div class="product-name">{{ $suggestion->suggestedItem->name }}</div>
-                            </div>
-                        @endif
-                    @endforeach
-                @endif
             @endforeach
+
+            @if($suggestedItems->isNotEmpty())
+                <div class="suggested-header">También le podría interesar</div>
+                @foreach($suggestedItems as $suggestedItem)
+                    <div class="image-card suggested-card">
+                        @if($suggestedItem->internal_code)
+                            <div class="product-code">{{ $suggestedItem->internal_code }}</div>
+                        @endif
+                        @if($suggestedItem->principalImage)
+                            <img src="{{ $suggestedItem->getPrincipalThumbnailUrl() }}"
+                                 alt="{{ $suggestedItem->name }}">
+                        @else
+                            <div class="no-image-placeholder">Sin imagen</div>
+                        @endif
+                        <div class="product-name">{{ $suggestedItem->name }}</div>
+                    </div>
+                @endforeach
+            @endif
         </div>
     </div>
     @endif
