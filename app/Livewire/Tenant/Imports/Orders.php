@@ -3222,9 +3222,11 @@ class Orders extends Component
 
         try {
             // Esta solicitud siempre es sobre Importaciones: se fija directo al
-            // departamento "Importaciones" (Parámetros Departamentos) para poder
-            // avisar a sus usuarios asignados al crearse, sin pedirle al usuario
-            // que elija un departamento (aquí no aplica ninguno más).
+            // departamento "Importaciones" (Parámetros Departamentos) para dejarlo
+            // enlazado desde que se crea el borrador, sin pedirle al usuario que
+            // elija un departamento (aquí no aplica ninguno más). La notificación
+            // a sus usuarios asignados se envía luego, al convertirlo en producto
+            // real (ver convertNewProductToReal()), no en este paso.
             $importsDepartmentId = TickDepartment::where('name', 'like', 'Importaciones%')->value('id');
 
             $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
@@ -3238,22 +3240,6 @@ class Orders extends Component
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
-
-            if ($importsDepartmentId) {
-                $recipientIds = TickDepartment::find($importsDepartmentId)
-                    ->users()->wherePivot('status', 1)->pluck('users.id')->toArray();
-
-                UsrNotification::notify(
-                    $recipientIds,
-                    'importaciones',
-                    'ImpNewProduct',
-                    $newProductId,
-                    'Nuevo producto por confirmar: ' . $this->newProductCode,
-                    $this->newProductDescription,
-                    route('imports.imports-orders'),
-                    Auth::id()
-                );
-            }
 
             // Siempre guardamos la información inicial para que el proveedor la vea
             $commentData = [
@@ -3445,6 +3431,24 @@ class Orders extends Component
                 ]);
 
             DB::connection('tenant')->commit();
+
+            // Aviso a Importaciones justo cuando el producto ya quedó creado en
+            // el ERP real (no al crear el borrador), tal como se solicitó.
+            if ($newProduct->department_id) {
+                $recipientIds = TickDepartment::find($newProduct->department_id)
+                    ?->users()->wherePivot('status', 1)->pluck('users.id')->toArray() ?? [];
+
+                UsrNotification::notify(
+                    $recipientIds,
+                    'importaciones',
+                    'ImpNewProduct',
+                    $newProduct->id,
+                    'Producto nuevo creado: ' . $this->newProductCode,
+                    $this->newProductDescription,
+                    route('imports.imports-orders'),
+                    Auth::id()
+                );
+            }
 
             $this->showModalConvertNewProduct = false;
             $this->dispatch('show-toast', [
