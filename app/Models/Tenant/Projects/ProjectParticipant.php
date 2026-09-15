@@ -14,7 +14,12 @@ class ProjectParticipant extends Model
     protected $fillable = [
         'project_id',
         'user_id',
-        'role'
+        'role',
+        'last_read_at'
+    ];
+
+    protected $casts = [
+        'last_read_at' => 'datetime',
     ];
 
     public function project()
