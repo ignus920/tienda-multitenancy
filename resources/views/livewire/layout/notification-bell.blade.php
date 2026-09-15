@@ -58,10 +58,10 @@
         {{-- Encabezado con Pestañas --}}
         <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 shrink-0 bg-gray-50/50 dark:bg-gray-800/50">
             <div class="flex w-full">
-                <button @click="tab = 'general'" 
+                <button @click="tab = 'general'"
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'general', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'general' }"
                         class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Notif. del Proyecto
+                    Mensajes
                     @if($unreadCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
                             {{ $unreadCount }}
@@ -69,10 +69,10 @@
                     @endif
                     <span x-show="tab === 'general'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
                 </button>
-                <button @click="tab = 'pendientes'" 
+                <button @click="tab = 'pendientes'"
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'pendientes', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'pendientes' }"
                         class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Pendientes
+                    Pendientes por mí
                     @if($pendingCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
                             {{ $pendingCount }}
@@ -80,43 +80,22 @@
                     @endif
                     <span x-show="tab === 'pendientes'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
                 </button>
-                <button @click="tab = 'tareas'"
-                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'tareas', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'tareas' }"
+                <button @click="tab = 'unificado'"
+                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'unificado', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'unificado' }"
                         class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Tareas
-                    @if($taskCount > 0)
+                    Tareas asignadas
+                    @php $unifiedCount = $taskCount + $operativeCount + $taskTodoCount; @endphp
+                    @if($unifiedCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
-                            {{ $taskCount }}
+                            {{ $unifiedCount }}
                         </span>
                     @endif
-                    <span x-show="tab === 'tareas'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
-                </button>
-                <button @click="tab = 'operativas'"
-                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'operativas', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'operativas' }"
-                        class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Operativas
-                    @if($operativeCount > 0)
-                        <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
-                            {{ $operativeCount }}
-                        </span>
-                    @endif
-                    <span x-show="tab === 'operativas'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
-                </button>
-                <button @click="tab = 'porhacer'"
-                        :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'porhacer', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'porhacer' }"
-                        class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Tareas por hacer
-                    @if($taskTodoCount > 0)
-                        <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
-                            {{ $taskTodoCount }}
-                        </span>
-                    @endif
-                    <span x-show="tab === 'porhacer'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
+                    <span x-show="tab === 'unificado'" class="absolute bottom-0 inset-x-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full"></span>
                 </button>
             </div>
         </div>
 
-        {{-- Tab: Notificaciones Generales --}}
+        {{-- Tab: Mensajes (menciones/respuestas del chat de Proyectos) --}}
         <div x-show="tab === 'general'" class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50">
             @forelse($notifications as $notification)
                 <button wire:click="markAsRead({{ $notification['id'] }})"
@@ -174,12 +153,12 @@
             @endforelse
         </div>
 
-        {{-- Tab: Pendientes (Parlante) --}}
+        {{-- Tab: Pendientes por mí (preguntas/menciones que TÚ hiciste, sin responder) --}}
         <div x-show="tab === 'pendientes'" style="display: none;" class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50 bg-orange-50/30 dark:bg-orange-900/10">
             @forelse($pendingMentions as $question)
                 <a href="{{ route('tenant.projects.workspace', $question['project_id']) }}"
                    class="w-full flex items-start gap-3 px-4 py-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors text-left group">
-                    
+
                     {{-- Avatar del destinatario --}}
                     <div class="flex-shrink-0 mt-1">
                         @if(isset($question['recipient_avatar']) && $question['recipient_avatar'])
@@ -226,132 +205,67 @@
             @endforelse
         </div>
 
-        {{-- Tab: Tareas --}}
-        <div x-show="tab === 'tareas'" style="display: none;" class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50 bg-blue-50/30 dark:bg-blue-900/10">
-            @forelse($pendingTasks as $task)
-                <a href="{{ route('tenant.projects.workspace', $task['project_id']) }}"
-                   class="w-full flex items-start gap-3 px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left group">
-                    
-                    {{-- Avatar del asignador --}}
-                    <div class="flex-shrink-0 mt-1">
-                        @if(isset($task['creator_avatar']) && $task['creator_avatar'])
-                            <img src="{{ $task['creator_avatar'] }}" alt="{{ $task['creator_name'] }}"
-                                 class="h-9 w-9 rounded-full object-cover ring-2 ring-blue-200 dark:ring-blue-800">
-                        @else
-                            <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center ring-2 ring-blue-200 dark:ring-blue-800">
-                                <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                    {{ strtoupper(substr($task['creator_name'] ?? 'U', 0, 1)) }}
-                                </span>
+        {{-- Tab: Tareas asignadas — VISTA UNIFICADA de 3 orígenes (Proyecto / Planificador / Solicitud).
+             Cada fila llama al método original de su origen; esto es solo presentación,
+             ver NotificationBell::getUnifiedTasksProperty() para el detalle. --}}
+        <div x-show="tab === 'unificado'" style="display: none;" class="flex flex-col">
+            <div class="overflow-y-auto max-h-[25rem] divide-y divide-gray-50 dark:divide-gray-700/50">
+                @forelse($this->unifiedTasks as $row)
+                    @php
+                        $tagClasses = match($row['tag_color']) {
+                            'indigo' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+                            'amber' => 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+                            'emerald' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+                            default => 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+                        };
+                        $iconBgClasses = match($row['tag_color']) {
+                            'indigo' => 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400',
+                            'amber' => 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400',
+                            'emerald' => 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
+                            default => 'bg-gray-100 dark:bg-gray-700 text-gray-500',
+                        };
+                        $dotClasses = match($row['tag_color']) {
+                            'indigo' => 'bg-indigo-500',
+                            'amber' => 'bg-amber-500',
+                            'emerald' => 'bg-emerald-500',
+                            default => 'bg-gray-400',
+                        };
+                    @endphp
+                    <a href="{{ $row['href'] }}"
+                       @if($row['mark_method']) wire:click="{{ $row['mark_method'] }}({{ $row['mark_id'] }})" @endif
+                       class="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left">
+                        <div class="flex-shrink-0 mt-0.5 w-8 h-8 rounded-full flex items-center justify-center {{ $iconBgClasses }}">
+                            @if($row['source'] === 'project_task')
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>
+                            @elseif($row['source'] === 'operativa')
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03a4.5 4.5 0 00-6.336-6.336l3.276 3.277a3 3 0 01-2.25 2.25L5.33 6.007a4.5 4.5 0 006.336 6.336l-.246.827z"/></svg>
+                            @else
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h2a2 2 0 002-2 2 2 0 114 0 2 2 0 002 2h2a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2h-2a2 2 0 00-2 2 2 2 0 11-4 0 2 2 0 00-2-2z"/></svg>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[12.5px] font-bold text-gray-900 dark:text-white line-clamp-2">{{ $row['title'] }}</p>
+                            @if($row['subtitle'])
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{{ $row['subtitle'] }}</p>
+                            @endif
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {{ $tagClasses }}">{{ $row['tag_label'] }}</span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">{{ $row['time_ago'] }}</span>
                             </div>
+                        </div>
+                        @if($row['unread'])
+                        <div class="flex-shrink-0 mt-1">
+                            <span class="block h-2 w-2 rounded-full {{ $dotClasses }}"></span>
+                        </div>
                         @endif
-                    </div>
-
-                    {{-- Contenido --}}
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                Asignó: {{ $task['creator_name'] }}
-                            </span>
-                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                Tarea Pendiente
-                            </span>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                            {{ $task['project_title'] }}
-                        </p>
-                        <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 font-bold">
-                            {{ $task['title'] }}
-                        </p>
-                        <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
-                            Hace {{ $task['time_ago'] }}
-                        </p>
-                    </div>
-                </a>
-            @empty
-                <div class="px-4 py-12 text-center">
-                    <svg class="mx-auto h-12 w-12 text-blue-200 dark:text-blue-900/50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Libre de Tareas</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No tienes tareas asignadas pendientes.</p>
-                </div>
-            @endforelse
-        </div>
-
-        {{-- Tab: Operativas (Planeación de Tareas) --}}
-        <div x-show="tab === 'operativas'" style="display: none;" class="flex flex-col bg-amber-50/30 dark:bg-amber-900/10">
-            @if(count($operativeNotifications) > 0)
-                <div class="flex justify-end px-4 py-2 border-b border-amber-100 dark:border-amber-900/40">
-                    <button wire:click="markAllOperativeAsRead" class="text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:underline">
-                        Marcar todo leído
-                    </button>
-                </div>
-            @endif
-            <div class="overflow-y-auto max-h-[23rem] divide-y divide-gray-50 dark:divide-gray-700/50">
-                @forelse($operativeNotifications as $n)
-                    <a href="{{ $n['type'] === 'mas_tiempo' ? route('tenant.task-planner') : route('tenant.task-planner.my-tasks') }}"
-                       wire:click="markOperativeAsRead({{ $n['id'] }})"
-                       class="w-full flex items-start gap-3 px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-left">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="h-9 w-9 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center ring-2 ring-amber-200 dark:ring-amber-800">
-                                <span class="text-sm">🔔</span>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs text-gray-700 dark:text-gray-200 line-clamp-3">{{ $n['message'] }}</p>
-                            <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">Hace {{ $n['time_ago'] }}</p>
-                        </div>
-                        <div class="flex-shrink-0 mt-1">
-                            <span class="block h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-                        </div>
                     </a>
                 @empty
                     <div class="px-4 py-12 text-center">
-                        <svg class="mx-auto h-12 w-12 text-amber-200 dark:text-amber-900/50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                        </svg>
-                        <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Sin novedades</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Nada pendiente en Planeación de Tareas.</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
-        {{-- Tab: Tareas por hacer (genérico, cualquier módulo: Solicitudes/Tickets, etc.) --}}
-        <div x-show="tab === 'porhacer'" style="display: none;" class="flex flex-col bg-emerald-50/30 dark:bg-emerald-900/10">
-            @if(count($taskTodoNotifications) > 0)
-                <div class="flex justify-end px-4 py-2 border-b border-emerald-100 dark:border-emerald-900/40">
-                    <button wire:click="markAllTaskTodoAsRead" class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 hover:underline">
-                        Marcar todo leído
-                    </button>
-                </div>
-            @endif
-            <div class="overflow-y-auto max-h-[23rem] divide-y divide-gray-50 dark:divide-gray-700/50">
-                @forelse($taskTodoNotifications as $n)
-                    <a href="{{ $n['link'] ?: '#' }}"
-                       wire:click="markTaskTodoAsRead({{ $n['id'] }})"
-                       class="w-full flex items-start gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-left">
-                        <div class="flex-shrink-0 mt-1">
-                            <div class="h-9 w-9 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center ring-2 ring-emerald-200 dark:ring-emerald-800">
-                                <span class="text-sm">✅</span>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $n['title'] }}</p>
-                            <p class="text-xs text-gray-600 dark:text-gray-300 mt-0.5 line-clamp-2">{{ $n['message'] }}</p>
-                            <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">Hace {{ $n['time_ago'] }}</p>
-                        </div>
-                        <div class="flex-shrink-0 mt-1">
-                            <span class="block h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                        </div>
-                    </a>
-                @empty
-                    <div class="px-4 py-12 text-center">
-                        <svg class="mx-auto h-12 w-12 text-emerald-200 dark:text-emerald-900/50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 font-medium">Al día</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No tienes tareas pendientes de otros módulos.</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">No tienes tareas asignadas pendientes.</p>
                     </div>
                 @endforelse
             </div>
