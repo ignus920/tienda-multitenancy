@@ -130,26 +130,7 @@ class ApiClient
 
         try {
             $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
-
-            $headers = [];
-            if ($this->isProxy) {
-                // Proxy intermediario: espera el token en header "token" y la URL de Alegra en "base-url"
-                if ($this->token) {
-                    $headers['token'] = $this->token;
-                }
-                if ($this->alegraBaseUrl) {
-                    $headers['base-url'] = $this->alegraBaseUrl;
-                }
-            } else {
-                // Alegra directo: HTTP Basic Auth → Authorization: Basic base64(email:token)
-                // El campo 'token' en cnf_invoices ya contiene el valor base64 completo
-                if ($this->token) {
-                    $headers['Authorization'] = 'Basic ' . $this->token;
-                }
-                if ($this->username) {
-                    $headers['username'] = $this->username;
-                }
-            }
+            $headers = $this->buildAuthHeaders();
 
             Log::info('📡 [ApiClient] Enviando petición a API', [
                 'method'          => strtoupper($method),
@@ -301,6 +282,82 @@ class ApiClient
                 ]
             ];
         }
+    }
+
+    /**
+     * Encabezados de autenticación según el modo de conexión (proxy propio o
+     * Alegra directo). Extraído de makeRequest() para reutilizarlo también
+     * en peticiones en paralelo (ver poolGetContacts()).
+     */
+    private function buildAuthHeaders(): array
+    {
+        $headers = [];
+
+        if ($this->isProxy) {
+            // Proxy intermediario: espera el token en header "token" y la URL de Alegra en "base-url"
+            if ($this->token) {
+                $headers['token'] = $this->token;
+            }
+            if ($this->alegraBaseUrl) {
+                $headers['base-url'] = $this->alegraBaseUrl;
+            }
+        } else {
+            // Alegra directo: HTTP Basic Auth → Authorization: Basic base64(email:token)
+            if ($this->token) {
+                $headers['Authorization'] = 'Basic ' . $this->token;
+            }
+            if ($this->username) {
+                $headers['username'] = $this->username;
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Consulta varios contactos EN PARALELO (GET simultáneos, no uno por uno).
+     * Pensado para scripts de revisión/backfill masivo, donde hacerlo en serie
+     * sería impráctico: cada llamada a Alegra puede tardar varios segundos, y
+     * con miles de contactos eso se va a horas. Con esto se agrupan en tandas
+     * de $concurrency peticiones simultáneas.
+     *
+     * @param array $ids IDs de contacto en Alegra (los de la propia Alegra, no los locales del ERP)
+     * @param int $concurrency Cuántas peticiones simultáneas por tanda (cuidado con subir mucho: más carga de golpe sobre el proxy/Alegra)
+     * @return array [$id => ['success' => bool, 'data' => array|null, 'message' => string|null]]
+     */
+    public function poolGetContacts(array $ids, int $concurrency = 10): array
+    {
+        $results = [];
+        $headers = $this->buildAuthHeaders();
+
+        foreach (array_chunk($ids, max(1, $concurrency)) as $chunk) {
+            $responses = Http::pool(function ($pool) use ($chunk, $headers) {
+                foreach ($chunk as $id) {
+                    $url = rtrim($this->baseUrl, '/') . '/contacts/' . $id;
+                    $pool->as((string) $id)->withHeaders($headers)->timeout($this->timeout)->get($url);
+                }
+            });
+
+            foreach ($chunk as $id) {
+                $response = $responses[(string) $id] ?? null;
+
+                if ($response instanceof \Illuminate\Http\Client\Response) {
+                    $results[$id] = [
+                        'success' => $response->successful(),
+                        'data' => $response->json(),
+                        'message' => $response->successful() ? null : ('HTTP ' . $response->status()),
+                    ];
+                } else {
+                    $results[$id] = [
+                        'success' => false,
+                        'data' => null,
+                        'message' => $response instanceof \Throwable ? $response->getMessage() : 'Error de conexión desconocido',
+                    ];
+                }
+            }
+        }
+
+        return $results;
     }
 
     /**
