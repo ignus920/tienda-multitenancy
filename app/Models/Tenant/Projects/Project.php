@@ -107,6 +107,16 @@ class Project extends Model
         return $this->hasMany(ProjectMessage::class, 'project_id');
     }
 
+    /**
+     * Último mensaje del chat (una sola fila por proyecto, vía subconsulta
+     * correlacionada) — usado para comparar contra ProjectParticipant::last_read_at
+     * y así saber si el chat tiene algo nuevo sin abrir.
+     */
+    public function latestMessage()
+    {
+        return $this->hasOne(ProjectMessage::class, 'project_id')->latestOfMany();
+    }
+
     public function questions()
     {
         return $this->hasMany(ProjectQuestion::class, 'project_id');

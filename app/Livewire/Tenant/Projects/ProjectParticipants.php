@@ -53,6 +53,23 @@ class ProjectParticipants extends Component
         return false;
     }
 
+    /**
+     * Igual que checkNotClosed(), pero solo bloquea en "cerrado_entregado".
+     * Mientras el proyecto esté "terminado" (a la espera de que el
+     * solicitante lo verifique y finalice), el creador todavía puede
+     * agregar participantes — por ejemplo, para sumar a alguien que deba
+     * revisar el trabajo antes del cierre definitivo.
+     */
+    private function checkFullyClosed()
+    {
+        $project = Project::find($this->projectId);
+        if ($project && $project->status === 'cerrado_entregado') {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'El proyecto está finalizado. No se permiten más modificaciones.']);
+            return true;
+        }
+        return false;
+    }
+
     private function isProjectCreator(): bool
     {
         $project = Project::find($this->projectId);
@@ -71,7 +88,7 @@ class ProjectParticipants extends Component
     public function addParticipant()
     {
         $this->ensureTenantConnection();
-        if ($this->checkNotClosed()) return;
+        if ($this->checkFullyClosed()) return;
         if (!$this->checkIsCreator()) return;
 
         if (!$this->selectedUserId) {
@@ -136,12 +153,14 @@ class ProjectParticipants extends Component
 
         $project = Project::find($this->projectId);
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
+        $isFullyClosed = $project ? $project->status === 'cerrado_entregado' : false;
         $isCreator = $project && (int) $project->created_by === (int) Auth::id();
 
         return view('livewire.tenant.projects.project-participants', [
             'participants' => $participants,
             'availableUsers' => $availableUsers,
             'isClosed' => $isClosed,
+            'isFullyClosed' => $isFullyClosed,
             'isCreator' => $isCreator
         ]);
     }
