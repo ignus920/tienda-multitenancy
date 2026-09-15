@@ -40,7 +40,7 @@
 
 $dryRun = true; // <-- cambiar a false para aplicar los cambios reales
 $tenantName = 'produccion'; // <-- ajustar si el tenant tiene otro nombre
-$concurrency = 10; // <-- cuántas consultas a Alegra en paralelo durante la revisión (bajar si empiezan a salir errores)
+$concurrency = 1; // <-- consultas a Alegra en paralelo (1 = secuencial, sin paralelismo). Con 10 Alegra empezó a responder 429 "demasiadas peticiones" a los pocos segundos. Se deja en 1 a propósito: más lento, pero sin riesgo de que Alegra vea un patrón agresivo de peticiones sobre la cuenta de producción.
 
 $tenant = \App\Models\Auth\Tenant::where('name', $tenantName)->first();
 

@@ -321,39 +321,88 @@ class ApiClient
      * con miles de contactos eso se va a horas. Con esto se agrupan en tandas
      * de $concurrency peticiones simultáneas.
      *
+     * Si Alegra responde 429 (demasiadas peticiones), la tanda completa se
+     * reintenta con espera creciente (backoff) en vez de darla por perdida —
+     * un 429 significa "más despacio", no "error permanente".
+     *
      * @param array $ids IDs de contacto en Alegra (los de la propia Alegra, no los locales del ERP)
      * @param int $concurrency Cuántas peticiones simultáneas por tanda (cuidado con subir mucho: más carga de golpe sobre el proxy/Alegra)
-     * @return array [$id => ['success' => bool, 'data' => array|null, 'message' => string|null]]
+     * @param int $pauseBetweenChunksMs Pausa entre tandas, en milisegundos, para no ir a máxima velocidad todo el tiempo
+     * @param int $maxRetriesOn429 Cuántas veces reintentar una tanda si Alegra responde 429
+     * @return array [$id => ['success' => bool, 'data' => array|null, 'status' => int|null, 'message' => string|null]]
      */
-    public function poolGetContacts(array $ids, int $concurrency = 10): array
+    public function poolGetContacts(array $ids, int $concurrency = 5, int $pauseBetweenChunksMs = 300, int $maxRetriesOn429 = 5): array
     {
         $results = [];
         $headers = $this->buildAuthHeaders();
 
         foreach (array_chunk($ids, max(1, $concurrency)) as $chunk) {
-            $responses = Http::pool(function ($pool) use ($chunk, $headers) {
-                foreach ($chunk as $id) {
-                    $url = rtrim($this->baseUrl, '/') . '/contacts/' . $id;
-                    $pool->as((string) $id)->withHeaders($headers)->timeout($this->timeout)->get($url);
-                }
-            });
+            $pending = $chunk;
+            $attempt = 0;
 
-            foreach ($chunk as $id) {
-                $response = $responses[(string) $id] ?? null;
+            while (!empty($pending)) {
+                $responses = Http::pool(function ($pool) use ($pending, $headers) {
+                    foreach ($pending as $id) {
+                        $url = rtrim($this->baseUrl, '/') . '/contacts/' . $id;
+                        $pool->as((string) $id)->withHeaders($headers)->timeout($this->timeout)->get($url);
+                    }
+                });
 
-                if ($response instanceof \Illuminate\Http\Client\Response) {
-                    $results[$id] = [
-                        'success' => $response->successful(),
-                        'data' => $response->json(),
-                        'message' => $response->successful() ? null : ('HTTP ' . $response->status()),
-                    ];
-                } else {
-                    $results[$id] = [
-                        'success' => false,
-                        'data' => null,
-                        'message' => $response instanceof \Throwable ? $response->getMessage() : 'Error de conexión desconocido',
-                    ];
+                $rateLimited = [];
+
+                foreach ($pending as $id) {
+                    $response = $responses[(string) $id] ?? null;
+
+                    if ($response instanceof \Illuminate\Http\Client\Response) {
+                        if ($response->status() === 429) {
+                            $rateLimited[] = $id;
+                            continue;
+                        }
+
+                        $results[$id] = [
+                            'success' => $response->successful(),
+                            'data' => $response->json(),
+                            'status' => $response->status(),
+                            'message' => $response->successful() ? null : ('HTTP ' . $response->status()),
+                        ];
+                    } else {
+                        $results[$id] = [
+                            'success' => false,
+                            'data' => null,
+                            'status' => null,
+                            'message' => $response instanceof \Throwable ? $response->getMessage() : 'Error de conexión desconocido',
+                        ];
+                    }
                 }
+
+                if (empty($rateLimited)) {
+                    break;
+                }
+
+                $attempt++;
+
+                if ($attempt > $maxRetriesOn429) {
+                    // Se agotaron los reintentos: se registran como error para no quedar en loop infinito
+                    foreach ($rateLimited as $id) {
+                        $results[$id] = [
+                            'success' => false,
+                            'data' => null,
+                            'status' => 429,
+                            'message' => 'HTTP 429 (rate limit persistente tras ' . $maxRetriesOn429 . ' reintentos)',
+                        ];
+                    }
+                    break;
+                }
+
+                // Backoff creciente: 2s, 4s, 8s, 16s, 32s...
+                $waitSeconds = min(60, 2 ** $attempt);
+                sleep($waitSeconds);
+
+                $pending = $rateLimited;
+            }
+
+            if ($pauseBetweenChunksMs > 0) {
+                usleep($pauseBetweenChunksMs * 1000);
             }
         }
 
