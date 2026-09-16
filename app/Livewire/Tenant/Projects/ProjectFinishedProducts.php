@@ -13,6 +13,7 @@ use App\Models\Tenant\Movements\InvInventoryAdjustment;
 use App\Models\Tenant\Movements\InvDetailInventoryAdjustment;
 use App\Models\Tenant\Movements\InvReason;
 use App\Models\Tenant\Movements\InvStore;
+use App\Models\Tenant\Tickets\TickDepartment;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Movements\MovementsService;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Log;
 class ProjectFinishedProducts extends Component
 {
     const ENTRY_REASON_NAME = 'Entrada por Producto Terminado';
+    const IMPORTS_DEPARTMENT_NAME = 'Importaciones';
 
     public $projectId;
 
@@ -78,6 +80,38 @@ class ProjectFinishedProducts extends Component
         return false;
     }
 
+    /**
+     * Solo Importaciones (Camilo) o Super Administrador/Administrador —
+     * Laboratorio NO debe ver ni gestionar esta pestaña.
+     */
+    private function canManage(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+
+        if (in_array((int) $user->profile_id, Project::FULL_ACCESS_PROFILES, true)) {
+            return true;
+        }
+
+        $department = TickDepartment::where('name', 'like', self::IMPORTS_DEPARTMENT_NAME . '%')->first();
+        if (!$department) return false;
+
+        return DB::connection('tenant')->table('tick_department_user')
+            ->where('department_id', $department->id)
+            ->where('user_id', $user->id)
+            ->where('status', 1)
+            ->exists();
+    }
+
+    private function checkCanManage(): bool
+    {
+        if (!$this->canManage()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para gestionar producto terminado.']);
+            return false;
+        }
+        return true;
+    }
+
     public function updatedSearch()
     {
         $this->ensureTenantConnection();
@@ -125,15 +159,15 @@ class ProjectFinishedProducts extends Component
     }
 
     /**
-     * Agrega un Producto Terminado: requiere un ítem del ERP seleccionado
-     * (es inventario que se acaba de fabricar) y, con la MISMA lógica ya
-     * probada de Movimientos (MovementForm::saveMovement(), tipo entrada),
-     * genera la entrada — sube el stock local y sincroniza con Alegra —
-     * antes de dejar el registro en la pestaña.
+     * Agrega un Producto Terminado a la lista, en borrador — todavía NO
+     * genera entrada de inventario ni toca Alegra. Eso queda para
+     * generateInventoryEntry(), un segundo paso explícito, para que el
+     * usuario pueda revisar la lista completa antes de comprometer stock.
      */
     public function addFinishedProduct()
     {
         $this->ensureTenantConnection();
+        if (!$this->checkCanManage()) return;
         if ($this->checkNotClosed()) return;
 
         if (!$this->selectedErpItem) {
@@ -155,6 +189,48 @@ class ProjectFinishedProducts extends Component
             return;
         }
 
+        $fullDescription = !empty($this->selectedErpItem['code'])
+            ? "{$this->selectedErpItem['code']} - {$this->selectedErpItem['name']}"
+            : $this->selectedErpItem['name'];
+
+        ProjectFinishedProduct::create([
+            'project_id' => $this->projectId,
+            'item_id' => $item->id,
+            'description' => $fullDescription,
+            'price' => $this->price,
+            'quantity' => $this->quantity,
+            'created_by' => Auth::id(),
+        ]);
+
+        $this->reset(['search', 'price', 'searchResults', 'selectedErpItem']);
+        $this->quantity = 1;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producto terminado agregado a la lista']);
+    }
+
+    /**
+     * Segundo paso, explícito: toma TODAS las filas pendientes (sin
+     * entrada de inventario todavía) de este proyecto y genera UNA sola
+     * entrada — sube el stock local y sincroniza con Alegra — con la
+     * MISMA lógica ya probada de Movimientos (MovementForm::saveMovement(),
+     * tipo entrada). Así el usuario revisa la lista completa antes de
+     * comprometer inventario/Alegra, en vez de que cada "Agregar" dispare
+     * un movimiento por su cuenta.
+     */
+    public function generateInventoryEntry()
+    {
+        $this->ensureTenantConnection();
+        if (!$this->checkCanManage()) return;
+        if ($this->checkNotClosed()) return;
+
+        $pending = ProjectFinishedProduct::where('project_id', $this->projectId)
+            ->whereNull('inventory_adjustment_id')
+            ->get();
+
+        if ($pending->isEmpty()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No hay productos terminados pendientes de generar entrada.']);
+            return;
+        }
+
         $store = InvStore::find(2) ?? InvStore::where('status', 1)->first();
         if (!$store) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No se encontró una bodega activa para registrar la entrada.']);
@@ -165,16 +241,20 @@ class ProjectFinishedProducts extends Component
 
         // ── Paso 1: payload Alegra (mismo formato que MovementForm, tipo entrada) ──
         $itemsAlegra = [];
-        if ($item->api_data_id) {
-            $invValue = InvValues::where('itemId', $item->id)->first();
-            $unitCost = $invValue ? floatval($invValue->values) : 0;
+        foreach ($pending as $row) {
+            if (!$row->item_id) continue;
+            $item = Items::find($row->item_id);
+            if ($item && $item->api_data_id) {
+                $invValue = InvValues::where('itemId', $item->id)->first();
+                $unitCost = $invValue ? floatval($invValue->values) : 0;
 
-            $itemsAlegra[] = [
-                'type' => 'in',
-                'id' => (string) $item->api_data_id,
-                'unitCost' => $unitCost,
-                'quantity' => floatval($this->quantity),
-            ];
+                $itemsAlegra[] = [
+                    'type' => 'in',
+                    'id' => (string) $item->api_data_id,
+                    'unitCost' => $unitCost,
+                    'quantity' => floatval($row->quantity),
+                ];
+            }
         }
 
         $reason = InvReason::firstOrCreate(
@@ -227,48 +307,41 @@ class ProjectFinishedProducts extends Component
                 'api_data_id' => $apiDataId,
             ]);
 
-            InvDetailInventoryAdjustment::create([
-                'inventoryAdjustmentId' => $movement->id,
-                'itemId' => $item->id,
-                'quantity' => $this->quantity,
-                'unitMeasurementId' => $unidad?->id,
-                'cost' => 0,
-            ]);
+            foreach ($pending as $row) {
+                if (!$row->item_id) {
+                    $row->update(['inventory_adjustment_id' => $movement->id]);
+                    continue; // sin item_id no hay inventario físico que sumar
+                }
 
-            $itemStore = InvItemsStore::where('itemId', $item->id)
-                ->where('storeId', $store->id)
-                ->first();
-
-            if ($itemStore) {
-                $itemStore->stock_items_store += $this->quantity;
-                $itemStore->save();
-            } else {
-                InvItemsStore::create([
-                    'itemId' => $item->id,
-                    'storeId' => $store->id,
-                    'stock_items_store' => $this->quantity,
+                InvDetailInventoryAdjustment::create([
+                    'inventoryAdjustmentId' => $movement->id,
+                    'itemId' => $row->item_id,
+                    'quantity' => $row->quantity,
+                    'unitMeasurementId' => $unidad?->id,
+                    'cost' => 0,
                 ]);
+
+                $itemStore = InvItemsStore::where('itemId', $row->item_id)
+                    ->where('storeId', $store->id)
+                    ->first();
+
+                if ($itemStore) {
+                    $itemStore->stock_items_store += $row->quantity;
+                    $itemStore->save();
+                } else {
+                    InvItemsStore::create([
+                        'itemId' => $row->item_id,
+                        'storeId' => $store->id,
+                        'stock_items_store' => $row->quantity,
+                    ]);
+                }
+
+                $row->update(['inventory_adjustment_id' => $movement->id]);
             }
-
-            $fullDescription = !empty($this->selectedErpItem['code'])
-                ? "{$this->selectedErpItem['code']} - {$this->selectedErpItem['name']}"
-                : $this->selectedErpItem['name'];
-
-            ProjectFinishedProduct::create([
-                'project_id' => $this->projectId,
-                'item_id' => $item->id,
-                'description' => $fullDescription,
-                'price' => $this->price,
-                'quantity' => $this->quantity,
-                'created_by' => Auth::id(),
-                'inventory_adjustment_id' => $movement->id,
-            ]);
 
             DB::connection('tenant')->commit();
 
-            $this->reset(['search', 'price', 'searchResults', 'selectedErpItem']);
-            $this->quantity = 1;
-            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producto terminado agregado y entrada de inventario generada']);
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Entrada de inventario generada y sincronizada con Alegra']);
         } catch (\Exception $e) {
             DB::connection('tenant')->rollBack();
             Log::error('❌ [ProjectFinishedProducts] Error generando entrada de producto terminado', ['error' => $e->getMessage()]);
@@ -279,6 +352,7 @@ class ProjectFinishedProducts extends Component
     public function editFinishedProduct($id)
     {
         $this->ensureTenantConnection();
+        if (!$this->checkCanManage()) return;
         $product = ProjectFinishedProduct::findOrFail($id);
 
         if ($product->inventory_adjustment_id) {
@@ -300,6 +374,7 @@ class ProjectFinishedProducts extends Component
     public function saveEdit()
     {
         $this->ensureTenantConnection();
+        if (!$this->checkCanManage()) return;
         if ($this->checkNotClosed()) return;
 
         $product = ProjectFinishedProduct::findOrFail($this->editingId);
@@ -328,6 +403,7 @@ class ProjectFinishedProducts extends Component
     public function deleteFinishedProduct($id)
     {
         $this->ensureTenantConnection();
+        if (!$this->checkCanManage()) return;
         if ($this->checkNotClosed()) return;
 
         $product = ProjectFinishedProduct::find($id);
@@ -346,6 +422,18 @@ class ProjectFinishedProducts extends Component
     {
         $this->ensureTenantConnection();
 
+        $canManage = $this->canManage();
+
+        if (!$canManage) {
+            return view('livewire.tenant.projects.project-finished-products', [
+                'canManage' => false,
+                'products' => collect(),
+                'total' => 0,
+                'isClosed' => false,
+                'hasPendingEntry' => false,
+            ]);
+        }
+
         $products = ProjectFinishedProduct::where('project_id', $this->projectId)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -354,9 +442,11 @@ class ProjectFinishedProducts extends Component
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
 
         return view('livewire.tenant.projects.project-finished-products', [
+            'canManage' => true,
             'products' => $products,
             'total' => $products->sum(fn ($p) => $p->price * $p->quantity),
             'isClosed' => $isClosed,
+            'hasPendingEntry' => $products->whereNull('inventory_adjustment_id')->isNotEmpty(),
         ]);
     }
 }

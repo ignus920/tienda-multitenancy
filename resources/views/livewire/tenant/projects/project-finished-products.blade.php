@@ -1,12 +1,16 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-6">
     <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Producto Terminado</h2>
 
+    @if(!$canManage)
+        <p class="text-xs text-gray-400 text-center py-10">No tienes acceso a esta sección.</p>
+    @else
+
     @if(!$isClosed)
     <!-- Formulario de alta -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agregar producto terminado</span>
         <p class="text-3xs text-gray-400">
-            El producto terminado debe existir en el ERP — al agregarlo se genera automáticamente la entrada de inventario y se sincroniza con Alegra.
+            El producto terminado debe existir en el ERP. Al darle "Agregar" solo queda en la lista, en borrador — revisa que todo esté correcto y luego dale "Generar Entrada de Inventario" para confirmar y sincronizar con el ERP y Alegra.
         </p>
 
         <div class="flex flex-col md:flex-row md:items-start gap-2">
@@ -79,6 +83,8 @@
                                 {{ $product->description }}
                                 @if($product->inventory_adjustment_id)
                                     <span class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-3xs font-semibold uppercase tracking-wide">Entrada generada</span>
+                                @else
+                                    <span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-3xs font-semibold uppercase tracking-wide">Pendiente</span>
                                 @endif
                             </td>
                             <td class="py-2 pr-2 text-right">{{ rtrim(rtrim(number_format($product->quantity, 2), '0'), '.') }}</td>
@@ -108,6 +114,18 @@
         </table>
     </div>
 
+    @if(!$isClosed && $hasPendingEntry)
+    <div class="flex items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/60 rounded-lg p-3">
+        <p class="text-3xs text-emerald-700 dark:text-emerald-400">
+            Revisa la lista antes de confirmar — al generar la entrada se sube el stock del ERP y se sincroniza con Alegra, para todos los productos "Pendiente" de este proyecto.
+        </p>
+        <button wire:click="generateInventoryEntry" wire:confirm="¿Generar la entrada de inventario para los productos pendientes? Se sincronizará con el ERP y Alegra." type="button"
+            class="shrink-0 px-4 py-1.5 text-2xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow transition-colors">
+            Generar Entrada de Inventario
+        </button>
+    </div>
+    @endif
+
     <!-- Total -->
     <div class="flex justify-end mt-4">
         <div class="w-full md:w-72 text-xs">
@@ -117,4 +135,5 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
