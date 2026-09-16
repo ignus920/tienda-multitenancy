@@ -67,6 +67,9 @@
         },
         get totalItems() {
             return this.cart.reduce((sum, item) => sum + item.qty, 0);
+        },
+        get exceedsAvailable() {
+            return this.cart.some(item => item.qty > item.visibleStock);
         }
      }"
 >
@@ -908,27 +911,31 @@
                     @endif
 
                     <!-- Botón enviar -->
-                    <button 
+                    <button
                         :disabled="cart.length === 0"
-                        title="Enviar esta cotización para que un asesor comercial la revise y confirme cantidades"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
+                        :title="exceedsAvailable ? 'Alguna cantidad supera lo disponible: se enviará como solicitud de confirmación' : 'Enviar esta cotización para que un asesor comercial la confirme'"
+                        class="w-full text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
+                        :class="exceedsAvailable ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700'"
                         wire:loading.attr="disabled"
                         wire:target="submitOrder"
                         @click="$wire.submitOrder(cart.map(item => ({ id: item.id, code: item.code, name: item.name, price: $wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash, label: $wire.paymentFilter === 'credito' ? 'Crédito' : 'Contado', qty: item.qty }))).then(res => { if (res) { cart = []; } })"
                     >
                         <!-- Icono dinámico -->
-                        <span wire:loading.remove wire:target="submitOrder">🚀</span>
+                        <span wire:loading.remove wire:target="submitOrder" x-text="exceedsAvailable ? '⚠️' : '🚀'"></span>
                         <svg wire:loading wire:target="submitOrder" class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
 
                         <!-- Texto dinámico -->
-                        <span wire:loading.remove wire:target="submitOrder">Enviar Cotización</span>
-                        <span wire:loading wire:target="submitOrder">Enviando Cotización...</span>
+                        <span wire:loading.remove wire:target="submitOrder" x-text="exceedsAvailable ? 'Solicitar Confirmación Cantidades' : 'Confirmar Pedido'"></span>
+                        <span wire:loading wire:target="submitOrder">Enviando...</span>
                     </button>
-                    <p class="text-[9px] text-gray-400 text-center leading-relaxed">
-                        Al enviar, se crea tu cotización y un asesor comercial la revisará para confirmar cantidades y generar tu pedido.
+                    <p class="text-[9px] text-gray-400 text-center leading-relaxed" x-show="!exceedsAvailable">
+                        Al enviar, se crea tu cotización y un asesor comercial la confirmará para generar tu pedido.
+                    </p>
+                    <p class="text-[9px] text-orange-500 font-semibold text-center leading-relaxed" x-show="exceedsAvailable" x-cloak>
+                        Hay cantidades por encima de lo disponible — ventas revisará y te confirmará antes de generar tu pedido.
                     </p>
                 </div>
             </div>

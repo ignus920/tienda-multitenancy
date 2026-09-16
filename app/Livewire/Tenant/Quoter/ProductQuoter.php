@@ -86,6 +86,9 @@ class ProductQuoter extends Component
     public $editingCustomerId = null;
     public $editingQuoteId = null;
     public $editingQuoteConsecutive = null;   // consecutivo de la cotización en edición
+    public $editingQuoteFromPortal = false;   // ¿esta cotización la envió un cliente desde el Portal?
+    public $editingQuoteClientNote = '';      // nota para el cliente ("cantidades confirmadas y disponibles")
+    public $editingQuoteClientConfirmedAt = null;
     public $editingRemissionId = null;
     public $isEditing = false;
     public $isEditingRemission = false;
@@ -2305,6 +2308,9 @@ class ProductQuoter extends Component
 
             $this->editingQuoteId = $quoteId;
             $this->editingQuoteConsecutive = $quote->consecutive;
+            $this->editingQuoteFromPortal = (bool) $quote->from_portal;
+            $this->editingQuoteClientNote = $quote->client_note ?: 'Cantidades confirmadas y disponibles.';
+            $this->editingQuoteClientConfirmedAt = $quote->client_confirmed_at;
             $this->isEditing = true;
             $this->hasChanges = false;
 
@@ -2507,6 +2513,37 @@ class ProductQuoter extends Component
                 'message' => 'Error al cargar la cotización: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * El asesor comercial ya ajustó las cantidades de una cotización que
+     * vino del Portal de Clientes y le deja al cliente la nota de qué
+     * quedó confirmado/disponible. El cliente la ve en su Portal
+     * ("Mis Cotizaciones") y desde ahí puede dar su visto bueno final.
+     */
+    public function confirmQuantitiesForClient()
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->editingQuoteId || !$this->editingQuoteFromPortal) {
+            return;
+        }
+
+        $this->validate([
+            'editingQuoteClientNote' => 'required|string|max:1000',
+        ], [], [
+            'editingQuoteClientNote' => 'Nota para el cliente',
+        ]);
+
+        $quote = VntQuote::findOrFail($this->editingQuoteId);
+        $quote->update([
+            'client_note' => $this->editingQuoteClientNote,
+        ]);
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Cantidades confirmadas — el cliente ya puede verlas en su Portal.'
+        ]);
     }
 
     public function updateQuote()

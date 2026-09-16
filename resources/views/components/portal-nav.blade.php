@@ -257,6 +257,7 @@
     $tabs = [
         'dashboard' => ['label' => 'Inicio',      'route' => 'tenant.client.dashboard', 'icon' => 'M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-4v-6h-8v6H4a1 1 0 0 1-1-1Z'],
         'orders'    => ['label' => 'Mis Pedidos',  'route' => 'tenant.client.orders',    'icon' => 'M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 11H4Z'],
+        'quotes'    => ['label' => 'Mis Cotizaciones', 'route' => 'tenant.client.quotes', 'icon' => 'M9 12h6m-6 4h6M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6H8Z'],
         'invoices'  => ['label' => 'Mis Facturas', 'route' => 'tenant.client.invoices',  'icon' => 'M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6H8Z M9 13h6M9 17h6M13 3v6h6'],
         'catalog'   => ['label' => 'Catálogo',     'route' => 'tenant.client.portal',    'icon' => 'M20 7 12 3 4 7m16 0-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
     ];

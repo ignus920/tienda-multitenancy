@@ -337,14 +337,32 @@ class CustomerPortal extends Component
             // Sucursal de entrega del cliente B2B (dirección de despacho)
             $customerBranchId = $this->selectedBranchId ?: $contact->warehouseId;
 
+            // ¿Alguna cantidad pedida supera lo que el Portal le mostró como
+            // disponible? Se recalcula aquí (no se confía en lo que mandó el
+            // navegador) para decidir el mensaje y dejarle la alerta al
+            // comercial en las observaciones de la cotización.
+            $exceedsAvailable = false;
+            foreach ($cartItems as $item) {
+                if ((int) $item['qty'] > $this->computeVisibleStock((int) $item['id'])) {
+                    $exceedsAvailable = true;
+                    break;
+                }
+            }
+
+            $observations = 'Pedido B2B recibido desde el Portal de Clientes';
+            if ($exceedsAvailable) {
+                $observations .= "\n⚠️ El cliente pidió cantidades por encima de lo ofrecido — requiere confirmar disponibilidad antes de convertir a OP.";
+            }
+
             $quote = \App\Models\Tenant\Quoter\VntQuote::create([
                 'consecutive' => $nextQuoteConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
+                'from_portal' => true,
                 'customerId' => $contact->warehouseId,
                 'warehouseId' => $physicalStoreId, // Asignar la bodega física del ERP
                 'userId' => $user->id,
-                'observations' => 'Pedido B2B recibido desde el Portal de Clientes',
+                'observations' => $observations,
                 'branchId' => $customerBranchId, // Sucursal de entrega del cliente
                 'flete' => 0
             ]);
@@ -381,9 +399,13 @@ class CustomerPortal extends Component
             // Resetear estados del backend
             $this->reset('proofPaymentFile');
 
-            $this->dispatch('swal', [
-                'title' => '¡Cotización Enviada!',
-                'text' => "Tu cotización #{$nextQuoteConsecutive} fue enviada. Nuestro equipo comercial la revisará y te confirmará las cantidades disponibles.",
+            $this->dispatch('swal', $exceedsAvailable ? [
+                'title' => 'Solicitud de Confirmación Enviada',
+                'text' => "Tu cotización #{$nextQuoteConsecutive} tiene cantidades por encima de lo disponible. Nuestro equipo comercial confirmará qué cantidades sí se pueden entregar.",
+                'icon' => 'warning'
+            ] : [
+                'title' => '¡Pedido Confirmado!',
+                'text' => "Tu cotización #{$nextQuoteConsecutive} fue enviada dentro de las cantidades disponibles. Nuestro equipo comercial la confirmará en breve.",
                 'icon' => 'success'
             ]);
             return true;
@@ -400,5 +422,44 @@ class CustomerPortal extends Component
             ]);
             return false;
         }
+    }
+
+    /**
+     * Misma fórmula que usa el catálogo del Portal (% Stock Portal B2B +
+     * Cant Mínima Portal B2B, bodega principal storeId=2) para saber cuánta
+     * cantidad de un ítem se le puede mostrar/ofrecer al cliente. Se vuelve
+     * a calcular aquí en submitOrder() en vez de confiar en lo que mandó el
+     * navegador.
+     */
+    private function computeVisibleStock(int $itemId): int
+    {
+        $totalStock = (float) DB::connection('tenant')->table('inv_items_store')
+            ->where('itemId', $itemId)
+            ->sum('stock_items_store');
+
+        $reservedStock = (float) DB::connection('tenant')->table('inv_reservations')
+            ->where('item_id', $itemId)
+            ->where('status_id', 1)
+            ->where('stock_type', 1)
+            ->whereNull('deleted_at')
+            ->where('due_date', '>=', now()->subDays(15))
+            ->sum('quantity');
+
+        $realStock = $totalStock - $reservedStock;
+
+        $storeConfig = DB::connection('tenant')->table('inv_items_store')
+            ->where('itemId', $itemId)
+            ->where('storeId', 2)
+            ->orderByDesc('id')
+            ->first();
+
+        $percentage = $storeConfig->b2b_stock_percentage ?? 30;
+        $minStock = $storeConfig->b2b_min_stock ?? 0;
+
+        if ($realStock < $minStock) {
+            return 0;
+        }
+
+        return max(0, (int) round($realStock * ($percentage / 100)));
     }
 }

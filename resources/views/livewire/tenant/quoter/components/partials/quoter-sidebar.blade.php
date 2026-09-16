@@ -549,6 +549,36 @@
             </div>
             @endif
         </div>
+
+        @if($editingQuoteFromPortal)
+        <div class="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/60 rounded-lg px-3 py-2 text-xs w-full shadow-sm space-y-2">
+            <h4 class="font-bold text-purple-800 dark:text-purple-300 text-[11px] uppercase flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Cotización del Portal de Clientes
+            </h4>
+
+            @if($editingQuoteClientConfirmedAt)
+                <p class="text-[10px] text-green-700 dark:text-green-400 font-semibold">
+                    ✓ El cliente ya confirmó su pedido con estas cantidades.
+                </p>
+            @endif
+
+            <label class="text-[10px] font-semibold text-purple-700 dark:text-purple-400 block">
+                Nota para el cliente (cantidades confirmadas/disponibles)
+            </label>
+            <textarea wire:model="editingQuoteClientNote" rows="2"
+                class="block w-full text-[11px] px-2 py-1.5 border border-purple-300 dark:border-purple-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Ej: Cantidades confirmadas y disponibles."></textarea>
+            @error('editingQuoteClientNote') <span class="text-red-600 text-[10px] block">{{ $message }}</span> @enderror
+
+            <button type="button" wire:click="confirmQuantitiesForClient"
+                wire:loading.attr="disabled" wire:target="confirmQuantitiesForClient"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1.5 rounded-lg transition-colors">
+                Guardar y notificar al cliente
+            </button>
+        </div>
+        @endif
+
         <button wire:click="saveQuote"
             wire:loading.attr="disabled"
             wire:target="saveQuote"
