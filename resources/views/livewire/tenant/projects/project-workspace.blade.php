@@ -314,9 +314,13 @@
                             </button>
                         @endif
 
-                        @if($project->status === 'cerrado_entregado' && $project->canBeReactivatedBy(Auth::user()))
+                        @if(in_array($project->status, ['terminado', 'cerrado_entregado']) && $project->canBeReactivatedBy(Auth::user()))
                             <div class="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 p-2.5 rounded-lg text-center font-semibold mb-2">
-                                Este proyecto ya fue finalizado. Si llegó una solicitud nueva, puedes reactivarlo.
+                                @if($project->status === 'cerrado_entregado')
+                                    Este proyecto ya fue finalizado. Si llegó una solicitud nueva, puedes reactivarlo.
+                                @else
+                                    ¿Falta más trabajo antes de finalizar? Puedes reactivar el proyecto y enviarlo de nuevo a producción.
+                                @endif
                             </div>
                             <button wire:click="$set('showReactivateModal', true)"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
