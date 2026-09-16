@@ -423,13 +423,14 @@ class ProjectMaterials extends Component
     {
         $this->ensureTenantConnection();
         return ProjectMaterial::where('project_id', $this->projectId)
+            ->with('item.locations')
             ->orderBy('created_at', 'asc')
             ->get();
     }
 
     public function getExportHeadings(): array
     {
-        return ['Origen', 'Descripción', 'Cantidad', 'Precio Unitario', 'Costo', 'Observaciones'];
+        return ['Origen', 'Picking', 'Descripción', 'Cantidad', 'Precio Unitario', 'Costo', 'Observaciones'];
     }
 
     public function getExportMapping($item = null)
@@ -437,8 +438,12 @@ class ProjectMaterials extends Component
         if ($item === null) {
             return null;
         }
+
+        $picking = $item->item?->picking;
+
         return [
             $item->origin === 'erp' ? 'ERP' : 'Externo',
+            ($picking && $picking !== 'N/A') ? $picking : '',
             $item->description,
             $item->quantity,
             $item->unit_value,
@@ -476,6 +481,7 @@ class ProjectMaterials extends Component
         $this->ensureTenantConnection();
 
         $materials = ProjectMaterial::where('project_id', $this->projectId)
+            ->with('item.locations')
             ->orderBy('created_at', 'asc')
             ->get();
 
