@@ -910,7 +910,7 @@
                     <!-- Botón enviar -->
                     <button 
                         :disabled="cart.length === 0"
-                        title="Enviar el pedido actual y su respectivo comprobante de pago para la verificación de un auxiliar comercial"
+                        title="Enviar esta cotización para que un asesor comercial la revise y confirme cantidades"
                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
                         wire:loading.attr="disabled"
                         wire:target="submitOrder"
@@ -924,11 +924,11 @@
                         </svg>
 
                         <!-- Texto dinámico -->
-                        <span wire:loading.remove wire:target="submitOrder">Enviar Pedido para Verificación</span>
-                        <span wire:loading wire:target="submitOrder">Guardando Pedido...</span>
+                        <span wire:loading.remove wire:target="submitOrder">Enviar Cotización</span>
+                        <span wire:loading wire:target="submitOrder">Enviando Cotización...</span>
                     </button>
                     <p class="text-[9px] text-gray-400 text-center leading-relaxed">
-                        Al enviar el pedido, queda en estado <strong>Por verificar</strong> hasta que un auxiliar comercial apruebe y genere la OP correspondiente.
+                        Al enviar, se crea tu cotización y un asesor comercial la revisará para confirmar cantidades y generar tu pedido.
                     </p>
                 </div>
             </div>
