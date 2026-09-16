@@ -34,9 +34,15 @@
                     @endif
                 </h3>
             </div>
+            @if($materialRequest->status === 'pendiente')
             <p class="text-3xs text-purple-600 dark:text-purple-400">
-                Cantidades redondeadas a unidades enteras. Ajustar aquí NO cambia la lista de materiales del proyecto — solo lo que se le pide a Bodega.
+                Verifica qué materiales ya tienes disponibles en Laboratorio antes de enviar. Las cantidades quedan redondeadas a unidades enteras — ajustar aquí NO cambia la lista de materiales del proyecto, solo lo que le vas a pedir a Bodega.
             </p>
+            @else
+            <p class="text-3xs text-purple-600 dark:text-purple-400">
+                Revisión de materiales: esta es la solicitud que Laboratorio ya envió. Verifica las cantidades antes de generar la Salida de Mercancía — ajustar aquí NO cambia la lista de materiales del proyecto.
+            </p>
+            @endif
 
             <div class="space-y-1.5">
                 @foreach($materialRequest->items as $item)
