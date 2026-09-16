@@ -80,6 +80,8 @@ class ManageItems extends Component
     public $inventoriable;
     public $wpStockPercentage = 100;
     public $wpMinStock = 0;
+    public $b2bStockPercentage = 30;
+    public $b2bMinStock = 0;
     public $maxLocationsCount = 0;
     protected $exportSuppliers = [];
     public $tempValues = [];
@@ -2240,6 +2242,44 @@ class ManageItems extends Component
     }
 
     /**
+     * Igual patrón que saveWordPressParams(), pero para el Portal de Clientes
+     * (B2B): % del stock neto que se muestra al cliente, y cantidad mínima
+     * por debajo de la cual se muestra como agotado.
+     */
+    public function saveB2bStockParams()
+    {
+        $this->ensureTenantConnection();
+
+        if (!$this->item_id) {
+            return;
+        }
+
+        $this->validate([
+            'b2bStockPercentage' => 'required|numeric|min:0|max:100',
+            'b2bMinStock' => 'required|numeric|min:0',
+        ], [], [
+            'b2bStockPercentage' => '% Stock Portal B2B',
+            'b2bMinStock' => 'Cant Mínima Portal B2B',
+        ]);
+
+        $item = Items::findOrFail($this->item_id);
+
+        $storeRecord = InvItemsStore::where('itemId', $item->id)->where('storeId', 2)->orderByDesc('id')->first();
+
+        if (!$storeRecord) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Este item no tiene registro de stock en la bodega principal.']);
+            return;
+        }
+
+        $storeRecord->update([
+            'b2b_stock_percentage' => max(0, min(100, (float) $this->b2bStockPercentage)),
+            'b2b_min_stock' => max(0, (float) $this->b2bMinStock),
+        ]);
+
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Parámetros del Portal B2B guardados con éxito.']);
+    }
+
+    /**
      * Sincroniza stock y precio del item con WordPress/WooCommerce inmediatamente
      * (en vez de esperar al cron nocturno o a la sincronización manual).
      * No bloquea el guardado del item si falla: solo deja una advertencia.
@@ -2490,6 +2530,8 @@ class ManageItems extends Component
         if ($storeRecord) {
             $this->wpStockPercentage = $storeRecord->wp_stock_percentage ?? 100;
             $this->wpMinStock = $storeRecord->wp_min_stock ?? 0;
+            $this->b2bStockPercentage = $storeRecord->b2b_stock_percentage ?? 30;
+            $this->b2bMinStock = $storeRecord->b2b_min_stock ?? 0;
         }
 
         $dimensions = InvItemsDimensions::where('item_id', $item_id)->first();

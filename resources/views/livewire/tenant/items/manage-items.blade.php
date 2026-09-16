@@ -1274,6 +1274,77 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- SECCIÓN 3: PARÁMETROS DE PORTAL DE CLIENTES (B2B) -->
+                            <div class="border p-5 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 space-y-4">
+                                <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center select-none">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        Parámetros de Portal de Clientes (B2B)
+                                    </h4>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            % Stock Portal B2B
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Porcentaje del stock neto disponible que se mostrará en el Portal de Clientes. Ej: 30% de 100 unidades mostrará 30.
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" wire:model="b2bStockPercentage"
+                                                min="0" max="100" step="1"
+                                                class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                placeholder="30">
+                                            <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                                        </div>
+                                        @error('b2bStockPercentage') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Cant Mínima Portal B2B
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Si el stock disponible cae por debajo de esta cantidad, el disponible en el Portal de Clientes pasará a ser automáticamente cero (0) / Agotado.
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input type="number" wire:model="b2bMinStock"
+                                            min="0" step="any"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="0">
+                                        @error('b2bMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-end pt-2">
+                                    <button type="button" wire:click="saveB2bStockParams"
+                                        class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                        Guardar parámetros Portal B2B
+                                    </button>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
+                                        Misma lógica que los parámetros de WordPress, pero para lo que ve el cliente en su Portal.
+                                    </p>
+                                </div>
+                            </div>
                         </div>{{-- /p-6 space-y-6 (contenido pestaña Web/B2B) --}}
                     @endif
                 @endif

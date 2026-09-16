@@ -418,10 +418,11 @@
                             }
                             
                             $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
-                            $visibleStock = round($realStock * 0.30);
-                            if ($realStock > 100) { $visibleStock = 30; }
+                            $b2bPercentage = $product->b2b_stock_percentage ?? 30;
+                            $b2bMinStock = $product->b2b_min_stock ?? 0;
+                            $visibleStock = $realStock >= $b2bMinStock ? round($realStock * ($b2bPercentage / 100)) : 0;
                             if ($visibleStock < 0) { $visibleStock = 0; }
-                            
+
                             $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
                             
                             $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
@@ -573,10 +574,11 @@
                         }
                         
                         $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
-                        $visibleStock = round($realStock * 0.30);
-                        if ($realStock > 100) { $visibleStock = 30; }
+                        $b2bPercentage = $product->b2b_stock_percentage ?? 30;
+                        $b2bMinStock = $product->b2b_min_stock ?? 0;
+                        $visibleStock = $realStock >= $b2bMinStock ? round($realStock * ($b2bPercentage / 100)) : 0;
                         if ($visibleStock < 0) { $visibleStock = 0; }
-                        
+
                         $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
                             
                         $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
