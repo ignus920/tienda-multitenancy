@@ -1130,6 +1130,23 @@ class ProjectWorkspace extends Component
         $this->isEditingDescription = false;
     }
 
+    /**
+     * ¿Puede este usuario ver la pestaña "Solicitud de Materiales"? Solo
+     * perfil Laboratorio (son quienes saben qué tienen de sobra antes de
+     * pedirle a Bodega) o Super Administrador/Administrador.
+     */
+    private function canSeeMaterialRequests(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+
+        if (in_array((int) $user->profile_id, Project::FULL_ACCESS_PROFILES, true)) {
+            return true;
+        }
+
+        return strcasecmp($user->profile->name ?? '', 'Laboratorio') === 0;
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
@@ -1198,7 +1215,8 @@ class ProjectWorkspace extends Component
             'questions' => $questions,
             'projectTasks' => $projectTasks,
             'usersList' => $usersList,
-            'isParticipant' => $isParticipant
+            'isParticipant' => $isParticipant,
+            'canSeeMaterialRequests' => $this->canSeeMaterialRequests(),
         ])->layout('layouts.app', ['header' => 'Espacio de Trabajo: ' . $project->title]);
     }
 }

@@ -6,8 +6,6 @@ use Livewire\Component;
 use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMaterial;
-use App\Models\Tenant\Projects\ProjectMaterialRequest;
-use App\Models\Tenant\Projects\ProjectMaterialRequestItem;
 use App\Models\Tenant\Items\Items;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
@@ -277,123 +275,6 @@ class ProjectMaterials extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Lista de materiales eliminada y archivada']);
     }
 
-    // --- Solicitud de Materiales (a partir de los materiales origen ERP) ---
-    // Genera una lista aparte, redondeada a unidades enteras hacia arriba,
-    // que Laboratorio puede ajustar (sobrantes en bodega de laboratorio)
-    // SIN tocar la lista original de materiales del proyecto (arriba).
-
-    /**
-     * Crea una nueva solicitud a partir de los materiales activos de
-     * origen ERP. Si ya existe una solicitud sin convertir en salida
-     * (pendiente/revisada), no crea otra — se sigue editando esa misma.
-     */
-    public function generateMaterialRequest()
-    {
-        $this->ensureTenantConnection();
-        if ($this->checkNotClosed()) return;
-
-        $existing = ProjectMaterialRequest::where('project_id', $this->projectId)
-            ->whereIn('status', ['pendiente', 'revisada'])
-            ->exists();
-
-        if ($existing) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Ya hay una solicitud de materiales en curso para este proyecto.']);
-            return;
-        }
-
-        $erpMaterials = ProjectMaterial::where('project_id', $this->projectId)
-            ->where('origin', 'erp')
-            ->where('is_active', true)
-            ->get();
-
-        if ($erpMaterials->isEmpty()) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No hay materiales del ERP activos para generar la solicitud.']);
-            return;
-        }
-
-        $request = ProjectMaterialRequest::create([
-            'project_id' => $this->projectId,
-            'status' => 'pendiente',
-            'requested_by' => Auth::id(),
-        ]);
-
-        foreach ($erpMaterials as $material) {
-            ProjectMaterialRequestItem::create([
-                'request_id' => $request->id,
-                'project_material_id' => $material->id,
-                'item_id' => $material->item_id,
-                'description' => $material->description,
-                'quantity_requested' => (int) ceil($material->quantity),
-                'is_removed' => false,
-            ]);
-        }
-
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Solicitud de materiales generada']);
-    }
-
-    public function updateRequestItemQuantity($itemId, $quantity)
-    {
-        $this->ensureTenantConnection();
-        $item = ProjectMaterialRequestItem::whereHas('request', function ($q) {
-            $q->where('project_id', $this->projectId)->where('status', 'pendiente');
-        })->find($itemId);
-
-        if (!$item) return;
-
-        $quantity = max(1, (int) $quantity);
-        $item->update(['quantity_requested' => $quantity]);
-    }
-
-    public function toggleRequestItemRemoved($itemId)
-    {
-        $this->ensureTenantConnection();
-        $item = ProjectMaterialRequestItem::whereHas('request', function ($q) {
-            $q->where('project_id', $this->projectId)->where('status', 'pendiente');
-        })->find($itemId);
-
-        if (!$item) return;
-
-        $item->update(['is_removed' => !$item->is_removed]);
-    }
-
-    /**
-     * Laboratorio ya terminó de ajustar la solicitud — queda visible para
-     * que Importaciones la revise y genere la Salida de Mercancía.
-     */
-    public function markRequestReviewed()
-    {
-        $this->ensureTenantConnection();
-
-        $request = ProjectMaterialRequest::where('project_id', $this->projectId)
-            ->where('status', 'pendiente')
-            ->first();
-
-        if (!$request) return;
-
-        if ($request->items()->where('is_removed', false)->doesntExist()) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La solicitud no puede quedar vacía — debe tener al menos un producto sin quitar.']);
-            return;
-        }
-
-        $request->update(['status' => 'revisada']);
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Solicitud enviada a Importaciones']);
-    }
-
-    public function cancelMaterialRequest()
-    {
-        $this->ensureTenantConnection();
-
-        $request = ProjectMaterialRequest::where('project_id', $this->projectId)
-            ->where('status', 'pendiente')
-            ->first();
-
-        if ($request) {
-            $request->items()->delete();
-            $request->delete();
-            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Solicitud cancelada']);
-        }
-    }
-
     // --- Exportación (trait WithExport: exportCsv(), exportPdf()) ---
     // exportExcel está sobreescrito aquí para aplicar formato personalizado
 
@@ -491,22 +372,12 @@ class ProjectMaterials extends Component
         $project = Project::find($this->projectId);
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
 
-        $materialRequest = ProjectMaterialRequest::where('project_id', $this->projectId)
-            ->whereIn('status', ['pendiente', 'revisada'])
-            ->with('items')
-            ->latest('id')
-            ->first();
-
-        $hasActiveErpMaterials = $materials->where('origin', 'erp')->where('is_active', true)->isNotEmpty();
-
         return view('livewire.tenant.projects.project-materials', [
             'materials' => $materials,
             'subtotalErp' => $subtotalErp,
             'subtotalExterno' => $subtotalExterno,
             'total' => $subtotalErp + $subtotalExterno,
             'isClosed' => $isClosed,
-            'materialRequest' => $materialRequest,
-            'hasActiveErpMaterials' => $hasActiveErpMaterials,
         ]);
     }
 }
