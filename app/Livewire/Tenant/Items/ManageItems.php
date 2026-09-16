@@ -80,7 +80,7 @@ class ManageItems extends Component
     public $inventoriable;
     public $wpStockPercentage = 100;
     public $wpMinStock = 0;
-    public $b2bStockPercentage = 30;
+    public $b2bStockPercentage = 0;
     public $b2bMinStock = 0;
     public $maxLocationsCount = 0;
     protected $exportSuppliers = [];
@@ -2530,7 +2530,7 @@ class ManageItems extends Component
         if ($storeRecord) {
             $this->wpStockPercentage = $storeRecord->wp_stock_percentage ?? 100;
             $this->wpMinStock = $storeRecord->wp_min_stock ?? 0;
-            $this->b2bStockPercentage = $storeRecord->b2b_stock_percentage ?? 30;
+            $this->b2bStockPercentage = $storeRecord->b2b_stock_percentage ?? 0;
             $this->b2bMinStock = $storeRecord->b2b_min_stock ?? 0;
         }
 
