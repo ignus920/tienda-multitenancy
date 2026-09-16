@@ -36,7 +36,7 @@ new class extends Component
                 <span class="ml-3 flex flex-col items-start leading-tight">
                     <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ auth()->user()->name }}</span>
                     @if(auth()->user()->profile?->name)
-                        <span class="text-3xs text-gray-400 dark:text-gray-500">{{ auth()->user()->profile->name }}</span>
+                        <span class="text-[10px] leading-none text-gray-400 dark:text-gray-500">{{ auth()->user()->profile->name }}</span>
                     @endif
                 </span>
                 <svg class="ml-2 h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
