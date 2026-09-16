@@ -114,7 +114,14 @@ class ProjectMaterialRequests extends Component
         $department = TickDepartment::where('name', 'like', self::IMPORTS_DEPARTMENT_NAME . '%')->first();
         if (!$department) return false;
 
-        return $department->users()->wherePivot('status', 1)->where('users.id', $user->id)->exists();
+        // Consulta directa en la conexión tenant — evitar el JOIN cruzado
+        // central/tenant de TickDepartment::users(), que falla en producción
+        // si el nombre de la BD tenant no queda resuelto en ese momento.
+        return DB::connection('tenant')->table('tick_department_user')
+            ->where('department_id', $department->id)
+            ->where('user_id', $user->id)
+            ->where('status', 1)
+            ->exists();
     }
 
     /**
@@ -235,7 +242,14 @@ class ProjectMaterialRequests extends Component
         $department = TickDepartment::where('name', 'like', 'Importaciones%')->first();
         if (!$department) return;
 
-        $recipientIds = $department->users()->wherePivot('status', 1)->pluck('users.id')->toArray();
+        // Consulta directa en la conexión tenant — evitar el JOIN cruzado
+        // central/tenant de TickDepartment::users(), que falla en producción
+        // si el nombre de la BD tenant no queda resuelto en ese momento.
+        $recipientIds = DB::connection('tenant')->table('tick_department_user')
+            ->where('department_id', $department->id)
+            ->where('status', 1)
+            ->pluck('user_id')
+            ->toArray();
         if (empty($recipientIds)) return;
 
         $project = Project::find($this->projectId);
