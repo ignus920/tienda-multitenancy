@@ -27,6 +27,7 @@ class InvInventoryAdjustment extends Model
         'consecutive',
         'userId',
         'supplier',
+        'project_id',
     ];
 
     protected function casts(): array
@@ -56,6 +57,15 @@ class InvInventoryAdjustment extends Model
     public function details()
     {
         return $this->hasMany(InvDetailInventoryAdjustment::class, 'inventoryAdjustmentId', 'id');
+    }
+
+    /**
+     * Proyecto de origen, cuando esta salida se generó desde una Solicitud
+     * de Materiales de Proyectos (ver App\Models\Tenant\Projects\ProjectMaterialRequest).
+     */
+    public function project()
+    {
+        return $this->belongsTo(\App\Models\Tenant\Projects\Project::class, 'project_id');
     }
 
     /**

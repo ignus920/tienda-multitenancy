@@ -109,8 +109,8 @@
                 </div>
             </div>
 
-            <!-- Filtros rápidos de vencimiento (proyectos internos) + Más filtros -->
-            <div class="flex flex-wrap items-center gap-2" x-data="{ showMoreFilters: false }">
+            <!-- Filtros rápidos de vencimiento (proyectos internos) + filtros de fecha/participante -->
+            <div class="flex flex-wrap items-center gap-2">
                 <button wire:click="$set('vencimientoFilter', '{{ $vencimientoFilter === 'proximo' ? '' : 'proximo' }}')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {{ $vencimientoFilter === 'proximo' ? 'bg-amber-500 border-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400' }}">
                     <span class="w-2 h-2 rounded-full bg-amber-500"></span>
@@ -122,15 +122,7 @@
                     Vencidos
                 </button>
 
-                <button type="button" @click="showMoreFilters = !showMoreFilters"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    Más filtros
-                    <svg class="w-3.5 h-3.5 transition-transform" :class="showMoreFilters ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-
-                <div x-show="showMoreFilters" x-cloak class="w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-3">
+                <div class="w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-3">
                     <div class="flex-1">
                         <label class="block text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Creado desde</label>
                         <input wire:model.live="searchDateFrom" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
@@ -405,7 +397,17 @@
                     @error('title') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
                 </div>
 
+                @if($isSalesperson)
+                    <!-- Vendedor POS: el "Dirigido a" y los participantes se asignan
+                         automáticamente (departamentos "Proyectos - Responsable" y
+                         "Proyectos - Participantes"), no hay nada que elegir aquí. -->
+                    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300">
+                        Este proyecto se asignará automáticamente al responsable y al equipo comercial.
+                    </div>
+                @endif
+
                 @if($projectType === 'internal')
+                    @unless($isSalesperson)
                     <!-- Destinatario (Proyecto Interno) -->
                     <div>
                         <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Dirigido a *</label>
@@ -418,6 +420,7 @@
                         </select>
                         @error('assignedToUserId') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
                     </div>
+                    @endunless
 
                     <!-- Fecha de Entrega Solicitada (Proyecto Interno) -->
                     <div>

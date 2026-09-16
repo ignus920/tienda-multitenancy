@@ -1092,6 +1092,10 @@ new class extends Component
                     class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('imports.costing') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Costeo de Importaciones
                 </a>
+                <a href="{{ route('imports.material-requests') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 transition-colors duration-150 {{ request()->routeIs('imports.material-requests') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Solicitudes de Materiales
+                </a>
             </div>
 
             <!-- Tooltip colapsado -->
@@ -1103,6 +1107,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Movimiento</a>
                 <a href="{{ route('imports.costing') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Costeo</a>
+                <a href="{{ route('imports.material-requests') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Solicitudes de Materiales</a>
             </div>
         </div>
         @endif
