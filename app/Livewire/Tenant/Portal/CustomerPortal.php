@@ -183,7 +183,11 @@ class CustomerPortal extends Component
             ->select(
                 'inv_items.*',
                 DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
-                DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock')
+                DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock'),
+                // % y cantidad mínima del Portal B2B: se configuran por producto en la
+                // bodega principal (storeId=2), igual patrón que wp_stock_percentage.
+                DB::raw('(SELECT b2b_stock_percentage FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1) as b2b_stock_percentage'),
+                DB::raw('(SELECT b2b_min_stock FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1) as b2b_min_stock')
             )
             ->where('inv_items.status', 1)
             ->where('inv_items.type', '!=', 'INSUMO')
@@ -229,10 +233,17 @@ class CustomerPortal extends Component
         }
 
         if ($this->stockFilter === 'in_stock') {
+            // Misma fórmula que % Stock WordPress / Can Mínima WordPress, pero con
+            // b2b_stock_percentage / b2b_min_stock (storeId=2): si el stock neto cae
+            // por debajo del mínimo configurado, cuenta como agotado (0); si no, se
+            // muestra el % configurado del stock real. Sin configurar, usa 30% / 0
+            // (aprox. el comportamiento fijo que tenía el portal antes de esto).
             $query->havingRaw("
-                CASE 
-                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) > 100 THEN 30
-                    ELSE ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) * 0.30)
+                CASE
+                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)))
+                         >= COALESCE((SELECT b2b_min_stock FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1), 0)
+                    THEN ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) * COALESCE((SELECT b2b_stock_percentage FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1), 30) / 100)
+                    ELSE 0
                 END > 0
             ");
         }
