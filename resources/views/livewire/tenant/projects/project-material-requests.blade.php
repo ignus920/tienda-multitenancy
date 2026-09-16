@@ -1,11 +1,11 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-4">
     <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Solicitud de Materiales</h2>
 
-    @if(!$canManage)
+    @if(!$canManage && !$canManageOutbound)
         <p class="text-xs text-gray-400 text-center py-10">No tienes acceso a esta sección.</p>
     @else
         @if(!$materialRequest)
-            @if(!$isClosed && $hasActiveErpMaterials)
+            @if($canManage && !$isClosed && $hasActiveErpMaterials)
                 <p class="text-xs text-gray-500 dark:text-gray-400">
                     Genera la solicitud a partir de los materiales del ERP de la pestaña "Materiales", redondeados a unidades enteras hacia arriba, para pedirle a Bodega lo que haga falta.
                 </p>
@@ -13,9 +13,13 @@
                     class="px-4 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow transition-colors">
                     Generar Solicitud de Materiales
                 </button>
-            @else
+            @elseif($canManage)
                 <p class="text-xs text-gray-400 text-center py-10">
                     Aún no hay materiales del ERP en este proyecto para generar una solicitud. Agrégalos primero en la pestaña "Materiales".
+                </p>
+            @else
+                <p class="text-xs text-gray-400 text-center py-10">
+                    No hay ninguna solicitud de materiales pendiente de revisión en este proyecto.
                 </p>
             @endif
         @else
@@ -38,7 +42,7 @@
                 @foreach($materialRequest->items as $item)
                     <div class="flex items-center justify-between gap-3 bg-white dark:bg-gray-850 rounded-lg px-3 py-2 {{ $item->is_removed ? 'opacity-50' : '' }}">
                         <span class="text-xs text-gray-800 dark:text-gray-200 flex-1 {{ $item->is_removed ? 'line-through' : '' }}">{{ $item->description }}</span>
-                        @if($materialRequest->status === 'pendiente')
+                        @if($materialRequest->status === 'pendiente' && $canManage)
                             <input type="number" min="1" step="1" value="{{ $item->quantity_requested }}"
                                 wire:change="updateRequestItemQuantity({{ $item->id }}, $event.target.value)"
                                 @if($item->is_removed) disabled @endif
@@ -54,7 +58,7 @@
                 @endforeach
             </div>
 
-            @if($materialRequest->status === 'pendiente')
+            @if($materialRequest->status === 'pendiente' && $canManage)
             <div class="flex justify-end gap-2 pt-2">
                 <button wire:click="cancelMaterialRequest" wire:confirm="¿Cancelar esta solicitud de materiales?" type="button"
                     class="px-3 py-1.5 text-2xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
@@ -63,6 +67,24 @@
                 <button wire:click="markRequestReviewed" type="button"
                     class="px-4 py-1.5 text-2xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow transition-colors">
                     Enviar a Importaciones
+                </button>
+            </div>
+            @elseif($materialRequest->status === 'pendiente' && $canManageOutbound)
+                <p class="text-3xs text-gray-500 dark:text-gray-400 text-center pt-2">
+                    Laboratorio todavía está ajustando esta solicitud — se notificará a Importaciones cuando la envíen.
+                </p>
+            @endif
+
+            @if($materialRequest->status === 'revisada' && $canManageOutbound)
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-purple-200 dark:border-purple-800/60">
+                <p class="text-3xs text-purple-600 dark:text-purple-400">
+                    Revisa las cantidades y genera la salida — descuenta el stock del ERP y sincroniza con Alegra.
+                </p>
+                <button wire:click="generateOutboundMovement({{ $materialRequest->id }})"
+                    wire:confirm="¿Generar la Salida de Mercancía para esta solicitud? Se descontará del ERP y de Alegra."
+                    type="button"
+                    class="shrink-0 px-4 py-1.5 text-2xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow transition-colors">
+                    Generar Salida de Mercancía
                 </button>
             </div>
             @endif

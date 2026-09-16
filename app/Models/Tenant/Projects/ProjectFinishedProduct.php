@@ -5,6 +5,8 @@ namespace App\Models\Tenant\Projects;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Auth\User;
+use App\Models\Tenant\Items\Items;
+use App\Models\Tenant\Movements\InvInventoryAdjustment;
 
 class ProjectFinishedProduct extends Model
 {
@@ -16,10 +18,12 @@ class ProjectFinishedProduct extends Model
 
     protected $fillable = [
         'project_id',
+        'item_id',
         'description',
         'price',
         'quantity',
         'created_by',
+        'inventory_adjustment_id',
     ];
 
     protected $casts = [
@@ -35,5 +39,15 @@ class ProjectFinishedProduct extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function item()
+    {
+        return $this->belongsTo(Items::class, 'item_id');
+    }
+
+    public function inventoryAdjustment()
+    {
+        return $this->belongsTo(InvInventoryAdjustment::class, 'inventory_adjustment_id');
     }
 }

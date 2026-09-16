@@ -5,23 +5,40 @@
     <!-- Formulario de alta -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agregar producto terminado</span>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-            <input wire:model="description" type="text" placeholder="Descripción *"
-                class="md:col-span-2 block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <p class="text-3xs text-gray-400">
+            El producto terminado debe existir en el ERP — al agregarlo se genera automáticamente la entrada de inventario y se sincroniza con Alegra.
+        </p>
+
+        <div class="flex flex-col md:flex-row md:items-start gap-2">
+            <div class="flex-1 relative" x-data="{ open: true }" @click.away="open = false">
+                <input wire:model.live.debounce.300ms="search" @focus="open = true" type="text" placeholder="Buscar por código, referencia o nombre..."
+                    class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                @if(!empty($searchResults) && $search)
+                    <div x-show="open" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-56 overflow-y-auto">
+                        @foreach($searchResults as $result)
+                            <button type="button" wire:click="selectErpProduct({{ $result['id'] }}, '{{ addslashes($result['name']) }}', {{ $result['price'] }}, '{{ addslashes($result['code']) }}')"
+                                class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-750 flex items-center justify-between gap-2">
+                                <span class="truncate max-w-lg">
+                                    <span class="text-gray-400 mr-1">{{ $result['code'] }}</span> - <span class="font-bold ml-1">{{ $result['name'] }}</span>
+                                </span>
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">${{ number_format($result['price'], 2) }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
             <input wire:model="price" type="number" step="0.01" min="0" placeholder="Precio *"
-                class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                class="block w-full md:w-28 shrink-0 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <input wire:model="quantity" type="number" step="0.01" min="0.01" placeholder="Cantidad *"
-                class="block w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-        </div>
-        @error('description') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
-        @error('price') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
-        @error('quantity') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
-        <div class="flex justify-end">
+                class="block w-full md:w-20 shrink-0 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <button wire:click="addFinishedProduct" type="button"
-                class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition-colors">
+                class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition-colors shrink-0">
                 AGREGAR
             </button>
         </div>
+        @error('price') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
+        @error('quantity') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
+        <p class="text-3xs text-gray-400">Haz clic sobre un resultado de la búsqueda para seleccionarlo. Completa Precio/Cantidad y haz clic en "Agregar".</p>
     </div>
     @endif
 
@@ -58,17 +75,26 @@
                             </td>
                             @endif
                         @else
-                            <td class="py-2 pr-2 text-gray-800 dark:text-gray-200 font-medium">{{ $product->description }}</td>
+                            <td class="py-2 pr-2 text-gray-800 dark:text-gray-200 font-medium">
+                                {{ $product->description }}
+                                @if($product->inventory_adjustment_id)
+                                    <span class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-3xs font-semibold uppercase tracking-wide">Entrada generada</span>
+                                @endif
+                            </td>
                             <td class="py-2 pr-2 text-right">{{ rtrim(rtrim(number_format($product->quantity, 2), '0'), '.') }}</td>
                             <td class="py-2 pr-2 text-right">${{ number_format($product->price, 2) }}</td>
                             <td class="py-2 pr-2 text-right font-semibold">${{ number_format($product->price * $product->quantity, 2) }}</td>
                             @if(!$isClosed)
                             <td class="py-2 text-right whitespace-nowrap">
-                                <button wire:click="editFinishedProduct({{ $product->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
-                                <button type="button"
-                                    wire:click="deleteFinishedProduct({{ $product->id }})"
-                                    wire:confirm="¿Eliminar este producto terminado?"
-                                    class="text-red-500 hover:text-red-600 font-semibold text-2xs">Eliminar</button>
+                                @if(!$product->inventory_adjustment_id)
+                                    <button wire:click="editFinishedProduct({{ $product->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
+                                    <button type="button"
+                                        wire:click="deleteFinishedProduct({{ $product->id }})"
+                                        wire:confirm="¿Eliminar este producto terminado?"
+                                        class="text-red-500 hover:text-red-600 font-semibold text-2xs">Eliminar</button>
+                                @else
+                                    <span class="text-3xs text-gray-400">—</span>
+                                @endif
                             </td>
                             @endif
                         @endif
