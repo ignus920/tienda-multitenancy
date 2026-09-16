@@ -1154,7 +1154,15 @@ class ProjectWorkspace extends Component
         $department = TickDepartment::where('name', 'like', 'Importaciones%')->first();
         if (!$department) return false;
 
-        return $department->users()->wherePivot('status', 1)->where('users.id', $user->id)->exists();
+        // Consulta directa en la conexión tenant — evitar el JOIN cruzado
+        // central/tenant de TickDepartment::users() (User vive en central,
+        // tick_department_user vive en tenant), que falla en producción si
+        // el nombre de la BD tenant no queda resuelto en ese momento.
+        return DB::connection('tenant')->table('tick_department_user')
+            ->where('department_id', $department->id)
+            ->where('user_id', $user->id)
+            ->where('status', 1)
+            ->exists();
     }
 
     public function render()
