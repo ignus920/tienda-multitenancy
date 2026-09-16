@@ -20,6 +20,7 @@ use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Projects\ProjectTask;
 use App\Models\Tenant\Projects\ProjectTaskReassignment;
+use App\Models\Tenant\Tickets\TickDepartment;
 use App\Services\Tenant\TenantManager;
 use App\Events\Tenant\Projects\NewProjectNotification;
 use Illuminate\Support\Facades\Auth;
@@ -1131,9 +1132,11 @@ class ProjectWorkspace extends Component
     }
 
     /**
-     * ¿Puede este usuario ver la pestaña "Solicitud de Materiales"? Solo
-     * perfil Laboratorio (son quienes saben qué tienen de sobra antes de
-     * pedirle a Bodega) o Super Administrador/Administrador.
+     * ¿Puede este usuario ver la pestaña "Solicitud de Materiales"?
+     * Perfil Laboratorio (son quienes saben qué tienen de sobra antes de
+     * pedirle a Bodega), miembros del departamento Importaciones (revisan
+     * la solicitud y generan la Salida de Mercancía ahí mismo), o Super
+     * Administrador/Administrador.
      */
     private function canSeeMaterialRequests(): bool
     {
@@ -1144,7 +1147,14 @@ class ProjectWorkspace extends Component
             return true;
         }
 
-        return strcasecmp($user->profile->name ?? '', 'Laboratorio') === 0;
+        if (strcasecmp($user->profile->name ?? '', 'Laboratorio') === 0) {
+            return true;
+        }
+
+        $department = TickDepartment::where('name', 'like', 'Importaciones%')->first();
+        if (!$department) return false;
+
+        return $department->users()->wherePivot('status', 1)->where('users.id', $user->id)->exists();
     }
 
     public function render()

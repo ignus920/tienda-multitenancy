@@ -60,35 +60,35 @@
         <div class="lg:col-span-1 space-y-6">
 
             <!-- Barra de Pestañas -->
-            <div class="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold w-fit">
+            <div class="flex flex-nowrap overflow-x-auto bg-gray-100 dark:bg-gray-900 p-1 rounded-lg text-xs font-semibold w-full max-w-full">
                 <button wire:click="$set('activeTab', 'chat')"
-                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'chat' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'chat' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Chat
                 </button>
                 <button wire:click="$set('activeTab', 'materiales')"
-                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Materiales
                 </button>
                 <button wire:click="$set('activeTab', 'participantes')"
-                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Participantes
                 </button>
                 <button wire:click="$set('activeTab', 'archivos')"
-                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Archivos
                 </button>
                 <button wire:click="$set('activeTab', 'producto_terminado')"
-                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'producto_terminado' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'producto_terminado' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Producto Terminado
                 </button>
                 @if($canSeeMaterialRequests)
                 <button wire:click="$set('activeTab', 'solicitud_materiales')"
-                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'solicitud_materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'solicitud_materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Solicitud de Materiales
                 </button>
                 @endif
                 <button wire:click="$set('showTasksListModal', true)"
-                    class="px-4 py-1.5 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700 font-bold ml-2 shadow-sm">
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700 font-bold ml-2 shadow-sm">
                     Lista de Tareas
                 </button>
             </div>
