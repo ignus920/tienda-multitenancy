@@ -291,10 +291,10 @@ class CustomerPortal extends Component
             return false;
         }
 
-        // Fase piloto: el comprobante de pago queda opcional (ver documentacion/
-        // portal_b2b_fase_piloto.sql o la nota en submitOrder). Antes era
-        // obligatorio; se reactiva quitando este comentario y restaurando la
-        // regla 'required' cuando termine el piloto.
+        // Fase piloto: el comprobante de pago queda opcional (antes era
+        // 'required'). Para reactivarlo cuando termine el piloto, volver
+        // esta regla a 'required' y destapar el bloque del blade en
+        // customer-portal.blade.php (buscar "Comprobante de pago:").
         try {
             $this->validate([
                 'proofPaymentFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -330,10 +330,9 @@ class CustomerPortal extends Component
             $lastQuote = \App\Models\Tenant\Quoter\VntQuote::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextQuoteConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
 
-            // Obtener la primera bodega física activa del inquilino (tenant) para el descuento de inventario
+            // Bodega física activa del inquilino (tenant) a la que queda asociada la cotización
             $physicalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)->first();
             $physicalStoreId = $physicalStore ? $physicalStore->id : 1;
-            $tenantBranchId = $physicalStore ? $physicalStore->warehouseId : 1;
 
             // Sucursal de entrega del cliente B2B (dirección de despacho)
             $customerBranchId = $this->selectedBranchId ?: $contact->warehouseId;
@@ -367,103 +366,24 @@ class CustomerPortal extends Component
                 ]);
             }
 
-            // 2. Almacenar el archivo de comprobante de pago (opcional en esta fase piloto)
-            $tenantId = session('tenant_id', 'default');
-            $proofPaymentPath = $this->proofPaymentFile
-                ? $this->proofPaymentFile->store("remissions/proofs/{$tenantId}", 'public')
-                : null;
-
-            // 3. Obtener consecutivo y crear Remisión (InvRemissions)
-            $lastRemission = \App\Models\Tenant\Remissions\InvRemissions::lockForUpdate()->orderBy('consecutive', 'desc')->first();
-            $nextRemissionConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
-
-            // Obtener el primer método de pago (transferencia, etc. por defecto)
-            $methodPayment = \App\Models\Tenant\MethodPayments\VntMethodPayMents::first();
-            $methodPaymentId = $methodPayment ? $methodPayment->id : null;
-
-            $paymentsArray = [[
-                'method_payment_id' => $methodPaymentId,
-                'value' => $quote->total,
-                'proof_payment' => $proofPaymentPath,
-                'observation' => 'Comprobante cargado por el cliente desde el portal'
-            ]];
-
-            $remission = \App\Models\Tenant\Remissions\InvRemissions::create([
-                'consecutive' => $nextRemissionConsecutive,
-                'status' => 'REGISTRADO',
-                'quoteId' => $quote->id,
-                'warehouseId' => $physicalStoreId, // Asignar correctamente el ID de la bodega física (inv_store.id)
-                'deliveryTypeId' => 1, // Por defecto Contra entrega/estándar
-                'methodPaymentId' => $methodPaymentId,
-                'userId' => $quote->userId,
-                'created_by' => $user->id,
-                'deliveryDate' => now()->format('Y-m-d'),
-                'expiration' => 0,
-                'modify' => 0,
-                'obs' => 'Pedido B2B registrado desde el Portal de Clientes',
-                'observations_delivery' => $this->shippingAddress,
-                'flete' => 0,
-                'proof_payment' => $proofPaymentPath,
-                'payment_details' => $paymentsArray,
-                'from_portal' => true,
-            ]);
-
-            // 4. Crear detalles de remisión y descontar inventario
-            foreach ($cartItems as $item) {
-                $itemModel = \App\Models\Tenant\Items\Items::find($item['id']);
-                $taxPercentage = $itemModel && $itemModel->taxRelation ? $itemModel->taxRelation->value : 0;
-                $taxLabel = $itemModel && $itemModel->taxRelation ? $itemModel->taxRelation->name : 'N/A';
-
-                \App\Models\Tenant\Remissions\InvDetailRemissions::create([
-                    'quantity' => $item['qty'],
-                    'tax' => $taxPercentage,
-                    'tax_label' => $taxLabel,
-                    'value' => $item['price'],
-                    'remissionId' => $remission->id,
-                    'itemId' => $item['id'],
-                    'description' => $item['name']
-                ]);
-
-                // Descontar inventario de la bodega física activa del inquilino
-                $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $item['id'])
-                    ->where('storeId', $physicalStoreId)
-                    ->first();
-
-                $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
-                $isAssembled = $productModel && $productModel->type === 'ENSAMBLADO';
-
-                if ($itemStore) {
-                    $newStock = $itemStore->stock_items_store - $item['qty'];
-                    if ($newStock < 0 && !$isAssembled) {
-                        throw new \Exception("Stock insuficiente para el producto '{$item['name']}'. Disponible: {$itemStore->stock_items_store}");
-                    }
-                    $itemStore->update(['stock_items_store' => $newStock]);
-                } else {
-                    if (!$isAssembled) {
-                        throw new \Exception("El producto '{$item['name']}' no cuenta con inventario registrado en esta sucursal.");
-                    }
-                }
-            }
-
-            // 5. Crear autorizaciones de cartera automáticas (Chuliado automático)
-            $authTypes = ['empaque', 'despacho', 'pago'];
-            foreach ($authTypes as $authType) {
-                \App\Models\Tenant\Sales\VntOrderAuthorization::create([
-                    'remission_id' => $remission->id,
-                    'auth_type' => $authType,
-                    'status' => 1,
-                    'user_id' => auth()->id() // Asignar el ID de usuario autenticado
-                ]);
-            }
+            // NOTA (fase piloto): antes, aquí mismo se creaba de una vez la
+            // InvRemissions (la OP real), se descontaba inventario y se
+            // autoaprobaban las autorizaciones de cartera — el pedido del
+            // cliente quedaba "aprobado" sin que nadie del equipo comercial
+            // lo revisara. Eso ya NO se hace: el pedido del cliente se queda
+            // como cotización (arriba) hasta que un asesor comercial la
+            // revise desde el panel de Cotizaciones y decida convertirla en
+            // OP manualmente (mismo flujo que ya usan con cualquier otra
+            // cotización, en ProductQuoter::confirmOrder()).
 
             DB::connection('tenant')->commit();
 
             // Resetear estados del backend
             $this->reset('proofPaymentFile');
-            
+
             $this->dispatch('swal', [
-                'title' => '¡Pedido Enviado!',
-                'text' => "El pedido #{$nextRemissionConsecutive} ha sido registrado con éxito y enviado para verificación.",
+                'title' => '¡Cotización Enviada!',
+                'text' => "Tu cotización #{$nextQuoteConsecutive} fue enviada. Nuestro equipo comercial la revisará y te confirmará las cantidades disponibles.",
                 'icon' => 'success'
             ]);
             return true;
