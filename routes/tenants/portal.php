@@ -6,6 +6,7 @@ use App\Livewire\Tenant\Portal\ClientDashboard;
 use App\Livewire\Tenant\Portal\ClientOrders;
 use App\Livewire\Tenant\Portal\ClientOrderDetail;
 use App\Livewire\Tenant\Portal\ClientInvoices;
+use App\Livewire\Tenant\Portal\ClientQuotes;
 use App\Http\Controllers\Tenant\Portal\ClientPortalController;
 
 Route::middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantConnection::class])->group(function () {
@@ -15,6 +16,7 @@ Route::middleware(['auth', 'company.complete', \App\Auth\Middleware\SetTenantCon
     // Panel del cliente ("Mi cuenta")
     Route::get('/client/dashboard', ClientDashboard::class)->name('tenant.client.dashboard');
     Route::get('/client/pedidos', ClientOrders::class)->name('tenant.client.orders');
+    Route::get('/client/cotizaciones', ClientQuotes::class)->name('tenant.client.quotes');
     Route::get('/client/pedidos/{remission}', ClientOrderDetail::class)
         ->whereNumber('remission')
         ->name('tenant.client.orders.show');
