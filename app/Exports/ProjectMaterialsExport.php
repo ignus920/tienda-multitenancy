@@ -48,7 +48,7 @@ class ProjectMaterialsExport implements FromCollection, WithHeadings, WithMappin
     {
         return [
             [$this->projectName . ' - ' . $this->clientName],
-            ['Origen', 'Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal', 'Observaciones']
+            ['Origen', 'Picking', 'Descripción', 'Cantidad', 'Precio Unitario', 'Subtotal', 'Observaciones']
         ];
     }
 
@@ -59,14 +59,18 @@ class ProjectMaterialsExport implements FromCollection, WithHeadings, WithMappin
                 '',
                 '',
                 '',
+                '',
                 'Total',
                 $row->line_cost,
                 ''
             ];
         }
 
+        $picking = $row->item?->picking;
+
         return [
             $row->origin === 'erp' ? 'ERP' : 'Externo',
+            ($picking && $picking !== 'N/A') ? $picking : '',
             $row->description . (!$row->is_active ? ' (Desactivado: ' . $row->deactivation_reason . ')' : ''),
             $row->quantity,
             $row->unit_value,
@@ -79,11 +83,12 @@ class ProjectMaterialsExport implements FromCollection, WithHeadings, WithMappin
     {
         return [
             'A' => 10,  // Origen
-            'B' => 50,  // Desc (reducida un poco, antes AutoSize o más ancha)
-            'C' => 10,  // Cant
-            'D' => 15,  // Precio
-            'E' => 15,  // Subtotal
-            'F' => 60,  // Obs (ampliada)
+            'B' => 12,  // Picking
+            'C' => 50,  // Desc (reducida un poco, antes AutoSize o más ancha)
+            'D' => 10,  // Cant
+            'E' => 15,  // Precio
+            'F' => 15,  // Subtotal
+            'G' => 60,  // Obs (ampliada)
         ];
     }
 
@@ -95,7 +100,7 @@ class ProjectMaterialsExport implements FromCollection, WithHeadings, WithMappin
                 $highestRow = $sheet->getHighestRow();
 
                 // Fila 1: Título
-                $sheet->mergeCells('A1:F1');
+                $sheet->mergeCells('A1:G1');
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => [
                         'bold' => true,
@@ -109,7 +114,7 @@ class ProjectMaterialsExport implements FromCollection, WithHeadings, WithMappin
                 ]);
 
                 // Fila 2: Cabeceras
-                $sheet->getStyle('A2:F2')->applyFromArray([
+                $sheet->getStyle('A2:G2')->applyFromArray([
                     'font' => ['bold' => true],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
@@ -119,13 +124,16 @@ class ProjectMaterialsExport implements FromCollection, WithHeadings, WithMappin
 
                 // Moneda sin decimales
                 $currencyFormat = '"$"#,##0';
-                $sheet->getStyle('D3:E' . $highestRow)->getNumberFormat()->setFormatCode($currencyFormat);
+                $sheet->getStyle('E3:F' . $highestRow)->getNumberFormat()->setFormatCode($currencyFormat);
 
                 // Cantidades centradas
-                $sheet->getStyle('C3:C' . $highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('D3:D' . $highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Picking centrado
+                $sheet->getStyle('B3:B' . $highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Total Fila bold
-                $sheet->getStyle('C' . $highestRow . ':E' . $highestRow)->applyFromArray([
+                $sheet->getStyle('D' . $highestRow . ':F' . $highestRow)->applyFromArray([
                     'font' => ['bold' => true]
                 ]);
             }

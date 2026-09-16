@@ -179,6 +179,7 @@
             <thead>
                 <tr class="text-2xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700">
                     <th class="text-left py-2 pr-2 w-16">Origen</th>
+                    <th class="text-left py-2 pr-2 w-20">Picking</th>
                     <th class="text-left py-2 pr-2 w-[45%]">Descripción</th>
                     <th class="text-right py-2 pr-2">Cantidad</th>
                     <th class="text-right py-2 pr-2">Precio Unit.</th>
@@ -202,6 +203,14 @@
                                     <div class="absolute w-2 h-2 bg-gray-800 rotate-45 left-4 -bottom-1"></div>
                                 </div>
                             </div>
+                        </td>
+                        <td class="py-2 pr-2">
+                            @php $picking = $material->item?->picking; @endphp
+                            @if($picking && $picking !== 'N/A')
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded font-mono text-3xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">{{ $picking }}</span>
+                            @else
+                                <span class="text-gray-300 dark:text-gray-600">—</span>
+                            @endif
                         </td>
 
                         @if($editingMaterialId === $material->id)
@@ -318,7 +327,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center py-6 text-gray-400 text-xs">Aún no se han agregado materiales a este proyecto.</td>
+                        <td colspan="8" class="text-center py-6 text-gray-400 text-xs">Aún no se han agregado materiales a este proyecto.</td>
                     </tr>
                 @endforelse
             </tbody>
