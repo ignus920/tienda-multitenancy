@@ -191,7 +191,7 @@ class CustomerPortal extends Component
             )
             ->where('inv_items.status', 1)
             ->where('inv_items.type', '!=', 'INSUMO')
-            ->with(['principalImage', 'invValues', 'tax', 'dimensions'])
+            ->with(['principalImage', 'invValues', 'tax', 'dimensions', 'suggestedProducts.suggestedItem.principalImage'])
             ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
             ->groupBy(
                 'inv_items.id',
@@ -291,20 +291,14 @@ class CustomerPortal extends Component
             return false;
         }
 
-        if (!$this->proofPaymentFile) {
-            $this->dispatch('swal', [
-                'title' => 'Comprobante Requerido',
-                'text' => 'El comprobante de pago es obligatorio para procesar el pedido.',
-                'icon' => 'warning'
-            ]);
-            return false;
-        }
-
+        // Fase piloto: el comprobante de pago queda opcional (ver documentacion/
+        // portal_b2b_fase_piloto.sql o la nota en submitOrder). Antes era
+        // obligatorio; se reactiva quitando este comentario y restaurando la
+        // regla 'required' cuando termine el piloto.
         try {
             $this->validate([
-                'proofPaymentFile' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'proofPaymentFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             ], [
-                'proofPaymentFile.required' => 'El comprobante de pago es obligatorio',
                 'proofPaymentFile.mimes' => 'El comprobante debe ser un archivo de tipo: pdf, jpg, jpeg, png',
                 'proofPaymentFile.max' => 'El comprobante no debe pesar más de 5MB',
             ]);
@@ -373,9 +367,11 @@ class CustomerPortal extends Component
                 ]);
             }
 
-            // 2. Almacenar el archivo de comprobante de pago
+            // 2. Almacenar el archivo de comprobante de pago (opcional en esta fase piloto)
             $tenantId = session('tenant_id', 'default');
-            $proofPaymentPath = $this->proofPaymentFile->store("remissions/proofs/{$tenantId}", 'public');
+            $proofPaymentPath = $this->proofPaymentFile
+                ? $this->proofPaymentFile->store("remissions/proofs/{$tenantId}", 'public')
+                : null;
 
             // 3. Obtener consecutivo y crear Remisión (InvRemissions)
             $lastRemission = \App\Models\Tenant\Remissions\InvRemissions::lockForUpdate()->orderBy('consecutive', 'desc')->first();
