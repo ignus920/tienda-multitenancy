@@ -77,6 +77,10 @@
                     class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Archivos
                 </button>
+                <button wire:click="$set('activeTab', 'producto_terminado')"
+                    class="px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'producto_terminado' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Producto Terminado
+                </button>
                 <button wire:click="$set('showTasksListModal', true)"
                     class="px-4 py-1.5 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700 font-bold ml-2 shadow-sm">
                     Lista de Tareas
@@ -866,6 +870,11 @@
         <!-- Archivos -->
         <div class="lg:col-span-2">
             <livewire:tenant.projects.project-files :project-id="$project->id" :key="'files-'.$project->id" />
+        </div>
+        @elseif($activeTab === 'producto_terminado')
+        <!-- Producto Terminado -->
+        <div class="lg:col-span-2">
+            <livewire:tenant.projects.project-finished-products :project-id="$project->id" :key="'finished-products-'.$project->id" />
         </div>
         @endif
 

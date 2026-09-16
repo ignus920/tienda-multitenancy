@@ -76,10 +76,28 @@ class ProjectParticipants extends Component
         return $project && (int) $project->created_by === (int) Auth::id();
     }
 
-    private function checkIsCreator(): bool
+    /**
+     * ¿Puede este usuario agregar/quitar participantes de este proyecto?
+     * El creador puede gestionar participantes, SALVO que él mismo sea
+     * Vendedor POS — a ese perfil los participantes se le asignan
+     * automáticamente al crear el proyecto (ver ManageProjects::createProject()),
+     * no los edita manualmente. Super Administrador/Administrador siempre
+     * conservan el control para poder corregir si hace falta.
+     */
+    private function canManageParticipants(): bool
     {
-        if (!$this->isProjectCreator()) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Solo el creador del proyecto puede gestionar los participantes']);
+        if (in_array((int) Auth::user()?->profile_id, Project::FULL_ACCESS_PROFILES, true)) {
+            return true;
+        }
+
+        return $this->isProjectCreator()
+            && (int) Auth::user()?->profile_id !== ManageProjects::SALESPERSON_PROFILE_ID;
+    }
+
+    private function checkCanManageParticipants(): bool
+    {
+        if (!$this->canManageParticipants()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para gestionar los participantes de este proyecto']);
             return false;
         }
         return true;
@@ -89,7 +107,7 @@ class ProjectParticipants extends Component
     {
         $this->ensureTenantConnection();
         if ($this->checkFullyClosed()) return;
-        if (!$this->checkIsCreator()) return;
+        if (!$this->checkCanManageParticipants()) return;
 
         if (!$this->selectedUserId) {
             return;
@@ -113,7 +131,7 @@ class ProjectParticipants extends Component
     {
         $this->ensureTenantConnection();
         if ($this->checkNotClosed()) return;
-        if (!$this->checkIsCreator()) return;
+        if (!$this->checkCanManageParticipants()) return;
 
         $participant = ProjectParticipant::findOrFail($participantId);
         $project = Project::findOrFail($this->projectId);
@@ -154,14 +172,16 @@ class ProjectParticipants extends Component
         $project = Project::find($this->projectId);
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
         $isFullyClosed = $project ? $project->status === 'cerrado_entregado' : false;
-        $isCreator = $project && (int) $project->created_by === (int) Auth::id();
+        $createdBySalesperson = $project && $project->creator
+            && (int) $project->creator->profile_id === ManageProjects::SALESPERSON_PROFILE_ID;
 
         return view('livewire.tenant.projects.project-participants', [
             'participants' => $participants,
             'availableUsers' => $availableUsers,
             'isClosed' => $isClosed,
             'isFullyClosed' => $isFullyClosed,
-            'isCreator' => $isCreator
+            'canManageParticipants' => $this->canManageParticipants(),
+            'createdBySalesperson' => $createdBySalesperson,
         ]);
     }
 }

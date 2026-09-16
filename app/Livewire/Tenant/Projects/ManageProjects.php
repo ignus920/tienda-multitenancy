@@ -9,15 +9,28 @@ use App\Models\Tenant\Projects\ProjectMention;
 use App\Models\Tenant\Projects\ProjectParticipant;
 use App\Models\Tenant\Projects\ProjectQuestion;
 use App\Models\Tenant\Customer\VntCompany;
+use App\Models\Tenant\Tickets\TickDepartment;
 use App\Models\Auth\Tenant;
 use App\Models\Auth\User;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ManageProjects extends Component
 {
     use WithPagination;
+
+    /**
+     * Perfil "Vendedor POS". Cuando este perfil crea un proyecto, no elige
+     * participantes: se asignan automáticamente desde los departamentos
+     * "Proyectos - Responsable" y "Proyectos - Participantes" (Parámetros →
+     * Departamentos), para no dejar personas quemadas en código — si cambia
+     * quién es el responsable o algún participante, se ajusta desde ahí.
+     */
+    const SALESPERSON_PROFILE_ID = 4;
+    const RESPONSIBLE_DEPARTMENT_NAME = 'Proyectos - Responsable';
+    const PARTICIPANTS_DEPARTMENT_NAME = 'Proyectos - Participantes';
 
     // Búsqueda y filtrado
     public $search = '';
@@ -166,18 +179,31 @@ class ManageProjects extends Component
     {
         $this->ensureTenantConnection();
 
+        $isSalesperson = (int) Auth::user()?->profile_id === self::SALESPERSON_PROFILE_ID;
+
         if ($this->projectType === 'internal') {
-            $this->validate([
+            $rules = [
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'assignedToUserId' => 'required',
                 'requestedDeliveryDate' => 'required|date'
-            ], [
+            ];
+            $messages = [
                 'title.required' => 'El título del proyecto es obligatorio.',
                 'description.required' => 'La descripción del proyecto es obligatoria.',
-                'assignedToUserId.required' => 'Debe seleccionar a quién va dirigido el proyecto.',
                 'requestedDeliveryDate.required' => 'La fecha de entrega solicitada es obligatoria.'
-            ]);
+            ];
+
+            // Un Vendedor POS no elige "Dirigido a" — se asigna automático.
+            if (!$isSalesperson) {
+                $rules['assignedToUserId'] = 'required';
+                $messages['assignedToUserId.required'] = 'Debe seleccionar a quién va dirigido el proyecto.';
+            }
+
+            $this->validate($rules, $messages);
+
+            $assignedToUserId = $isSalesperson
+                ? $this->defaultSalespersonResponsibleId()
+                : $this->assignedToUserId;
 
             $project = Project::create([
                 'type' => 'internal',
@@ -185,12 +211,14 @@ class ManageProjects extends Component
                 'description' => $this->description,
                 'company_id' => null,
                 'created_by' => Auth::id(),
-                'assigned_to' => $this->assignedToUserId,
+                'assigned_to' => $assignedToUserId,
                 'delivery_date' => $this->requestedDeliveryDate,
                 'status' => 'cotizacion'
             ]);
 
-            $this->registerParticipant($project->id, $this->assignedToUserId);
+            if (!$isSalesperson) {
+                $this->registerParticipant($project->id, $assignedToUserId);
+            }
         } else {
             $this->validate([
                 'title' => 'required|string|max:255',
@@ -209,8 +237,17 @@ class ManageProjects extends Component
                 'description' => $this->description,
                 'company_id' => $this->selectedCustomerId,
                 'created_by' => Auth::id(),
+                'assigned_to' => $isSalesperson ? $this->defaultSalespersonResponsibleId() : null,
                 'status' => 'cotizacion'
             ]);
+        }
+
+        // Vendedor POS: participantes fijos por departamento (ver
+        // defaultSalespersonParticipantIds()) en vez de la selección libre.
+        if ($isSalesperson) {
+            foreach ($this->defaultSalespersonParticipantIds() as $participantId) {
+                $this->registerParticipant($project->id, $participantId);
+            }
         }
 
         // El creador también queda registrado como participante desde ya,
@@ -230,6 +267,52 @@ class ManageProjects extends Component
             ['project_id' => $projectId, 'user_id' => $userId],
             ['role' => $user->profile->name ?? 'Sin área']
         );
+    }
+
+    /**
+     * Usuario "Dirigido a" por defecto para proyectos creados por un
+     * Vendedor POS: el asignado al departamento "Proyectos - Responsable".
+     */
+    private function defaultSalespersonResponsibleId(): ?int
+    {
+        $department = TickDepartment::where('name', self::RESPONSIBLE_DEPARTMENT_NAME)->first();
+
+        if (!$department) {
+            Log::warning('Departamento "' . self::RESPONSIBLE_DEPARTMENT_NAME . '" no configurado — no se pudo asignar "Dirigido a" automático.');
+            return null;
+        }
+
+        $userId = $department->users()->wherePivot('status', 1)->value('users.id');
+
+        if (!$userId) {
+            Log::warning('Departamento "' . self::RESPONSIBLE_DEPARTMENT_NAME . '" no tiene usuario asignado.');
+        }
+
+        return $userId ? (int) $userId : null;
+    }
+
+    /**
+     * Participantes por defecto para proyectos creados por un Vendedor POS:
+     * todos los usuarios con perfil Vendedor POS + los asignados al
+     * departamento "Proyectos - Participantes" + el responsable.
+     */
+    private function defaultSalespersonParticipantIds(): array
+    {
+        $ids = User::where('profile_id', self::SALESPERSON_PROFILE_ID)->pluck('id')->all();
+
+        $department = TickDepartment::where('name', self::PARTICIPANTS_DEPARTMENT_NAME)->first();
+        if ($department) {
+            $ids = array_merge($ids, $department->users()->wherePivot('status', 1)->pluck('users.id')->all());
+        } else {
+            Log::warning('Departamento "' . self::PARTICIPANTS_DEPARTMENT_NAME . '" no configurado.');
+        }
+
+        $responsibleId = $this->defaultSalespersonResponsibleId();
+        if ($responsibleId) {
+            $ids[] = $responsibleId;
+        }
+
+        return array_values(array_unique(array_map('intval', $ids)));
     }
 
     public function markNotificationAsSeen($mentionId)
@@ -422,7 +505,8 @@ class ManageProjects extends Component
             'usersWithAssignedProjects' => $usersWithAssignedProjects,
             'pendientesCount' => $pendientesCount,
             'myMentionProjects' => $myMentionProjects,
-            'mentioningUsers' => $mentioningUsers
+            'mentioningUsers' => $mentioningUsers,
+            'isSalesperson' => (int) Auth::user()?->profile_id === self::SALESPERSON_PROFILE_ID,
         ])->layout('layouts.app', ['header' => 'Gestión de Proyectos']);
     }
 }
