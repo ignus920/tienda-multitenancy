@@ -330,8 +330,15 @@ class CustomerPortal extends Component
             $lastQuote = \App\Models\Tenant\Quoter\VntQuote::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextQuoteConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
 
-            // Bodega física activa del inquilino (tenant) a la que queda asociada la cotización
-            $physicalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)->first();
+            // Bodega física a la que queda asociada la cotización. Debe ser la
+            // MISMA bodega ("PRINCIPAL", storeId=2) que ya usa el resto del
+            // Portal (% Stock Portal B2B) y donde está el equipo comercial —
+            // el panel de Cotizaciones (Quoter.php) solo le muestra a cada
+            // vendedor las cotizaciones de SU bodega asignada, así que si
+            // aquí se pone una bodega distinta, la cotización del cliente
+            // queda invisible para ellos aunque exista en la base de datos.
+            $physicalStore = \App\Models\Tenant\Items\InvStore::find(2)
+                ?? \App\Models\Tenant\Items\InvStore::where('status', 1)->first();
             $physicalStoreId = $physicalStore ? $physicalStore->id : 1;
 
             // Sucursal de entrega del cliente B2B (dirección de despacho)
