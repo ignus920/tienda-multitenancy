@@ -1151,6 +1151,28 @@ class ProjectWorkspace extends Component
             return true;
         }
 
+        return $this->isImportsDepartmentMember($user);
+    }
+
+    /**
+     * ¿Puede este usuario ver la pestaña "Producto Terminado"? Solo
+     * Importaciones (Camilo, quien registra la entrada de inventario) o
+     * Super Administrador/Administrador — Laboratorio NO debe verla.
+     */
+    private function canSeeFinishedProducts(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+
+        if (in_array((int) $user->profile_id, Project::FULL_ACCESS_PROFILES, true)) {
+            return true;
+        }
+
+        return $this->isImportsDepartmentMember($user);
+    }
+
+    private function isImportsDepartmentMember($user): bool
+    {
         $department = TickDepartment::where('name', 'like', 'Importaciones%')->first();
         if (!$department) return false;
 
@@ -1235,6 +1257,7 @@ class ProjectWorkspace extends Component
             'usersList' => $usersList,
             'isParticipant' => $isParticipant,
             'canSeeMaterialRequests' => $this->canSeeMaterialRequests(),
+            'canSeeFinishedProducts' => $this->canSeeFinishedProducts(),
         ])->layout('layouts.app', ['header' => 'Espacio de Trabajo: ' . $project->title]);
     }
 }
