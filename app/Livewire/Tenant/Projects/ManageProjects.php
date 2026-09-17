@@ -271,18 +271,34 @@ class ManageProjects extends Component
     }
 
     /**
+     * IDs de usuarios de ESTA empresa (tenant actual) con un Perfil dado.
+     * `users` es una tabla central compartida por toda la plataforma — sin
+     * este filtro, un profile_id trae usuarios de otras empresas también.
+     */
+    private function usersWithProfile(int $profileId): array
+    {
+        return User::where('profile_id', $profileId)
+            ->whereHas('tenants', function ($q) {
+                $q->where('tenants.id', session('tenant_id'));
+            })
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
      * Usuario "Dirigido a" por defecto para proyectos creados por un
      * Vendedor POS: el primer usuario activo con Perfil "Laboratorio".
      */
     private function defaultSalespersonResponsibleId(): ?int
     {
-        $userId = User::where('profile_id', self::LABORATORIO_PROFILE_ID)->value('id');
+        $ids = $this->usersWithProfile(self::LABORATORIO_PROFILE_ID);
 
-        if (!$userId) {
-            Log::warning('No hay ningún usuario con Perfil id ' . self::LABORATORIO_PROFILE_ID . ' (Laboratorio) — no se pudo asignar "Dirigido a" automático.');
+        if (empty($ids)) {
+            Log::warning('No hay ningún usuario de esta empresa con Perfil id ' . self::LABORATORIO_PROFILE_ID . ' (Laboratorio) — no se pudo asignar "Dirigido a" automático.');
+            return null;
         }
 
-        return $userId ? (int) $userId : null;
+        return (int) $ids[0];
     }
 
     /**
@@ -290,15 +306,13 @@ class ManageProjects extends Component
      * todos los usuarios con Perfil Vendedor POS + Perfil "Importaciones"
      * (Camilo, necesita ver el proyecto para revisar la Solicitud de
      * Materiales y generar la Salida de Mercancía) + Perfil "Administrador"
-     * + el responsable (Perfil "Laboratorio").
+     * + el responsable (Perfil "Laboratorio") — todos de esta empresa.
      */
     private function defaultSalespersonParticipantIds(): array
     {
-        $ids = User::where('profile_id', self::SALESPERSON_PROFILE_ID)->pluck('id')->all();
-
-        $ids = array_merge($ids, User::where('profile_id', self::ADMIN_PROFILE_ID)->pluck('id')->all());
-
-        $ids = array_merge($ids, User::where('profile_id', self::IMPORTACIONES_PROFILE_ID)->pluck('id')->all());
+        $ids = $this->usersWithProfile(self::SALESPERSON_PROFILE_ID);
+        $ids = array_merge($ids, $this->usersWithProfile(self::ADMIN_PROFILE_ID));
+        $ids = array_merge($ids, $this->usersWithProfile(self::IMPORTACIONES_PROFILE_ID));
 
         $responsibleId = $this->defaultSalespersonResponsibleId();
         if ($responsibleId) {
