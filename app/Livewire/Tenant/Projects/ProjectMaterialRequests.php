@@ -228,7 +228,11 @@ class ProjectMaterialRequests extends Component
      */
     private function notifyImportsDepartment(ProjectMaterialRequest $request): void
     {
-        $recipientIds = User::where('profile_id', self::IMPORTACIONES_PROFILE_ID)->pluck('id')->toArray();
+        $recipientIds = User::where('profile_id', self::IMPORTACIONES_PROFILE_ID)
+            ->whereHas('tenants', function ($q) {
+                $q->where('tenants.id', session('tenant_id'));
+            })
+            ->pluck('id')->toArray();
         if (empty($recipientIds)) return;
 
         $project = Project::find($this->projectId);
