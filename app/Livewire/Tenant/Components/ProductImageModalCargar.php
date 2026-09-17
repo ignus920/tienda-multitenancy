@@ -18,6 +18,13 @@ class ProductImageModalCargar extends Component
     public $isOpen = false;
     public $productId;
     public $productName;
+
+    /**
+     * Cuando es true, el componente se usa EMPOTRADO dentro de otra pantalla
+     * (la pestaña "Fotos" de Editar Item) — sin el fondo oscuro, encabezado
+     * ni botón "Cerrar" de modal, porque ya está dentro de otro modal.
+     */
+    public $embedded = false;
     
     // Para subida de archivos
     public $mainImage;
@@ -33,8 +40,10 @@ class ProductImageModalCargar extends Component
         'galleryImages.*' => 'nullable|mimes:jpg,jpeg,png,webp,pdf|max:2048',
     ];
  
-    public function mount(\App\Services\Tenant\WordPress\WordPressService $wpService, $productId = null)
+    public function mount(\App\Services\Tenant\WordPress\WordPressService $wpService, $productId = null, $embedded = false)
     {
+        $this->embedded = $embedded;
+
         if ($productId) {
             $this->open($productId, $wpService);
         }

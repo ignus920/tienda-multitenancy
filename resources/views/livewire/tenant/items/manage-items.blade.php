@@ -1103,7 +1103,7 @@
                         @livewire('tenant.items.item-suggested-products', ['itemId' => $item_id], key('sugg-'.$item_id))
                     @elseif($showImagesSection)
                         <div class="p-6">
-                            @livewire('tenant.items.item-image-upload', ['itemId' => $item_id], key('img-'.$item_id))
+                            @livewire('tenant.components.product-image-modal-cargar', ['productId' => $item_id, 'embedded' => true], key('img-embed-'.$item_id))
                         </div>
                     @elseif($showWebB2bSection)
                         <div class="p-6 space-y-6">
