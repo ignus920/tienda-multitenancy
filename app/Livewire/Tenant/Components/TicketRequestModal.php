@@ -10,6 +10,7 @@ use App\Models\Tenant\Tickets\TickDepartment;
 use App\Models\Tenant\Tickets\TickRequest;
 use App\Models\Tenant\Tickets\TickStatus;
 use App\Models\Tenant\Tickets\TickRequestHistory;
+use App\Models\Tenant\UsrNotification;
 use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Items\Items;
@@ -459,6 +460,25 @@ class TicketRequestModal extends Component
                     'user_id' => auth()->id(),
                     'message' => $this->detail,
                 ]);
+
+                // Avisar a los usuarios asignados a ese departamento (pestaña
+                // "Tareas por hacer" de la campana) — sin esto, la solicitud
+                // quedaba solo en el listado, sin que nadie se enterara.
+                $department = TickDepartment::find($this->department_id);
+                $recipientIds = $department
+                    ? $department->users()->wherePivot('status', 1)->pluck('users.id')->toArray()
+                    : [];
+
+                UsrNotification::notify(
+                    $recipientIds,
+                    'tickets',
+                    TickRequest::class,
+                    $request->id,
+                    'Nueva solicitud: ' . ($department->name ?? 'Departamento'),
+                    trim(strip_tags($this->detail)),
+                    route('tenant.tickets', ['requestId' => $request->id, 'type' => 'internal']),
+                    auth()->id()
+                );
 
                 $this->dispatch('show-toast', [
                     'type' => 'success',

@@ -221,6 +221,9 @@
                         hideClass: {
                             popup: 'swal2-hide-slide-right'
                         },
+                        customClass: {
+                            container: 'swal-z-index-fix'
+                        },
                         didOpen: (toast) => {
                             toast.addEventListener('mouseenter', Swal.stopTimer)
                             toast.addEventListener('mouseleave', Swal.resumeTimer)
