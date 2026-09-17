@@ -175,6 +175,9 @@
                             <!-- Header de la tarjeta -->
                             <div class="flex items-start justify-between gap-2 mb-2">
                                 <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="px-2 py-0.5 text-2xs font-bold rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="ID del proyecto">
+                                        #{{ $project->id }}
+                                    </span>
                                     <span class="px-2 py-0.5 text-2xs font-bold rounded-full {{ $statusColors[$project->status] ?? 'bg-gray-50' }}">
                                         {{ $statusNames[$project->status] ?? $project->status }}
                                     </span>
