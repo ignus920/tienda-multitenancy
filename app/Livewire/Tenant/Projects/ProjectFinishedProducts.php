@@ -13,7 +13,6 @@ use App\Models\Tenant\Movements\InvInventoryAdjustment;
 use App\Models\Tenant\Movements\InvDetailInventoryAdjustment;
 use App\Models\Tenant\Movements\InvReason;
 use App\Models\Tenant\Movements\InvStore;
-use App\Models\Tenant\Tickets\TickDepartment;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Movements\MovementsService;
@@ -24,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 class ProjectFinishedProducts extends Component
 {
     const ENTRY_REASON_NAME = 'Entrada por Producto Terminado';
-    const IMPORTS_DEPARTMENT_NAME = 'Importaciones';
+    const IMPORTACIONES_PROFILE_ID = 21;
 
     public $projectId;
 
@@ -81,8 +80,9 @@ class ProjectFinishedProducts extends Component
     }
 
     /**
-     * Solo Importaciones (Camilo) o Super Administrador/Administrador —
-     * Laboratorio NO debe ver ni gestionar esta pestaña.
+     * Solo Perfil "Importaciones" (Camilo hoy lo tiene) o Super
+     * Administrador/Administrador — Laboratorio NO debe ver ni gestionar
+     * esta pestaña.
      */
     private function canManage(): bool
     {
@@ -93,14 +93,7 @@ class ProjectFinishedProducts extends Component
             return true;
         }
 
-        $department = TickDepartment::where('name', 'like', self::IMPORTS_DEPARTMENT_NAME . '%')->first();
-        if (!$department) return false;
-
-        return DB::connection('tenant')->table('tick_department_user')
-            ->where('department_id', $department->id)
-            ->where('user_id', $user->id)
-            ->where('status', 1)
-            ->exists();
+        return (int) $user->profile_id === self::IMPORTACIONES_PROFILE_ID;
     }
 
     private function checkCanManage(): bool
