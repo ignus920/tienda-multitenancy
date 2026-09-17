@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-    <div class="max-w-6xl mx-auto">
+    <div class="w-full">
 
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 mb-4">
             <div class="flex justify-between items-center flex-wrap gap-3">
