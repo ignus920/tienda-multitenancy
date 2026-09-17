@@ -31,6 +31,7 @@ class ManageProjects extends Component
     const SALESPERSON_PROFILE_ID = 4;
     const RESPONSIBLE_DEPARTMENT_NAME = 'Proyectos - Responsable';
     const PARTICIPANTS_DEPARTMENT_NAME = 'Proyectos - Participantes';
+    const IMPORTS_DEPARTMENT_NAME = 'Importaciones';
 
     // Búsqueda y filtrado
     public $search = '';
@@ -282,19 +283,22 @@ class ManageProjects extends Component
             return null;
         }
 
-        $userId = $department->users()->wherePivot('status', 1)->value('users.id');
+        $ids = $this->departmentUserIds($department);
 
-        if (!$userId) {
+        if (empty($ids)) {
             Log::warning('Departamento "' . self::RESPONSIBLE_DEPARTMENT_NAME . '" no tiene usuario asignado.');
+            return null;
         }
 
-        return $userId ? (int) $userId : null;
+        return $ids[0];
     }
 
     /**
      * Participantes por defecto para proyectos creados por un Vendedor POS:
      * todos los usuarios con perfil Vendedor POS + los asignados al
-     * departamento "Proyectos - Participantes" + el responsable.
+     * departamento "Proyectos - Participantes" + Importaciones (Camilo,
+     * necesita ver el proyecto para revisar la Solicitud de Materiales y
+     * generar la Salida de Mercancía) + el responsable.
      */
     private function defaultSalespersonParticipantIds(): array
     {
@@ -302,9 +306,16 @@ class ManageProjects extends Component
 
         $department = TickDepartment::where('name', self::PARTICIPANTS_DEPARTMENT_NAME)->first();
         if ($department) {
-            $ids = array_merge($ids, $department->users()->wherePivot('status', 1)->pluck('users.id')->all());
+            $ids = array_merge($ids, $this->departmentUserIds($department));
         } else {
             Log::warning('Departamento "' . self::PARTICIPANTS_DEPARTMENT_NAME . '" no configurado.');
+        }
+
+        $importsDepartment = TickDepartment::where('name', 'like', self::IMPORTS_DEPARTMENT_NAME . '%')->first();
+        if ($importsDepartment) {
+            $ids = array_merge($ids, $this->departmentUserIds($importsDepartment));
+        } else {
+            Log::warning('Departamento "' . self::IMPORTS_DEPARTMENT_NAME . '" no configurado.');
         }
 
         $responsibleId = $this->defaultSalespersonResponsibleId();
@@ -313,6 +324,23 @@ class ManageProjects extends Component
         }
 
         return array_values(array_unique(array_map('intval', $ids)));
+    }
+
+    /**
+     * IDs de usuarios activos de un departamento. Consulta directa en la
+     * conexión tenant — evitar el JOIN cruzado central/tenant de
+     * TickDepartment::users() (User vive en central, tick_department_user
+     * vive en tenant), que falla en producción si el nombre de la BD
+     * tenant no queda resuelto en ese momento.
+     */
+    private function departmentUserIds(TickDepartment $department): array
+    {
+        return DB::connection('tenant')->table('tick_department_user')
+            ->where('department_id', $department->id)
+            ->where('status', 1)
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     public function markNotificationAsSeen($mentionId)
