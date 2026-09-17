@@ -69,6 +69,18 @@
                     class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Materiales
                 </button>
+                @if($canSeeMaterialRequests)
+                <button wire:click="$set('activeTab', 'solicitud_materiales')"
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'solicitud_materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Solicitud de Materiales
+                </button>
+                @endif
+                @if($canSeeFinishedProducts)
+                <button wire:click="$set('activeTab', 'producto_terminado')"
+                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'producto_terminado' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    Producto Terminado
+                </button>
+                @endif
                 <button wire:click="$set('activeTab', 'participantes')"
                     class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'participantes' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Participantes
@@ -77,18 +89,6 @@
                     class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'archivos' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Archivos
                 </button>
-                @if($canSeeFinishedProducts)
-                <button wire:click="$set('activeTab', 'producto_terminado')"
-                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'producto_terminado' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-                    Producto Terminado
-                </button>
-                @endif
-                @if($canSeeMaterialRequests)
-                <button wire:click="$set('activeTab', 'solicitud_materiales')"
-                    class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'solicitud_materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
-                    Solicitud de Materiales
-                </button>
-                @endif
                 <button wire:click="$set('showTasksListModal', true)"
                     class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors bg-blue-600 text-white hover:bg-blue-700 font-bold ml-2 shadow-sm">
                     Lista de Tareas
