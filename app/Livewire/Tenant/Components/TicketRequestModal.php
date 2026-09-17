@@ -464,9 +464,17 @@ class TicketRequestModal extends Component
                 // Avisar a los usuarios asignados a ese departamento (pestaña
                 // "Tareas por hacer" de la campana) — sin esto, la solicitud
                 // quedaba solo en el listado, sin que nadie se enterara.
+                // Consulta directa en la conexión tenant — evitar el JOIN
+                // cruzado central/tenant de TickDepartment::users() (User
+                // vive en central, tick_department_user vive en tenant),
+                // que falla o da resultados vacíos en producción.
                 $department = TickDepartment::find($this->department_id);
                 $recipientIds = $department
-                    ? $department->users()->wherePivot('status', 1)->pluck('users.id')->toArray()
+                    ? DB::connection('tenant')->table('tick_department_user')
+                        ->where('department_id', $department->id)
+                        ->where('status', 1)
+                        ->pluck('user_id')
+                        ->toArray()
                     : [];
 
                 UsrNotification::notify(
