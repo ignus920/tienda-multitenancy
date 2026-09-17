@@ -1,5 +1,14 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-6" x-data="{}">
-    <div class="max-w-6xl mx-auto space-y-4">
+    <div class="w-full space-y-4">
+
+        <div>
+            <a href="{{ route('tenant.cost-calculations') }}" wire:navigate class="text-indigo-600 dark:text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Volver a Cálculo de Costos
+            </a>
+        </div>
 
         <!-- Header -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
