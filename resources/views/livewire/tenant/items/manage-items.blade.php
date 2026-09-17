@@ -73,6 +73,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
+                    @if($hasFullItemEditAccess)
                     <button wire:click="create"
                         class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,6 +81,7 @@
                         </svg>
                         Crear Nuevo
                     </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -496,13 +498,14 @@
 
                             <nav class="flex flex-nowrap items-center gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5 overflow-x-auto scroll-smooth"
                                 style="scrollbar-width: thin;" aria-label="Tabs">
+                                @if($hasFullItemEditAccess)
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     @mouseenter="showTip($event, 'Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.')" @mouseleave="tipVisible = false"
                                     class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
-                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showSuggestedProductsSection) && !@js($showWebB2bSection),
-                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showSuggestedProductsSection) || @js($showWebB2bSection)}">
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showSuggestedProductsSection) && !@js($showWebB2bSection) && !@js($showImagesSection),
+                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showSuggestedProductsSection) || @js($showWebB2bSection) || @js($showImagesSection)}">
                                     Información General
                                 </button>
 
@@ -541,6 +544,19 @@
                                     Accesorios
                                 </button>
                                 @endif
+                                @endif
+
+                                <!-- Pestaña Fotos - Siempre visible al editar -->
+                                @if($item_id)
+                                <button type="button" wire:click="activateImagesSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
+                                    @mouseenter="showTip($event, 'Imagen principal y galería de fotos/PDF del producto.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showImagesSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showImagesSection)}">
+                                    Fotos
+                                </button>
+                                @endif
 
                                 <!-- Pestaña Productos Sugeridos - No visible para items tipo INSUMO -->
                                 @if($type !== 'INSUMO')
@@ -555,7 +571,7 @@
                                 @endif
 
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
-                                @if ($inventoriable === 1)
+                                @if ($inventoriable === 1 && $hasFullItemEditAccess)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     @mouseenter="showTip($event, 'Dimensiones del producto y escalas de corte / venta por cantidad.')" @mouseleave="tipVisible = false"
@@ -589,16 +605,16 @@
 
                 <!-- Contenido según la pestaña activa -->
                 @php
-                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection))
+                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection))
                         ? 'general'
-                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web'))));
+                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showImagesSection ? 'img' : 'web')))));
                 @endphp
                 {{-- Wrapper con key que CAMBIA por pestaña: fuerza a Livewire a reemplazar
                      todo el subarbol al cambiar de pestana, en vez de intentar hacer patch
                      de los bloques condicionales de una pestana sobre los de otra (eso
                      desbalanceaba los marcadores de bloque y reventaba el morph). --}}
                 <div wire:key="items-tabcontent-{{ $item_id ?: 'new' }}-{{ $__activeItemTab }}">
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection))
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection))
                 <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
@@ -1027,25 +1043,6 @@
                                     </button>
                                 </div>
                             </div>
-                        @endif                        
-
-                        <!-- Sección de Galería de Imágenes -->
-                        @if ($item_id)
-                        <div class="border-t border-gray-300 dark:border-gray-600 my-6"></div>
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                Imágenes del Producto
-                            </h3>
-                            <button type="button" @click="$dispatch('openImageModalCargar', { productId: {{ $item_id }} })"
-                                class="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg hover:bg-indigo-200 transition-colors">
-                                Gestionar Galería
-                            </button>
-                        </div>
                         @endif
 
                         <!-- Mensajes -->
@@ -1086,9 +1083,9 @@
                     </div>
                 </form>
                 </div>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection))
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection || $showImagesSection))
                     @php
-                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web_b2b')));
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showImagesSection ? 'img' : 'web_b2b'))));
                     @endphp
                     <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
@@ -1104,6 +1101,10 @@
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @elseif($showSuggestedProductsSection)
                         @livewire('tenant.items.item-suggested-products', ['itemId' => $item_id], key('sugg-'.$item_id))
+                    @elseif($showImagesSection)
+                        <div class="p-6">
+                            @livewire('tenant.items.item-image-upload', ['itemId' => $item_id], key('img-'.$item_id))
+                        </div>
                     @elseif($showWebB2bSection)
                         <div class="p-6 space-y-6">
                             <!-- SECCIÓN 1: PARÁMETROS DE PÁGINA WEB (WOOCOMMERCE) -->
