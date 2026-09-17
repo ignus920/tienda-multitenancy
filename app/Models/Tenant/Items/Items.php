@@ -38,6 +38,7 @@ class Items extends Model
         'generic',
         'status',
         'handles_serial',
+        'is_cuttable',
     ];
 
     /**

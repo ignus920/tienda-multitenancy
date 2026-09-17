@@ -230,6 +230,9 @@ require __DIR__ . '/tenants/portal.php';
 // Incluir rutas del módulo de marketing (sliders de promociones)
 require __DIR__ . '/tenants/marketing.php';
 
+// Incluir rutas del módulo de Cálculo de Costos
+require __DIR__ . '/tenants/cost-calculations.php';
+
 
 
 

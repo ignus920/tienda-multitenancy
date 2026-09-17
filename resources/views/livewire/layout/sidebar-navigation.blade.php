@@ -267,7 +267,11 @@ new class extends Component
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.gestion') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
                     Gestión
                 </a>
-                
+                <a href="{{ route('tenant.cost-calculations') }}" wire:navigate
+                    class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.cost-calculations*') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
+                    Cálculo de Costos
+                </a>
+
             </div>
 
             <!-- Submenú desplegable (para sidebar colapsado) -->
@@ -283,6 +287,8 @@ new class extends Component
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Pedidos</a>
                 <a href="{{ route('tenant.gestion') }}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Gestión</a>
+                <a href="{{ route('tenant.cost-calculations') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Cálculo de Costos</a>
             </div>
         </div>
         @endif
