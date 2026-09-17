@@ -143,6 +143,20 @@ class ManageItems extends Component
     public $showAccesoriosSection = false;
     public $showSuggestedProductsSection = false;
     public $showWebB2bSection = false;
+    public $showImagesSection = false;
+
+    /**
+     * Perfiles Analista y Mercadeo: al editar un item, solo pueden ver/usar
+     * las pestañas Fotos, Sugeridos y Página Web/B2B — el resto (datos
+     * generales, importado, producción, accesorios, medidas) queda oculto
+     * y bloqueado también del lado servidor, no solo el botón.
+     */
+    const RESTRICTED_EDIT_PROFILE_IDS = [3, 19];
+
+    private function hasFullItemEditAccess(): bool
+    {
+        return !in_array((int) (Auth::user()->profile_id ?? 0), self::RESTRICTED_EDIT_PROFILE_IDS, true);
+    }
     public $scale_1_qty;
     public $scale_1_discount;
     public $scale_2_qty;
@@ -385,6 +399,13 @@ class ManageItems extends Component
         $this->showAccesoriosSection = false;
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
+
+        // Analista/Mercadeo no ven Información General — aterrizan directo
+        // en la pestaña Fotos, la primera que sí tienen permitida.
+        if (!$this->hasFullItemEditAccess()) {
+            $this->showImagesSection = true;
+        }
 
         $this->showModal = true;
     }
@@ -538,7 +559,8 @@ class ManageItems extends Component
         return view('livewire.tenant.items.manage-items', [
             'items' => $items,
             'categories' => Category::where('status', 1)->get(),
-            'types' => $this->types
+            'types' => $this->types,
+            'hasFullItemEditAccess' => $this->hasFullItemEditAccess(),
         ]);
     }
 
@@ -574,6 +596,11 @@ class ManageItems extends Component
 
     public function create()
     {
+        if (!$this->hasFullItemEditAccess()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para crear items nuevos.']);
+            return;
+        }
+
         $this->resetExcept(['categories', 'types', 'allLabelsValues', 'showCommand']); // No reseteamos las listas de opciones
         $this->showModal = true;
 
@@ -591,6 +618,11 @@ class ManageItems extends Component
 
     public function save()
     {
+        if (!$this->hasFullItemEditAccess()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para editar la información general de items.']);
+            return;
+        }
+
         $this->ensureTenantConnection();
         $this->validate();
 
@@ -2409,6 +2441,25 @@ class ManageItems extends Component
 
     public function showGeneralInfo()
     {
+        // Analista/Mercadeo no pueden volver a Información General — se
+        // quedan en Fotos, aunque intenten forzar este método.
+        if (!$this->hasFullItemEditAccess()) {
+            $this->activateImagesSection($this->item_id);
+            return;
+        }
+
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
+        $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
+    }
+
+    public function activateImagesSection(int $item_id): void
+    {
+        $this->item_id = $item_id;
+        $this->showImagesSection = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
@@ -2418,12 +2469,18 @@ class ManageItems extends Component
 
     public function activateAccesoriosSection(int $item_id): void
     {
+        if (!$this->hasFullItemEditAccess()) {
+            $this->activateImagesSection($item_id);
+            return;
+        }
+
         $this->item_id = $item_id;
         $this->showAccesoriosSection = true;
         $this->showProductionSection = false;
         $this->showDimensionSection = false;
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
     }
 
     public function activateSuggestedProductsSection(int $item_id): void
@@ -2434,20 +2491,32 @@ class ManageItems extends Component
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
         $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
     }
 
     public function showImportSection($item_id)
     {
+        if (!$this->hasFullItemEditAccess()) {
+            $this->activateImagesSection($item_id);
+            return;
+        }
+
         $this->item_id = $item_id;
         $this->showProductionSection = true;
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
     }
 
     public function showProductionSection($item_id)
     {
+        if (!$this->hasFullItemEditAccess()) {
+            $this->activateImagesSection($item_id);
+            return;
+        }
+
         Log::info('🏭 showProductionSection llamado', [
             'item_id' => $item_id,
             'type'    => $this->type,
@@ -2458,10 +2527,16 @@ class ManageItems extends Component
         $this->showAccesoriosSection = false;
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
     }
 
     public function activateDimensionSection($item_id)
     {
+        if (!$this->hasFullItemEditAccess()) {
+            $this->activateImagesSection($item_id);
+            return;
+        }
+
         Log::info('📏 showDimensionSection llamado', [
             'item_id' => $item_id,
             'type'    => $this->type,
@@ -2473,6 +2548,7 @@ class ManageItems extends Component
         $this->showAccesoriosSection = false;
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
     }
 
     public function activateWebB2bSection($item_id)
@@ -2485,6 +2561,7 @@ class ManageItems extends Component
         $this->showDimensionSection = false;
         $this->showAccesoriosSection = false;
         $this->showSuggestedProductsSection = false;
+        $this->showImagesSection = false;
 
         $storeRecord = InvItemsStore::where('itemId', $item_id)->first();
         if ($storeRecord) {
