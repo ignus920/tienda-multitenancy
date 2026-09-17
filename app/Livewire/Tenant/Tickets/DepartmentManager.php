@@ -70,9 +70,20 @@ class DepartmentManager extends Component
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
 
+        // Contar solo las filas cuyo usuario sigue siendo válido HOY para
+        // esta empresa (mismo criterio que Usuarios Disponibles/Asignados:
+        // de este tenant, y que no sea Proveedor/Cliente) — si no, filas
+        // viejas de usuarios borrados o de otra empresa inflan el número
+        // aunque no aparezcan en la lista.
+        $sessionTenant = session('tenant_id');
+        $validUserIds = User::whereHas('tenants', function ($q) use ($sessionTenant) {
+            $q->where('tenants.id', $sessionTenant);
+        })->whereNotIn('profile_id', [17, 18])->pluck('id');
+
         $userCounts = DB::connection('tenant')->table('tick_department_user')
             ->selectRaw('department_id, count(*) as total')
             ->whereIn('department_id', $departments->pluck('id'))
+            ->whereIn('user_id', $validUserIds)
             ->groupBy('department_id')
             ->pluck('total', 'department_id');
 
@@ -111,20 +122,11 @@ class DepartmentManager extends Component
 
     public function loadUsers()
     {
-        $sessionTenant = session('tenant_id');
-        // Cargamos solo los usuarios vinculados al tenant actual y que NO sean proveedores (perfil 17) ni clientes (perfil 18)
-        $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
-            $query->where('tenants.id', $sessionTenant);
-        })
-        ->whereNotIn('profile_id', [17, 18])
-        ->get(['users.id', 'users.name']);
-
         if ($this->departmentId) {
             $this->assignedUsers = $this->departmentUserIds($this->departmentId);
         }
 
-        $this->availableUsers = $allUsers->whereNotIn('id', $this->assignedUsers)->toArray();
-        $this->assignedUsersList = $allUsers->whereIn('id', $this->assignedUsers)->toArray();
+        $this->updateUserLists();
     }
 
     /**
@@ -169,7 +171,14 @@ class DepartmentManager extends Component
         })
         ->whereNotIn('profile_id', [17, 18])
         ->get(['users.id', 'users.name']);
-        
+
+        // Podar cualquier id que ya no sea válido hoy (usuario borrado, de
+        // otra empresa, o que ahora es Proveedor/Cliente) — así lo que se
+        // guarda al final coincide con lo que se ve en pantalla, y de paso
+        // limpia filas viejas de la tabla pivote la próxima vez que se
+        // guarde este departamento.
+        $this->assignedUsers = $allUsers->pluck('id')->intersect($this->assignedUsers)->values()->all();
+
         $this->availableUsers = $allUsers->whereNotIn('id', $this->assignedUsers)->toArray();
         $this->assignedUsersList = $allUsers->whereIn('id', $this->assignedUsers)->toArray();
     }
