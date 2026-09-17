@@ -165,18 +165,18 @@
                                         <thead class="bg-gray-100 dark:bg-gray-800">
                                             <tr>
                                                 <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Cant.</th>
+                                                <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Obs.</th>
                                                 <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Precio Unit.</th>
                                                 <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total</th>
-                                                <th scope="col" class="px-2 py-1.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Obs.</th>
                                             </tr>
                                         </thead>
                                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                             @foreach($project->orders as $orderItem)
                                             <tr>
                                                 <td class="px-2 py-1.5 whitespace-nowrap text-xs font-medium text-gray-900 dark:text-gray-100">{{ $orderItem->qty }}</td>
+                                                <td class="px-2 py-1.5 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">{{ $orderItem->observations ?: '-' }}</td>
                                                 <td class="px-2 py-1.5 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">${{ number_format($orderItem->price_unit, 2) }}</td>
                                                 <td class="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100 font-bold">${{ number_format($orderItem->total_value, 2) }}</td>
-                                                <td class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]" title="{{ $orderItem->observations }}">{{ $orderItem->observations ?: '-' }}</td>
                                             </tr>
                                             @endforeach
                                         </tbody>
