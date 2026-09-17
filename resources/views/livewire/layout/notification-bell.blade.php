@@ -61,7 +61,7 @@
                 <button @click="tab = 'general'"
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'general', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'general' }"
                         class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Mensajes
+                    Proyectos
                     @if($unreadCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
                             {{ $unreadCount }}
@@ -83,7 +83,7 @@
                 <button @click="tab = 'unificado'"
                         :class="{ 'text-indigo-600 dark:text-indigo-400': tab === 'unificado', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300': tab !== 'unificado' }"
                         class="relative flex-1 py-3 px-1 text-[11px] sm:text-xs font-semibold text-center focus:outline-none transition-colors">
-                    Tareas asignadas
+                    Solicitudes
                     @php $unifiedCount = $taskCount + $operativeCount + $taskTodoCount; @endphp
                     @if($unifiedCount > 0)
                         <span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400">
