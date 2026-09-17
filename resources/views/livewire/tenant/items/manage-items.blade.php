@@ -1083,9 +1083,9 @@
                     </div>
                 </form>
                 </div>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection || $showImagesSection))
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection))
                     @php
-                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showImagesSection ? 'img' : 'web_b2b'))));
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web_b2b')));
                     @endphp
                     <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
@@ -1101,10 +1101,6 @@
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @elseif($showSuggestedProductsSection)
                         @livewire('tenant.items.item-suggested-products', ['itemId' => $item_id], key('sugg-'.$item_id))
-                    @elseif($showImagesSection)
-                        <div class="p-6">
-                            @livewire('tenant.components.product-image-modal-cargar', ['productId' => $item_id, 'embedded' => true], key('img-embed-'.$item_id))
-                        </div>
                     @elseif($showWebB2bSection)
                         <div class="p-6 space-y-6">
                             <!-- SECCIÓN 1: PARÁMETROS DE PÁGINA WEB (WOOCOMMERCE) -->
@@ -1350,6 +1346,24 @@
                     @endif
                 @endif
                 </div>{{-- /items-tabcontent wrapper --}}
+
+                <!-- Pestaña Fotos: se monta UNA SOLA VEZ (mientras exista item) y solo se
+                     muestra/oculta con Alpine, igual que "Modal Values" abajo — este
+                     componente tiene mucho estado interno con Alpine (visor, carrusel,
+                     zoom) y destruirlo/recrearlo cada vez que se cambia de pestaña
+                     (como hacían las demás pestañas anidadas) rompía esas referencias
+                     con "currentPreview is not defined" / "zoomedImage is not defined". -->
+                @if($item_id)
+                <div wire:key="images-tab-slot"
+                     x-data="{ open: @js((bool) $showImagesSection) }"
+                     x-init="$wire.$watch('showImagesSection', v => open = v)"
+                     x-show="open"
+                     x-cloak
+                     style="display:none"
+                     class="p-6">
+                    @livewire('tenant.components.product-image-modal-cargar', ['productId' => $item_id, 'embedded' => true], key('img-embed-'.$item_id))
+                </div>
+                @endif
 
             </div>
         </div>

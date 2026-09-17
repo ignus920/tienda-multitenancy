@@ -58,7 +58,17 @@
         @endunless
 
         <div class="{{ $embedded ? 'space-y-8' : 'p-6 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar' }}">
-            
+
+            @if($embedded && $productId && $hasWpProduct)
+            <div class="flex justify-end">
+                <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })"
+                        class="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-all border border-indigo-200 dark:border-indigo-800">
+                    <i class="fab fa-wordpress text-lg"></i>
+                    Sincronizar WP
+                </button>
+            </div>
+            @endif
+
             <!-- Pestañas de Navegación -->
             @php
                 $isAdmin = in_array($userProfileId, [1, 2]);
