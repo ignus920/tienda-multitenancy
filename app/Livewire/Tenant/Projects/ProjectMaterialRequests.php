@@ -9,9 +9,9 @@ use App\Models\Tenant\Projects\ProjectMaterialRequest;
 use App\Models\Tenant\Projects\ProjectMaterialRequestItem;
 use App\Models\Tenant\Projects\ProjectMessage;
 use App\Models\Tenant\Projects\ProjectNotification;
-use App\Models\Tenant\Tickets\TickDepartment;
 use App\Events\Tenant\Projects\NewProjectNotification;
 use App\Models\Auth\Tenant;
+use App\Models\Auth\User;
 use App\Services\Tenant\TenantManager;
 use App\Services\Tenant\Movements\MovementsService;
 use App\Models\Tenant\Movements\InvInventoryAdjustment;
@@ -28,7 +28,8 @@ use Illuminate\Support\Facades\Log;
 
 class ProjectMaterialRequests extends Component
 {
-    const IMPORTS_DEPARTMENT_NAME = 'Importaciones';
+    const IMPORTACIONES_PROFILE_ID = 21;
+    const LABORATORIO_PROFILE_ID = 20;
     const OUTBOUND_REASON_NAME = 'Salida a Proyecto';
 
     public $projectId;
@@ -84,7 +85,7 @@ class ProjectMaterialRequests extends Component
             return true;
         }
 
-        return strcasecmp($user->profile->name ?? '', 'Laboratorio') === 0;
+        return (int) $user->profile_id === self::LABORATORIO_PROFILE_ID;
     }
 
     private function checkCanManage(): bool
@@ -98,9 +99,8 @@ class ProjectMaterialRequests extends Component
 
     /**
      * ¿Puede este usuario revisar la solicitud ya enviada y generar la
-     * Salida de Mercancía? Miembros del departamento "Importaciones"
-     * (Parámetros → Departamentos — Camilo hoy está ahí) o Super
-     * Administrador/Administrador.
+     * Salida de Mercancía? Perfil "Importaciones" (Camilo hoy lo tiene) o
+     * Super Administrador/Administrador.
      */
     private function canManageOutbound(): bool
     {
@@ -111,17 +111,7 @@ class ProjectMaterialRequests extends Component
             return true;
         }
 
-        $department = TickDepartment::where('name', 'like', self::IMPORTS_DEPARTMENT_NAME . '%')->first();
-        if (!$department) return false;
-
-        // Consulta directa en la conexión tenant — evitar el JOIN cruzado
-        // central/tenant de TickDepartment::users(), que falla en producción
-        // si el nombre de la BD tenant no queda resuelto en ese momento.
-        return DB::connection('tenant')->table('tick_department_user')
-            ->where('department_id', $department->id)
-            ->where('user_id', $user->id)
-            ->where('status', 1)
-            ->exists();
+        return (int) $user->profile_id === self::IMPORTACIONES_PROFILE_ID;
     }
 
     /**
@@ -231,25 +221,14 @@ class ProjectMaterialRequests extends Component
     }
 
     /**
-     * Avisa a todos los usuarios del departamento "Importaciones" (Parámetros
-     * → Departamentos — Camilo hoy está ahí) usando la misma campana de
-     * notificaciones de Proyectos que ya existe y funciona, en vez de
-     * depender del sistema de notificaciones genérico que todavía no está
-     * disponible en esta rama.
+     * Avisa a todos los usuarios con Perfil "Importaciones" (Camilo hoy lo
+     * tiene) usando la misma campana de notificaciones de Proyectos que ya
+     * existe y funciona, en vez de depender del sistema de notificaciones
+     * genérico que todavía no está disponible en esta rama.
      */
     private function notifyImportsDepartment(ProjectMaterialRequest $request): void
     {
-        $department = TickDepartment::where('name', 'like', 'Importaciones%')->first();
-        if (!$department) return;
-
-        // Consulta directa en la conexión tenant — evitar el JOIN cruzado
-        // central/tenant de TickDepartment::users(), que falla en producción
-        // si el nombre de la BD tenant no queda resuelto en ese momento.
-        $recipientIds = DB::connection('tenant')->table('tick_department_user')
-            ->where('department_id', $department->id)
-            ->where('status', 1)
-            ->pluck('user_id')
-            ->toArray();
+        $recipientIds = User::where('profile_id', self::IMPORTACIONES_PROFILE_ID)->pluck('id')->toArray();
         if (empty($recipientIds)) return;
 
         $project = Project::find($this->projectId);

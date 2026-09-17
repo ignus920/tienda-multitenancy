@@ -20,16 +20,17 @@ use App\Models\Auth\User;
 use App\Models\Auth\Tenant;
 use App\Models\Tenant\Projects\ProjectTask;
 use App\Models\Tenant\Projects\ProjectTaskReassignment;
-use App\Models\Tenant\Tickets\TickDepartment;
 use App\Services\Tenant\TenantManager;
 use App\Events\Tenant\Projects\NewProjectNotification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ProjectWorkspace extends Component
 {
     use WithFileUploads;
+
+    const LABORATORIO_PROFILE_ID = 20;
+    const IMPORTACIONES_PROFILE_ID = 21;
 
     public $projectId;
 
@@ -1134,8 +1135,8 @@ class ProjectWorkspace extends Component
     /**
      * ¿Puede este usuario ver la pestaña "Solicitud de Materiales"?
      * Perfil Laboratorio (son quienes saben qué tienen de sobra antes de
-     * pedirle a Bodega), miembros del departamento Importaciones (revisan
-     * la solicitud y generan la Salida de Mercancía ahí mismo), o Super
+     * pedirle a Bodega), Perfil Importaciones (revisan la solicitud y
+     * generan la Salida de Mercancía ahí mismo), o Super
      * Administrador/Administrador.
      */
     private function canSeeMaterialRequests(): bool
@@ -1147,17 +1148,14 @@ class ProjectWorkspace extends Component
             return true;
         }
 
-        if (strcasecmp($user->profile->name ?? '', 'Laboratorio') === 0) {
-            return true;
-        }
-
-        return $this->isImportsDepartmentMember($user);
+        return in_array((int) $user->profile_id, [self::LABORATORIO_PROFILE_ID, self::IMPORTACIONES_PROFILE_ID], true);
     }
 
     /**
      * ¿Puede este usuario ver la pestaña "Producto Terminado"? Solo
-     * Importaciones (Camilo, quien registra la entrada de inventario) o
-     * Super Administrador/Administrador — Laboratorio NO debe verla.
+     * Perfil Importaciones (Camilo, quien registra la entrada de
+     * inventario) o Super Administrador/Administrador — Laboratorio NO
+     * debe verla.
      */
     private function canSeeFinishedProducts(): bool
     {
@@ -1168,23 +1166,7 @@ class ProjectWorkspace extends Component
             return true;
         }
 
-        return $this->isImportsDepartmentMember($user);
-    }
-
-    private function isImportsDepartmentMember($user): bool
-    {
-        $department = TickDepartment::where('name', 'like', 'Importaciones%')->first();
-        if (!$department) return false;
-
-        // Consulta directa en la conexión tenant — evitar el JOIN cruzado
-        // central/tenant de TickDepartment::users() (User vive en central,
-        // tick_department_user vive en tenant), que falla en producción si
-        // el nombre de la BD tenant no queda resuelto en ese momento.
-        return DB::connection('tenant')->table('tick_department_user')
-            ->where('department_id', $department->id)
-            ->where('user_id', $user->id)
-            ->where('status', 1)
-            ->exists();
+        return (int) $user->profile_id === self::IMPORTACIONES_PROFILE_ID;
     }
 
     public function render()

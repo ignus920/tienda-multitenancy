@@ -9,12 +9,10 @@ use App\Models\Tenant\Projects\ProjectMention;
 use App\Models\Tenant\Projects\ProjectParticipant;
 use App\Models\Tenant\Projects\ProjectQuestion;
 use App\Models\Tenant\Customer\VntCompany;
-use App\Models\Tenant\Tickets\TickDepartment;
 use App\Models\Auth\Tenant;
 use App\Models\Auth\User;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ManageProjects extends Component
@@ -23,15 +21,17 @@ class ManageProjects extends Component
 
     /**
      * Perfil "Vendedor POS". Cuando este perfil crea un proyecto, no elige
-     * participantes: se asignan automáticamente desde los departamentos
-     * "Proyectos - Responsable" y "Proyectos - Participantes" (Parámetros →
-     * Departamentos), para no dejar personas quemadas en código — si cambia
-     * quién es el responsable o algún participante, se ajusta desde ahí.
+     * participantes: se asignan automáticamente por Perfil (no por
+     * Departamento) — "Dirigido a" queda con quien tenga Perfil
+     * "Laboratorio", y como participantes fijos entran todos los Vendedor
+     * POS + todos los Perfil "Importaciones" + todos los Perfil
+     * "Administrador". Así no hay que mantener departamentos aparte: si
+     * cambia quién tiene cada Perfil, se ajusta desde ahí.
      */
     const SALESPERSON_PROFILE_ID = 4;
-    const RESPONSIBLE_DEPARTMENT_NAME = 'Proyectos - Responsable';
-    const PARTICIPANTS_DEPARTMENT_NAME = 'Proyectos - Participantes';
-    const IMPORTS_DEPARTMENT_NAME = 'Importaciones';
+    const ADMIN_PROFILE_ID = 2;
+    const LABORATORIO_PROFILE_ID = 20;
+    const IMPORTACIONES_PROFILE_ID = 21;
 
     // Búsqueda y filtrado
     public $search = '';
@@ -272,51 +272,33 @@ class ManageProjects extends Component
 
     /**
      * Usuario "Dirigido a" por defecto para proyectos creados por un
-     * Vendedor POS: el asignado al departamento "Proyectos - Responsable".
+     * Vendedor POS: el primer usuario activo con Perfil "Laboratorio".
      */
     private function defaultSalespersonResponsibleId(): ?int
     {
-        $department = TickDepartment::where('name', self::RESPONSIBLE_DEPARTMENT_NAME)->first();
+        $userId = User::where('profile_id', self::LABORATORIO_PROFILE_ID)->value('id');
 
-        if (!$department) {
-            Log::warning('Departamento "' . self::RESPONSIBLE_DEPARTMENT_NAME . '" no configurado — no se pudo asignar "Dirigido a" automático.');
-            return null;
+        if (!$userId) {
+            Log::warning('No hay ningún usuario con Perfil id ' . self::LABORATORIO_PROFILE_ID . ' (Laboratorio) — no se pudo asignar "Dirigido a" automático.');
         }
 
-        $ids = $this->departmentUserIds($department);
-
-        if (empty($ids)) {
-            Log::warning('Departamento "' . self::RESPONSIBLE_DEPARTMENT_NAME . '" no tiene usuario asignado.');
-            return null;
-        }
-
-        return $ids[0];
+        return $userId ? (int) $userId : null;
     }
 
     /**
      * Participantes por defecto para proyectos creados por un Vendedor POS:
-     * todos los usuarios con perfil Vendedor POS + los asignados al
-     * departamento "Proyectos - Participantes" + Importaciones (Camilo,
-     * necesita ver el proyecto para revisar la Solicitud de Materiales y
-     * generar la Salida de Mercancía) + el responsable.
+     * todos los usuarios con Perfil Vendedor POS + Perfil "Importaciones"
+     * (Camilo, necesita ver el proyecto para revisar la Solicitud de
+     * Materiales y generar la Salida de Mercancía) + Perfil "Administrador"
+     * + el responsable (Perfil "Laboratorio").
      */
     private function defaultSalespersonParticipantIds(): array
     {
         $ids = User::where('profile_id', self::SALESPERSON_PROFILE_ID)->pluck('id')->all();
 
-        $department = TickDepartment::where('name', self::PARTICIPANTS_DEPARTMENT_NAME)->first();
-        if ($department) {
-            $ids = array_merge($ids, $this->departmentUserIds($department));
-        } else {
-            Log::warning('Departamento "' . self::PARTICIPANTS_DEPARTMENT_NAME . '" no configurado.');
-        }
+        $ids = array_merge($ids, User::where('profile_id', self::ADMIN_PROFILE_ID)->pluck('id')->all());
 
-        $importsDepartment = TickDepartment::where('name', 'like', self::IMPORTS_DEPARTMENT_NAME . '%')->first();
-        if ($importsDepartment) {
-            $ids = array_merge($ids, $this->departmentUserIds($importsDepartment));
-        } else {
-            Log::warning('Departamento "' . self::IMPORTS_DEPARTMENT_NAME . '" no configurado.');
-        }
+        $ids = array_merge($ids, User::where('profile_id', self::IMPORTACIONES_PROFILE_ID)->pluck('id')->all());
 
         $responsibleId = $this->defaultSalespersonResponsibleId();
         if ($responsibleId) {
@@ -324,23 +306,6 @@ class ManageProjects extends Component
         }
 
         return array_values(array_unique(array_map('intval', $ids)));
-    }
-
-    /**
-     * IDs de usuarios activos de un departamento. Consulta directa en la
-     * conexión tenant — evitar el JOIN cruzado central/tenant de
-     * TickDepartment::users() (User vive en central, tick_department_user
-     * vive en tenant), que falla en producción si el nombre de la BD
-     * tenant no queda resuelto en ese momento.
-     */
-    private function departmentUserIds(TickDepartment $department): array
-    {
-        return DB::connection('tenant')->table('tick_department_user')
-            ->where('department_id', $department->id)
-            ->where('status', 1)
-            ->pluck('user_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
     }
 
     public function markNotificationAsSeen($mentionId)
