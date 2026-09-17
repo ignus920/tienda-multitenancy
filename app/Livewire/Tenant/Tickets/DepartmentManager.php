@@ -98,11 +98,11 @@ class DepartmentManager extends Component
     public function loadUsers()
     {
         $sessionTenant = session('tenant_id');
-        // Cargamos solo los usuarios vinculados al tenant actual y que NO sean proveedores (perfil 17)
+        // Cargamos solo los usuarios vinculados al tenant actual y que NO sean proveedores (perfil 17) ni clientes (perfil 18)
         $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
             $query->where('tenants.id', $sessionTenant);
         })
-        ->where('profile_id', '!=', 17)
+        ->whereNotIn('profile_id', [17, 18])
         ->get(['users.id', 'users.name']);
 
         if ($this->departmentId) {
@@ -135,10 +135,11 @@ class DepartmentManager extends Component
     private function updateUserLists()
     {
         $sessionTenant = session('tenant_id');
+        // NO sean proveedores (perfil 17) ni clientes (perfil 18)
         $allUsers = User::whereHas('tenants', function ($query) use ($sessionTenant) {
             $query->where('tenants.id', $sessionTenant);
         })
-        ->where('profile_id', '!=', 17)
+        ->whereNotIn('profile_id', [17, 18])
         ->get(['users.id', 'users.name']);
         
         $this->availableUsers = $allUsers->whereNotIn('id', $this->assignedUsers)->toArray();
