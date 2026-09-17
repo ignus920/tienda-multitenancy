@@ -3434,9 +3434,16 @@ class Orders extends Component
 
             // Aviso a Importaciones justo cuando el producto ya quedó creado en
             // el ERP real (no al crear el borrador), tal como se solicitó.
+            // Consulta directa en la conexión tenant — evitar el JOIN cruzado
+            // central/tenant de TickDepartment::users() (User vive en
+            // central, tick_department_user vive en tenant), que falla o da
+            // resultados vacíos en producción.
             if ($newProduct->department_id) {
-                $recipientIds = TickDepartment::find($newProduct->department_id)
-                    ?->users()->wherePivot('status', 1)->pluck('users.id')->toArray() ?? [];
+                $recipientIds = DB::connection('tenant')->table('tick_department_user')
+                    ->where('department_id', $newProduct->department_id)
+                    ->where('status', 1)
+                    ->pluck('user_id')
+                    ->toArray();
 
                 UsrNotification::notify(
                     $recipientIds,
