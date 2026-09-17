@@ -608,6 +608,7 @@ class ProductQuoter extends Component
                     'inv_items.handles_serial',
                     'inv_items.status',
                     'inv_items.generic',
+                    'inv_items.is_cuttable',
                     'inv_items.created_at',
                     'inv_items.updated_at',
                     'inv_items.deleted_at',
