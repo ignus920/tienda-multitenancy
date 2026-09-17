@@ -61,10 +61,24 @@ class DepartmentManager extends Component
     public function render()
     {
         $this->ensureTenantConnection();
+        // No usamos withCount('users'): esa relación cruza central/tenant
+        // (User vive en central, tick_department_user vive en tenant) y
+        // falla o da resultados inconsistentes en producción. Contamos
+        // directo sobre la tabla pivote, que vive en la misma conexión
+        // tenant que tick_departments — sin cruce de bases de datos.
         $departments = TickDepartment::where('name', 'like', '%' . $this->search . '%')
-            ->withCount('users')
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
+
+        $userCounts = DB::connection('tenant')->table('tick_department_user')
+            ->selectRaw('department_id, count(*) as total')
+            ->whereIn('department_id', $departments->pluck('id'))
+            ->groupBy('department_id')
+            ->pluck('total', 'department_id');
+
+        foreach ($departments as $department) {
+            $department->users_count = $userCounts[$department->id] ?? 0;
+        }
 
         return view('livewire.tenant.tickets.department-manager', [
             'departments' => $departments
@@ -106,12 +120,26 @@ class DepartmentManager extends Component
         ->get(['users.id', 'users.name']);
 
         if ($this->departmentId) {
-            $department = TickDepartment::find($this->departmentId);
-            $this->assignedUsers = $department->users->pluck('id')->toArray();
+            $this->assignedUsers = $this->departmentUserIds($this->departmentId);
         }
 
         $this->availableUsers = $allUsers->whereNotIn('id', $this->assignedUsers)->toArray();
         $this->assignedUsersList = $allUsers->whereIn('id', $this->assignedUsers)->toArray();
+    }
+
+    /**
+     * IDs de usuarios asignados a un departamento. Consulta directa en la
+     * conexión tenant — evitar el JOIN cruzado central/tenant de
+     * TickDepartment::users() (User vive en central, tick_department_user
+     * vive en tenant), que falla o da resultados vacíos en producción.
+     */
+    private function departmentUserIds(int $departmentId): array
+    {
+        return DB::connection('tenant')->table('tick_department_user')
+            ->where('department_id', $departmentId)
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     public function assignUsers()
@@ -161,16 +189,16 @@ class DepartmentManager extends Component
     public function edit($id)
     {
         $this->ensureTenantConnection();
-        $department = TickDepartment::with('users')->findOrFail($id);
-        
+        $department = TickDepartment::findOrFail($id);
+
         $this->departmentId = $department->id;
         $this->name = $department->name;
         $this->description = $department->description;
         $this->status = $department->status;
-        
-        $this->assignedUsers = $department->users->pluck('id')->toArray();
+
+        $this->assignedUsers = $this->departmentUserIds($department->id);
         $this->updateUserLists();
-        
+
         $this->isModalOpen = true;
     }
 
@@ -185,7 +213,7 @@ class DepartmentManager extends Component
             'status' => $this->status,
         ];
 
-        DB::beginTransaction();
+        DB::connection('tenant')->beginTransaction();
         try {
             if ($this->departmentId) {
                 $department = TickDepartment::find($this->departmentId);
@@ -196,18 +224,41 @@ class DepartmentManager extends Component
                 $msg = 'Departamento creado exitosamente.';
             }
 
-            // Sincronizar usuarios (Pivot table)
-            $department->users()->sync($this->assignedUsers);
+            // Sincronizar usuarios (tabla pivote) — directo en la conexión
+            // tenant, sin pasar por TickDepartment::users()->sync() (esa
+            // relación cruza central/tenant y falla en producción).
+            $assignedUserIds = array_map('intval', $this->assignedUsers);
+            $now = now();
 
-            DB::commit();
+            DB::connection('tenant')->table('tick_department_user')
+                ->where('department_id', $department->id)
+                ->whereNotIn('user_id', $assignedUserIds)
+                ->delete();
+
+            $existingUserIds = $this->departmentUserIds($department->id);
+            $newUserIds = array_diff($assignedUserIds, $existingUserIds);
+
+            if (!empty($newUserIds)) {
+                DB::connection('tenant')->table('tick_department_user')->insert(
+                    array_map(fn ($userId) => [
+                        'department_id' => $department->id,
+                        'user_id' => $userId,
+                        'status' => 1,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ], $newUserIds)
+                );
+            }
+
+            DB::connection('tenant')->commit();
             $this->closeModal();
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => $msg
             ]);
-            
+
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             session()->flash('error', 'Error al procesar la solicitud: ' . $e->getMessage());
         }
     }
