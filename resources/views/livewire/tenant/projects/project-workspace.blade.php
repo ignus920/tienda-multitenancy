@@ -21,7 +21,7 @@
                 </a>
             </div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                {{ $project->title }}
+                <span class="text-indigo-600 dark:text-indigo-400">#{{ $project->id }}</span> {{ $project->title }}
                 @if($project->vencimiento_status === 'vencido')
                     <span class="px-2 py-0.5 text-2xs font-bold rounded-full bg-red-600 text-white">Vencido</span>
                 @elseif($project->vencimiento_status === 'proximo_vencer')
