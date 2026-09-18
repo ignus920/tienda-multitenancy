@@ -299,10 +299,11 @@ class MyTasksToday extends Component
         TaskComment::create([
             'task_id' => $this->detailTaskId,
             'user_id' => Auth::id(),
-            'comment' => $this->newComment,
+            'content' => $this->newComment,
         ]);
 
         $this->newComment = '';
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Comentario agregado.']);
     }
 
     public function openBlockModal($taskId)
