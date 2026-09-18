@@ -6,7 +6,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Parámetros contactos</h1>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ParÃ¡metros contactos</h1>
                     <p class="text-gray-600 dark:text-gray-400 mt-1">Gestion de registros</p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-start sm:items-start justify-start sm:justify-between gap-4">
@@ -60,7 +60,7 @@
             <!-- Toolbar -->
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <!-- Búsqueda -->
+                    <!-- BÃºsqueda -->
                     <div class="flex-1 max-w-md">
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -89,7 +89,7 @@
 
                     <!-- Controles -->
                     <div class="flex items-center gap-3">
-                        <!-- Registros por página -->
+                        <!-- Registros por pÃ¡gina -->
                         <div class="flex items-center gap-2">
                             <label class="text-sm text-gray-700 dark:text-gray-300">Mostrar:</label>
                             <select wire:model.live="perPage"
@@ -104,7 +104,7 @@
 
                         <!-- Botones de exportar -->
                         <div class="flex items-center gap-2">
-                            <!-- Botón Excel -->
+                            <!-- BotÃ³n Excel -->
                             <button wire:click="exportExcel"
                                 title="Exportar a Excel"
                                 class="inline-flex items-center justify-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
@@ -112,7 +112,7 @@
                                     <path d="M21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5M19,5H12V7H19V5M19,9H12V11H19V9M19,13H12V15H19V13M19,17H12V19H19V17M5,5V7H10V5H5M5,9V11H10V9H5M5,13V15H10V13H5M5,17V19H10V17H5Z" />
                                 </svg>
                             </button>
-                            <!-- Botón PDF -->
+                            <!-- BotÃ³n PDF -->
                             <button wire:click="exportPdf"
                                 title="Exportar a PDF"
                                 class="inline-flex items-center justify-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
@@ -120,7 +120,7 @@
                                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                                 </svg>
                             </button>
-                            <!-- Botón CSV -->
+                            <!-- BotÃ³n CSV -->
                             <button wire:click="exportCsv"
                                 title="Exportar a CSV"
                                 class="inline-flex items-center justify-center p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
@@ -158,7 +158,7 @@
                             <th wire:click="sortBy('businessName')"
                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none">
                                 <div class="flex items-center gap-1">
-                                    Razón Social
+                                    RazÃ³n Social
                                     @if($sortField === 'businessName')
                                     @if($sortDirection === 'asc')
                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -172,10 +172,10 @@
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Identificación</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">IdentificaciÃ³n</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sucursal</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Dirección</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Teléfono</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">DirecciÃ³n</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">TelÃ©fono</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Registro</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
@@ -191,7 +191,7 @@
                                 {{ $item->businessName ? $item->businessName :  trim($item->firstName . ' ' . $item->lastName)  }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                {{ $item->identification ?? 'Sin identificación' }}
+                                {{ $item->identification ?? 'Sin identificaciÃ³n' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $item->mainWarehouse->name ?? 'Sin sucursal' }}
@@ -225,7 +225,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <!-- Menú de tres puntos con Alpine.js -->
+                                <!-- MenÃº de tres puntos con Alpine.js -->
                                 <div x-data="{ open: false }" @click.outside="open = false"
                                     class="relative inline-block text-left static"
                                     style="position: static !important;">
@@ -236,7 +236,7 @@
                                         </svg>
                                     </button>
 
-                                    <!-- Menú desplegable -->
+                                    <!-- MenÃº desplegable -->
                                     <div x-show="open"
                                         x-transition:enter="transition ease-out duration-100"
                                         x-transition:enter-start="transform opacity-0 scale-95"
@@ -271,7 +271,7 @@
                                                 Contactos
                                             </button>
                                             <!-- <button wire:click="delete({{ $item->id }})"
-                                                wire:confirm="¿Estás seguro de eliminar este registro?"
+                                                wire:confirm="Â¿EstÃ¡s seguro de eliminar este registro?"
                                                 class="w-full text-left px-4 py-2 text-sm text-red-800 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -291,7 +291,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                     </svg>
                                     <p class="text-lg font-medium">No se encontraron registros</p>
-                                    <p class="text-sm">{{ $search ? 'Intenta ajustar tu búsqueda' : 'Comienza creando un nuevo registro' }}</p>
+                                    <p class="text-sm">{{ $search ? 'Intenta ajustar tu bÃºsqueda' : 'Comienza creando un nuevo registro' }}</p>
                                 </div>
                             </td>
                         </tr>
@@ -300,7 +300,7 @@
                 </table>
             </div>
 
-            <!-- Paginación -->
+            <!-- PaginaciÃ³n -->
             @if($items->hasPages())
             <div class="bg-white dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
                 <div class="flex items-center justify-between">
@@ -342,7 +342,7 @@
                         {{ $editingId ? 'Editar' : 'Crear' }} Contacto
                     </h3>
                 </div>
-                <!-- Alert de Errores de Validación -->
+                <!-- Alert de Errores de ValidaciÃ³n -->
                 @if (session()->has('error'))
                 <div x-data="{ showAlert: true }"
                     x-show="showAlert"
@@ -359,7 +359,7 @@
                         </svg>
                         <div class="flex-1">
                             <h4 class="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
-                                Error de Validación
+                                Error de ValidaciÃ³n
                             </h4>
                             <div class="text-sm text-red-700 dark:text-red-400">
                                 {!! session('error') !!}
@@ -392,15 +392,15 @@
                                 @error('type') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
                         @endif
-                        <!-- Tipo de Identificación -->
+                        <!-- Tipo de IdentificaciÃ³n -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Tipo de Identificación <span class="text-red-500">*</span>
+                                Tipo de IdentificaciÃ³n <span class="text-red-500">*</span>
                             </label>
                             @livewire('selects.type-identification-select', [
                             'typeIdentificationId' => $typeIdentificationId,
                             'name' => 'typeIdentificationId',
-                            'placeholder' => 'Seleccione un tipo de identificación',
+                            'placeholder' => 'Seleccione un tipo de identificaciÃ³n',
                             'label' => '',
                             'showLabel' => false,
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
@@ -410,7 +410,7 @@
                             @enderror
                         </div>
 
-                        <!-- NIT/Identificación con campo DV condicional -->
+                        <!-- NIT/IdentificaciÃ³n con campo DV condicional -->
                         @if($typeIdentificationId > 0)
                         @if($typeIdentificationId == 2)
                         <!-- NIT con DV -->
@@ -440,7 +440,7 @@
 
                                 @if($identificationExists && !$errors->has('identification'))
                                 <span class="text-red-500 text-sm">
-                                    Este número de identificación ya está registrado
+                                    Este nÃºmero de identificaciÃ³n ya estÃ¡ registrado
                                 </span>
                                 @endif
                             </div>
@@ -452,18 +452,18 @@
                                     oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 @error('verification_digit') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
-                            <!-- Se removió Tipo de Persona de aquí para ponerlo global -->
+                            <!-- Se removiÃ³ Tipo de Persona de aquÃ­ para ponerlo global -->
                         </div>
                         @else
-                        <!-- Otros tipos de identificación -->
+                        <!-- Otros tipos de identificaciÃ³n -->
                         <div>
-                            <label for="identification" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de Identificación *</label>
+                            <label for="identification" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">NÃºmero de IdentificaciÃ³n *</label>
                             <div class="relative">
                                 <input wire:model.live.debounce.500ms="identification" type="text" id="identification" maxlength="15"
                                     class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                            @error('identification') border-red-500 @enderror
                                            @if($identificationExists) border-red-500 @endif"
-                                    placeholder="Ingrese el número">
+                                    placeholder="Ingrese el nÃºmero">
 
                                 @if($validatingIdentification)
                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -481,7 +481,7 @@
 
                             @if($identificationExists && !$errors->has('identification'))
                             <span class="text-red-500 text-sm">
-                                Este número de identificación ya está registrado
+                                Este nÃºmero de identificaciÃ³n ya estÃ¡ registrado
                             </span>
                             @endif
                         </div>
@@ -495,12 +495,12 @@
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="">Seleccionar tipo</option>
                                 <option value="Natural" {{ $typePerson === 'Natural' ? 'selected' : '' }}>Persona Natural</option>
-                                <option value="Juridica" {{ $typePerson === 'Juridica' ? 'selected' : '' }}>Persona Jurídica</option>
+                                <option value="Juridica" {{ $typePerson === 'Juridica' ? 'selected' : '' }}>Persona JurÃ­dica</option>
                             </select>
                             @error('typePerson') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Campos condicionales según tipo de persona -->
+                        <!-- Campos condicionales segÃºn tipo de persona -->
                         @if($typePerson)
                         @if($typePerson == 'Natural' || $showNaturalPersonFields)
                         <!-- Persona Natural: Nombre y Apellido -->
@@ -539,12 +539,12 @@
                         </div>
 
                         @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
-                        <!-- Persona Jurídica: Razón Social -->
+                        <!-- Persona JurÃ­dica: RazÃ³n Social -->
                         <div>
-                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>
+                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">RazÃ³n Social *</label>
                             <input wire:model="businessName" type="text" id="businessName"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ingrese la razón social de la empresa">
+                                placeholder="Ingrese la razÃ³n social de la empresa">
                             @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
@@ -588,17 +588,17 @@
                         <div>
                             <!-- Selects para configuraciones fiscales -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Régimen -->
+                                <!-- RÃ©gimen -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Régimen <span class="text-red-500">*</span>
+                                        RÃ©gimen <span class="text-red-500">*</span>
                                     </label>
                                     @livewire('selects.regime-select', [
                                     'regimeId' => $regimeId,
                                     'name' => 'regimeId',
                                     'label' => '',
                                     'showLabel' => false,
-                                    'placeholder' => 'Seleccionar régimen',
+                                    'placeholder' => 'Seleccionar rÃ©gimen',
                                     'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
                                     ])
                                     @error('regimeId')
@@ -626,18 +626,18 @@
                             </div>
 
                         </div>
-                        <!-- Email de Facturación -->
-                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación</label>
+                        <!-- Email de FacturaciÃ³n -->
+                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de FacturaciÃ³n</label>
                             <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                  @error('billingEmail') border-red-500 @enderror
                                  @if($emailExists) border-red-500 @endif"
-                                placeholder="Ingrese el email de facturación" required>
+                                placeholder="Ingrese el email de facturaciÃ³n" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
 
                             @if($emailExists && !$errors->has('billingEmail'))
                             <span class="text-red-500 text-sm">
-                                Este email ya está registrado
+                                Este email ya estÃ¡ registrado
                             </span>
                             @endif
                         </div>
@@ -659,27 +659,27 @@
                         @endif
 
 
-                        <!-- Teléfono Empresarial -->
+                        <!-- TelÃ©fono Empresarial -->
                         <div>
-                            <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Empresarial</label>
+                            <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">TelÃ©fono Empresarial</label>
                             <input wire:model="business_phone" type="text" id="business_phone"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="ej: +57 300 123 4567" required>
                             @error('business_phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Teléfono Personal -->
+                        <!-- TelÃ©fono Personal -->
                         <div>
-                            <label for="personal_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Personal</label>
+                            <label for="personal_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">TelÃ©fono Personal</label>
                             <input wire:model="personal_phone" type="text" id="personal_phone"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="ej: +57 310 987 6543">
                             @error('personal_phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Código CIIU -->
+                        <!-- CÃ³digo CIIU -->
                         <div>
-                            <label for="code_ciiu" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código CIIU</label>
+                            <label for="code_ciiu" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CÃ³digo CIIU</label>
                             <input wire:model="code_ciiu" type="text" id="code_ciiu"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="ej: 4711">
@@ -716,9 +716,9 @@
                             @enderror
                         </div>
 
-                        <!-- Dirección de la Sucursal -->
+                        <!-- DirecciÃ³n de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">DirecciÃ³n de FacturaciÃ³n</label>
                             <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: Calle 123 #45-67">
@@ -744,9 +744,9 @@
                             @endif
                         @endif
 
-                        <!-- Código Postal -->
+                        <!-- CÃ³digo Postal -->
                         <div>
-                            <label for="warehousePostcode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código Postal</label>
+                            <label for="warehousePostcode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CÃ³digo Postal</label>
                             <input wire:model="warehousePostcode" type="text" id="warehousePostcode" name="warehousePostcode"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: 110111">
@@ -756,7 +756,7 @@
                         @if ($type && $type == 'CLIENTE' && !$simplified)
                             <!-- Listas de Precios B2B -->
                             <div class="md:col-span-2 p-4 bg-gray-100 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80">
-                                <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">Configuración de Listas de Precios</h4>
+                                <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">ConfiguraciÃ³n de Listas de Precios</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <!-- Lista de Precios Contado -->
                                     <div>
@@ -769,9 +769,9 @@
                                         </select>
                                     </div>
 
-                                    <!-- Lista de Precios Crédito -->
+                                    <!-- Lista de Precios CrÃ©dito -->
                                     <div>
-                                        <label for="credit_pricelist_id" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Lista de Precios Crédito</label>
+                                        <label for="credit_pricelist_id" class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Lista de Precios CrÃ©dito</label>
                                         <select wire:model="credit_pricelist_id" id="credit_pricelist_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                             <option value="">Seleccione una lista (opcional)</option>
                                             @foreach($pricelists as $list)
@@ -783,7 +783,7 @@
                             </div>
                         @endif
 
-                        <!-- Dirección de la Sucursal -->
+                        <!-- DirecciÃ³n de la Sucursal -->
                         <div class="md:col-span-2">
                         <!-- ...existing code... -->
 
@@ -802,11 +802,11 @@
                                     <span class="font-semibold">{{ $editingId ? 'Crear Usuario para este ' . ucfirst(strtolower($type ?: 'Cliente')) : 'Convertir en Usuario' }}</span>
                                     <p class="text-xs mt-1 {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'text-gray-400 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400' }}">
                                         @if(empty($billingEmail))
-                                        Ingrese un email de facturación válido para habilitar esta opción
+                                        Ingrese un email de facturaciÃ³n vÃ¡lido para habilitar esta opciÃ³n
                                         @elseif($emailExists)
-                                        No disponible: el email ya está registrado
+                                        No disponible: el email ya estÃ¡ registrado
                                         @else
-                                        Crear automáticamente un usuario para acceder al sistema con perfil de {{ ucfirst(strtolower($type ?: 'Cliente')) }}
+                                        Crear automÃ¡ticamente un usuario para acceder al sistema con perfil de {{ ucfirst(strtolower($type ?: 'Cliente')) }}
                                         @endif
                                     </p>
                                 </label>
@@ -856,10 +856,10 @@
 @else
   <div>
      @if($companyId)
-        <!-- Si hay un companyId, automáticamente abrir en modo edición sin botón -->
+        <!-- Si hay un companyId, automÃ¡ticamente abrir en modo ediciÃ³n sin botÃ³n -->
         <div wire:init="edit({{ $companyId }})"></div>
      @else
-        <!-- Si no hay companyId, mostrar botón crear -->
+        <!-- Si no hay companyId, mostrar botÃ³n crear -->
         <button wire:click="create"
           class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -894,7 +894,7 @@
                         {{ $editingId ? 'Editar' : 'Crear' }} Clientes
                     </h3>
                 </div>
-                <!-- Alert de Errores de Validación -->
+                <!-- Alert de Errores de ValidaciÃ³n -->
                 @if (session()->has('error'))
                 <div x-data="{ showAlert: true }"
                     x-show="showAlert"
@@ -911,7 +911,7 @@
                         </svg>
                         <div class="flex-1">
                             <h4 class="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
-                                Error de Validación
+                                Error de ValidaciÃ³n
                             </h4>
                             <div class="text-sm text-red-700 dark:text-red-400">
                                 {!! session('error') !!}
@@ -931,15 +931,15 @@
                 <!-- Form -->
                 <form wire:submit="save" class="p-6 space-y-6">
                     <div class="space-y-6">
-                        <!-- Tipo de Identificación -->
+                        <!-- Tipo de IdentificaciÃ³n -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Tipo de Identificación <span class="text-red-500">*</span>
+                                Tipo de IdentificaciÃ³n <span class="text-red-500">*</span>
                             </label>
                             @livewire('selects.type-identification-select', [
                             'typeIdentificationId' => $typeIdentificationId,
                             'name' => 'typeIdentificationId',
-                            'placeholder' => 'Seleccione un tipo de identificación',
+                            'placeholder' => 'Seleccione un tipo de identificaciÃ³n',
                             'label' => '',
                             'showLabel' => false,
                             'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
@@ -949,7 +949,7 @@
                             @enderror
                         </div>
 
-                        <!-- NIT/Identificación con campo DV condicional -->
+                        <!-- NIT/IdentificaciÃ³n con campo DV condicional -->
                         @if($typeIdentificationId > 0)
                         @if($typeIdentificationId == 2)
                         <!-- NIT con DV -->
@@ -979,7 +979,7 @@
 
                                 @if($identificationExists && !$errors->has('identification'))
                                 <span class="text-red-500 text-sm">
-                                    Este número de identificación ya está registrado
+                                    Este nÃºmero de identificaciÃ³n ya estÃ¡ registrado
                                 </span>
                                 @endif
                             </div>
@@ -991,18 +991,18 @@
                                     oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 @error('verification_digit') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
-                            <!-- Se removió Tipo de Persona de aquí para ponerlo global (modo simplificado) -->
+                            <!-- Se removiÃ³ Tipo de Persona de aquÃ­ para ponerlo global (modo simplificado) -->
                         </div>
                         @else
-                        <!-- Otros tipos de identificación -->
+                        <!-- Otros tipos de identificaciÃ³n -->
                         <div>
-                            <label for="identification" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de Identificación *</label>
+                            <label for="identification" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">NÃºmero de IdentificaciÃ³n *</label>
                             <div class="relative">
                                 <input wire:model.live.debounce.500ms="identification" type="text" id="identification" maxlength="15"
                                     class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                            @error('identification') border-red-500 @enderror
                                            @if($identificationExists) border-red-500 @endif"
-                                    placeholder="Ingrese el número">
+                                    placeholder="Ingrese el nÃºmero">
 
                                 @if($validatingIdentification)
                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -1020,7 +1020,7 @@
 
                             @if($identificationExists && !$errors->has('identification'))
                             <span class="text-red-500 text-sm">
-                                Este número de identificación ya está registrado
+                                Este nÃºmero de identificaciÃ³n ya estÃ¡ registrado
                             </span>
                             @endif
                         </div>
@@ -1034,12 +1034,12 @@
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="">Seleccionar tipo</option>
                                 <option value="Natural" {{ $typePerson === 'Natural' ? 'selected' : '' }}>Persona Natural</option>
-                                <option value="Juridica" {{ $typePerson === 'Juridica' ? 'selected' : '' }}>Persona Jurídica</option>
+                                <option value="Juridica" {{ $typePerson === 'Juridica' ? 'selected' : '' }}>Persona JurÃ­dica</option>
                             </select>
                             @error('typePerson') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Campos condicionales según tipo de persona -->
+                        <!-- Campos condicionales segÃºn tipo de persona -->
                         @if($typePerson)
                         @if($typePerson == 'Natural' || $showNaturalPersonFields)
                         <!-- Persona Natural: Nombre y Apellido -->
@@ -1099,9 +1099,9 @@
                             @enderror
                         </div>
 
-                        <!-- Dirección de la Sucursal -->
+                        <!-- DirecciÃ³n de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">DirecciÃ³n de FacturaciÃ³n</label>
                             <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: Calle 123 #45-67">
@@ -1110,12 +1110,12 @@
                         @endif
 
                         @elseif($typePerson == 'Juridica' && !$showNaturalPersonFields)
-                        <!-- Persona Jurídica: Razón Social -->
+                        <!-- Persona JurÃ­dica: RazÃ³n Social -->
                         <div>
-                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Razón Social *</label>
+                            <label for="businessName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">RazÃ³n Social *</label>
                             <input wire:model="businessName" type="text" id="businessName"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Ingrese la razón social de la empresa">
+                                placeholder="Ingrese la razÃ³n social de la empresa">
                             @error('businessName') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
@@ -1137,9 +1137,9 @@
                             @enderror
                         </div>
 
-                        <!-- Dirección de la Sucursal -->
+                        <!-- DirecciÃ³n de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">DirecciÃ³n de FacturaciÃ³n</label>
                             <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: Calle 123 #45-67">
@@ -1185,17 +1185,17 @@
                         <!-- Selects para configuraciones fiscales -->
                         <div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <!-- Régimen -->
+                                <!-- RÃ©gimen -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Régimen <span class="text-red-500">*</span>
+                                        RÃ©gimen <span class="text-red-500">*</span>
                                     </label>
                                     @livewire('selects.regime-select', [
                                     'regimeId' => $regimeId,
                                     'name' => 'regimeId',
                                     'label' => '',
                                     'showLabel' => false,
-                                    'placeholder' => 'Seleccionar régimen',
+                                    'placeholder' => 'Seleccionar rÃ©gimen',
                                     'class' => 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
                                     ])
                                     @error('regimeId')
@@ -1223,35 +1223,35 @@
                             </div>
                         </div>
 
-                        <!-- Email de Facturación -->
+                        <!-- Email de FacturaciÃ³n -->
                         <div>
-                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de Facturación *</label>
+                            <label for="billingEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email de FacturaciÃ³n *</label>
                             <input wire:model.live.debounce.500ms="billingEmail" type="email" id="billingEmail"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                  @error('billingEmail') border-red-500 @enderror
                                  @if($emailExists) border-red-500 @endif"
-                                placeholder="Ingrese el email de facturación" required>
+                                placeholder="Ingrese el email de facturaciÃ³n" required>
                             @error('billingEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
 
                             @if($emailExists && !$errors->has('billingEmail'))
                             <span class="text-red-500 text-sm">
-                                Este email ya está registrado
+                                Este email ya estÃ¡ registrado
                             </span>
                             @endif
                         </div>
 
-                        <!-- Teléfono Empresarial -->
+                        <!-- TelÃ©fono Empresarial -->
                         <div>
-                            <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Empresarial</label>
+                            <label for="business_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">TelÃ©fono Empresarial</label>
                             <input wire:model="business_phone" type="text" id="business_phone"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="ej: +57 300 123 4567">
                             @error('business_phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Teléfono Personal -->
+                        <!-- TelÃ©fono Personal -->
                         <div>
-                            <label for="personal_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Teléfono Personal</label>
+                            <label for="personal_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">TelÃ©fono Personal</label>
                             <input wire:model="personal_phone" type="text" id="personal_phone"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="ej: +57 310 987 6543">
@@ -1259,9 +1259,9 @@
                         </div>
 
                         @if(!$simplified)
-                        <!-- Código CIIU -->
+                        <!-- CÃ³digo CIIU -->
                         <div>
-                            <label for="code_ciiu" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código CIIU</label>
+                            <label for="code_ciiu" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CÃ³digo CIIU</label>
                             <input wire:model="code_ciiu" type="text" id="code_ciiu"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="ej: 4711">
@@ -1298,18 +1298,18 @@
                                @enderror
                         </div>
 
-                        <!-- Código Postal -->
+                        <!-- CÃ³digo Postal -->
                         <div>
-                            <label for="warehousePostcode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código Postal</label>
+                            <label for="warehousePostcode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CÃ³digo Postal</label>
                             <input wire:model="warehousePostcode" type="text" id="warehousePostcode" name="warehousePostcode"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: 110111">
                             @error('warehousePostcode') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Dirección de la Sucursal -->
+                        <!-- DirecciÃ³n de la Sucursal -->
                         <div class="md:col-span-2">
-                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dirección de la Sucursal</label>
+                            <label for="warehouseAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">DirecciÃ³n de FacturaciÃ³n</label>
                             <input wire:model="warehouseAddress" type="text" id="warehouseAddress" name="warehouseAddress"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 placeholder="Ej: Calle 123 #45-67">
