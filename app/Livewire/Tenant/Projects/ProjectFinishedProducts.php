@@ -263,11 +263,15 @@ class ProjectFinishedProducts extends Component
             ['status' => 1]
         );
 
+        $project = Project::find($this->projectId);
+        $projectName = $project ? $project->title : '';
+        $observationText = 'Producto Terminado — Proyecto #' . $this->projectId . ($projectName ? ' - ' . $projectName : '');
+
         $alegraData = !empty($itemsAlegra) ? [
             'date' => now()->format('Y-m-d'),
             'items' => $itemsAlegra,
             'warehouse' => ['id' => '1'],
-            'observations' => 'Producto Terminado — Proyecto #' . $this->projectId,
+            'observations' => $observationText,
         ] : [];
 
         $service = new MovementsService();
@@ -297,7 +301,7 @@ class ProjectFinishedProducts extends Component
 
             $movement = InvInventoryAdjustment::create([
                 'date' => now()->format('Y-m-d'),
-                'observations' => 'Producto Terminado — Proyecto #' . $this->projectId,
+                'observations' => $observationText,
                 'type' => 'entrada',
                 'status' => 1,
                 'storeId' => $store->id,
