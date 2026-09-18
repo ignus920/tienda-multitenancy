@@ -151,7 +151,7 @@ class NotificationBell extends Component
                     'project_title' => $n->project->title ?? 'Proyecto',
                     'sender_name' => $n->sender->name ?? 'Usuario',
                     'sender_avatar' => $n->sender ? $n->sender->getAvatarUrl() : '',
-                    'message_preview' => $n->message->message ?? '',
+                    'message_preview' => $n->message ? $n->message->message : ($n->type === 'nuevo_participante' ? 'Te han agregado como participante de este proyecto.' : ''),
                     'type' => $n->type,
                     'time_ago' => $n->created_at->diffForHumans(),
                     'created_at' => $n->created_at->toISOString(),
