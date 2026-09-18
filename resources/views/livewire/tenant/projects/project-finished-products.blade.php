@@ -25,7 +25,7 @@
                                 <span class="truncate max-w-lg">
                                     <span class="text-gray-400 mr-1">{{ $result['code'] }}</span> - <span class="font-bold ml-1">{{ $result['name'] }}</span>
                                 </span>
-                                <span class="font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">${{ number_format($result['price'], 2) }}</span>
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">${{ number_format($result['price'], 0) }}</span>
                             </button>
                         @endforeach
                     </div>
@@ -72,7 +72,7 @@
                             <td class="py-2 pr-2 text-right">
                                 <input wire:model="editPrice" type="number" step="0.01" min="0" class="w-24 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
                             </td>
-                            <td class="py-2 pr-2 text-right font-semibold">${{ number_format($product->price * $product->quantity, 2) }}</td>
+                            <td class="py-2 pr-2 text-right font-semibold">${{ number_format($product->price * $product->quantity, 0) }}</td>
                             @if(!$isClosed)
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="saveEdit" class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs mr-2">Guardar</button>
@@ -89,15 +89,27 @@
                                 @endif
                             </td>
                             <td class="py-2 pr-2 text-right">{{ rtrim(rtrim(number_format($product->quantity, 2), '0'), '.') }}</td>
-                            <td class="py-2 pr-2 text-right">${{ number_format($product->price, 2) }}</td>
-                            <td class="py-2 pr-2 text-right font-semibold">${{ number_format($product->price * $product->quantity, 2) }}</td>
+                            <td class="py-2 pr-2 text-right">${{ number_format($product->price, 0) }}</td>
+                            <td class="py-2 pr-2 text-right font-semibold">${{ number_format($product->price * $product->quantity, 0) }}</td>
                             @if(!$isClosed)
                             <td class="py-2 text-right whitespace-nowrap">
                                 @if(!$product->inventory_adjustment_id)
                                     <button wire:click="editFinishedProduct({{ $product->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
                                     <button type="button"
-                                        wire:click="deleteFinishedProduct({{ $product->id }})"
-                                        wire:confirm="¿Eliminar este producto terminado?"
+                                        @click="Swal.fire({
+                                            title: '¿Eliminar producto terminado?',
+                                            text: 'Esta acción removerá el producto de la lista.',
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonColor: '#ef4444',
+                                            cancelButtonColor: '#6b7280',
+                                            confirmButtonText: 'Sí, eliminar',
+                                            cancelButtonText: 'Cancelar'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                $wire.deleteFinishedProduct({{ $product->id }});
+                                            }
+                                        })"
                                         class="text-red-500 hover:text-red-600 font-semibold text-2xs">Eliminar</button>
                                 @else
                                     <span class="text-3xs text-gray-400">—</span>
@@ -120,7 +132,21 @@
         <p class="text-3xs text-emerald-700 dark:text-emerald-400">
             Revisa la lista antes de confirmar — al generar la entrada se sube el stock del ERP y se sincroniza con Alegra, para todos los productos "Pendiente" de este proyecto.
         </p>
-        <button wire:click="generateInventoryEntry" wire:confirm="¿Generar la entrada de inventario para los productos pendientes? Se sincronizará con el ERP y Alegra." type="button"
+        <button type="button"
+            @click="Swal.fire({
+                title: '¿Generar entrada de inventario?',
+                text: 'Se sincronizará el stock con el ERP y Alegra para todos los productos pendientes.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, generar entrada',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $wire.generateInventoryEntry();
+                }
+            })"
             class="shrink-0 px-4 py-1.5 text-2xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow transition-colors">
             Generar Entrada de Inventario
         </button>
@@ -132,7 +158,7 @@
         <div class="w-full md:w-72 text-xs">
             <div class="flex justify-between font-bold text-gray-900 dark:text-white pt-1">
                 <span>Total</span>
-                <span>${{ number_format($total, 2) }}</span>
+                <span>${{ number_format($total, 0) }}</span>
             </div>
         </div>
     </div>
