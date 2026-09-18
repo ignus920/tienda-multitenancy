@@ -189,7 +189,7 @@ class GestionVentas extends Component
         $this->initializeCompanyConfiguration();
 
         try {
-            $quote = VntQuote::with(['customer', 'detalles'])->find($id);
+            $quote = VntQuote::with(['customer', 'detalles.item.suggestedProducts.suggestedItem'])->find($id);
 
             if (!$quote) {
                 $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cotización no encontrada']);

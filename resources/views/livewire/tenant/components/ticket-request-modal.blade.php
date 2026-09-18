@@ -22,6 +22,16 @@
             }
         });
 
+        // Este campo se guarda en una columna TEXT (máx. ~64KB) y no tiene
+        // adjuntos de archivo reales conectados todavía: si se pega una
+        // imagen, Quill la incrusta como base64 (puede pesar cientos de KB
+        // de texto) y revienta el guardado (error de MySQL: data too long
+        // for column detail). Se bloquea el pegado de imágenes a propósito.
+        const DeltaCtor = Quill.import('delta');
+        this.quill.clipboard.addMatcher('IMG', function () {
+            return new DeltaCtor();
+        });
+
         // Establecer contenido inicial desde Livewire
         const initialContent = $wire.get('detail') || '';
         this.quill.root.innerHTML = initialContent;

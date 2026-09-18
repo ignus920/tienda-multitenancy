@@ -361,7 +361,7 @@
             border: 1px solid #ccc;
             padding: 6px;
             border-radius: 4px;
-            height: 145px;
+            min-height: 145px;
             display: inline-block;
             vertical-align: top;
             margin: 0 6px 8px 0;
@@ -405,6 +405,21 @@
             margin: 0 auto 4px auto;
             font-size: 8pt;
             color: #999;
+        }
+
+        .suggested-header {
+            flex-basis: 100%;
+            width: 100%;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #555;
+            margin: 4px 0 6px 0;
+            text-align: center;
+        }
+
+        .image-card.suggested-card {
+            border-style: dashed;
+            border-color: #a5b4fc;
         }
 
         @media print {
@@ -921,11 +936,25 @@
     <!-- Images Page -->
     @php
         $detallesConImagen = $quote->detalles->filter(fn($d) => $d->item);
+        $quotedItemIds = $detallesConImagen->pluck('item.id')->filter()->unique();
+
+        $suggestedItems = collect();
+        foreach ($detallesConImagen as $detalle) {
+            foreach ($detalle->item->suggestedProducts ?? [] as $suggestion) {
+                $suggestedItem = $suggestion->suggestedItem ?? null;
+                if ($suggestedItem
+                    && !$quotedItemIds->contains($suggestedItem->id)
+                    && !$suggestedItems->contains('id', $suggestedItem->id)) {
+                    $suggestedItems->push($suggestedItem);
+                }
+            }
+        }
     @endphp
     @if($detallesConImagen->count() > 0)
     <div class="images-page">
         <div class="images-page-title">Imágenes de Productos</div>
         <div class="images-grid">
+            <div class="suggested-header">Fotos productos cotizados</div>
             @foreach($detallesConImagen as $detalle)
                 <div class="image-card">
                     @if($detalle->item->internal_code)
@@ -940,6 +969,24 @@
                     <div class="product-name">{{ $detalle->item->name ?? $detalle->item->display_name }}</div>
                 </div>
             @endforeach
+
+            @if($suggestedItems->isNotEmpty())
+                <div class="suggested-header">También le podría interesar</div>
+                @foreach($suggestedItems as $suggestedItem)
+                    <div class="image-card suggested-card">
+                        @if($suggestedItem->internal_code)
+                            <div class="product-code">{{ $suggestedItem->internal_code }}</div>
+                        @endif
+                        @if($suggestedItem->principalImage)
+                            <img src="{{ $suggestedItem->getPrincipalThumbnailUrl() }}"
+                                 alt="{{ $suggestedItem->name }}">
+                        @else
+                            <div class="no-image-placeholder">Sin imagen</div>
+                        @endif
+                        <div class="product-name">{{ $suggestedItem->name }}</div>
+                    </div>
+                @endforeach
+            @endif
         </div>
     </div>
     @endif

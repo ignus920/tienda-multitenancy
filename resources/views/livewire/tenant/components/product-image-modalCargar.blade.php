@@ -1,15 +1,16 @@
-<div x-data="{ 
+<div x-data="{
          isOpen: @entangle('isOpen').live,
          activeTab: @entangle('activeTab').live,
          zoomedImage: null,
          currentPreview: null,
-     }" 
+     }"
      x-init="
-        $watch('isOpen', value => { 
+        $watch('isOpen', value => {
             if(!value) currentPreview = null;
         });
      "
-     x-show="isOpen" 
+     @if(!$embedded)
+     x-show="isOpen"
      @keydown.escape.window="zoomedImage ? zoomedImage = null : $wire.close()"
      x-transition:enter="transition ease-out duration-300"
      x-transition:enter-start="opacity-0"
@@ -18,13 +19,16 @@
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-     x-cloak>
-    
-    @if($isOpen)
-    <div @click.away="$wire.close()" 
+     x-cloak
+     @endif
+     >
+
+    @if($isOpen || $embedded)
+    <div @if(!$embedded) @click.away="$wire.close()" @endif
          wire:init="loadWpProductStatus"
-         class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all border border-gray-200 dark:border-gray-700">
-        
+         class="{{ $embedded ? 'w-full' : 'bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all border border-gray-200 dark:border-gray-700' }}">
+
+        @unless($embedded)
         <!-- Header -->
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
             <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
@@ -33,11 +37,11 @@
                 </svg>
                 Imágenes: <span class="text-indigo-600 dark:text-indigo-400">{{ $productName }}</span>
             </h3>
-            
+
             <div class="flex items-center gap-2">
                 <!-- Botón de Sincronización WordPress -->
                 @if($productId && $hasWpProduct)
-                    <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })" 
+                    <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })"
                             class="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-all border border-indigo-200 dark:border-indigo-800">
                         <i class="fab fa-wordpress text-lg"></i>
                         Sincronizar WP
@@ -51,9 +55,20 @@
                 </button>
             </div>
         </div>
+        @endunless
 
-        <div class="p-6 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
-            
+        <div class="{{ $embedded ? 'space-y-8' : 'p-6 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar' }}">
+
+            @if($embedded && $productId && $hasWpProduct)
+            <div class="flex justify-end">
+                <button @click="$dispatch('openWordPressSync', { itemId: {{ $productId }} })"
+                        class="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition-all border border-indigo-200 dark:border-indigo-800">
+                    <i class="fab fa-wordpress text-lg"></i>
+                    Sincronizar WP
+                </button>
+            </div>
+            @endif
+
             <!-- Pestañas de Navegación -->
             @php
                 $isAdmin = in_array($userProfileId, [1, 2]);
@@ -266,7 +281,8 @@
             </p>
         </div>
 
-        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 flex {{ $activeTab === 'COMERCIAL' ? 'justify-between' : 'justify-end' }} items-center">
+        @if($activeTab === 'COMERCIAL' || !$embedded)
+        <div class="px-6 py-4 {{ $embedded ? '' : 'bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700' }} flex {{ $activeTab === 'COMERCIAL' ? 'justify-between' : 'justify-end' }} items-center">
             @if($activeTab === 'COMERCIAL')
                 @if($wpProductUrl)
                     <a href="{{ $wpProductUrl }}" target="_blank" class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md">
@@ -281,10 +297,13 @@
                     </div>
                 @endif
             @endif
+            @unless($embedded)
             <button @click="$wire.close()" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold rounded-xl transition-all shadow-sm">
                 Cerrar
             </button>
+            @endunless
         </div>
+        @endif
     </div>
     @endif
 

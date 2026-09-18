@@ -17,7 +17,7 @@ class RequestList extends Component
 
     public $search = '';
     public $perPage = 10;
-    
+
     // Filtros
     public $departmentId = '';
     public $supplierIdFilter = '';
@@ -25,12 +25,17 @@ class RequestList extends Component
     public $dateTo;
     public $selectedStatus = null;
 
+    // Filtro exacto para llegar directo a una solicitud (ej. desde la
+    // campana de notificaciones) sin depender del cuadro de búsqueda libre.
+    public $requestId = null;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'departmentId' => ['except' => ''],
         'supplierIdFilter' => ['except' => ''],
         'selectedStatus' => ['except' => null],
         'type' => ['except' => 'internal'],
+        'requestId' => ['except' => null],
     ];
 
     public $type = 'internal'; // 'internal' o 'supplier'
@@ -101,8 +106,12 @@ class RequestList extends Component
             })
             ->when($this->departmentId, fn($q) => $q->where('department_id', $this->departmentId))
             ->when($this->selectedStatus, fn($q) => $q->where('status_id', $this->selectedStatus))
-            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+            // El filtro exacto por ID (venir desde una notificación) ignora el
+            // rango de fechas — si no, una solicitud fuera del mes actual no
+            // aparecería aunque coincida el ID.
+            ->when($this->requestId, fn($q) => $q->where('id', $this->requestId))
+            ->when(!$this->requestId && $this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when(!$this->requestId && $this->dateTo, fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->orderBy('id', 'desc')
             ->paginate($this->perPage);
 
@@ -159,7 +168,7 @@ class RequestList extends Component
 
     public function resetFilters()
     {
-        $this->reset(['search', 'departmentId', 'supplierIdFilter', 'selectedStatus']);
+        $this->reset(['search', 'departmentId', 'supplierIdFilter', 'selectedStatus', 'requestId']);
         $this->mount();
         $this->resetPage();
     }

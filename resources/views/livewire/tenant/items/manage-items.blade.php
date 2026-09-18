@@ -73,6 +73,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     @include('livewire.tenant.parameters.dynamic-buttons', ['buttons' => $this->dynamicButtons])
+                    @if($hasFullItemEditAccess)
                     <button wire:click="create"
                         class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,6 +81,7 @@
                         </svg>
                         Crear Nuevo
                     </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -480,33 +482,42 @@
                 <!-- Sistema de Pestañas - Solo visible después de guardar cuando hay pestañas adicionales -->
                 @if($item_id && ($this->canUseImports() || $type == 'PRODUCIDO' || $inventoriable === 1 || $item_id))
                     <div class="px-6 pt-4">
-                        <div class="pb-1">
-                            <nav class="inline-flex flex-wrap gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5" aria-label="Tabs">
+                        <div class="pb-1 relative"
+                            x-data="{
+                                tipVisible: false,
+                                tipText: '',
+                                tipStyle: '',
+                                showTip(event, text) {
+                                    const rect = event.currentTarget.getBoundingClientRect();
+                                    this.tipText = text;
+                                    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 248));
+                                    this.tipStyle = 'top:' + (rect.bottom + 8) + 'px; left:' + left + 'px;';
+                                    this.tipVisible = true;
+                                }
+                            }">
+
+                            <nav class="flex flex-nowrap items-center gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/70 p-1.5 overflow-x-auto scroll-smooth"
+                                style="scrollbar-width: thin;" aria-label="Tabs">
+                                @if($hasFullItemEditAccess)
                                 <!-- Pestaña Información General -->
                                 <button type="button" wire:click="showGeneralInfo"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
-                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showWebB2bSection),
-                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showWebB2bSection)}">
-                                    <span>Información General</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-0 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.
-                                    </span>
+                                    @mouseenter="showTip($event, 'Datos básicos del producto: categoría, nombre, código interno, SKU, tipo, impuesto, marca, unidades y si maneja serial / inventario.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': !@js($showProductionSection) && !@js($showDimensionSection) && !@js($showAccesoriosSection) && !@js($showSuggestedProductsSection) && !@js($showWebB2bSection) && !@js($showImagesSection),
+                                        'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': @js($showProductionSection) || @js($showDimensionSection) || @js($showAccesoriosSection) || @js($showSuggestedProductsSection) || @js($showWebB2bSection) || @js($showImagesSection)}">
+                                    Información General
                                 </button>
 
                                 <!-- Pestaña Importado - Solo si módulo importaciones activo y tipo IMPORTADO, CZCL o DESCONTINUADOS -->
                                 @if($this->canUseImports() && in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                                 <button type="button" wire:click="showImportSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Datos de importación del producto: costos, etiquetas y seguimiento del embarque.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showProductionSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
-                                    <span>Importado</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Datos de importación del producto: costos, etiquetas y seguimiento del embarque.
-                                    </span>
+                                    Importado
                                 </button>
                                 @endif
 
@@ -514,14 +525,11 @@
                                 @if($type == 'PRODUCIDO')
                                 <button type="button" wire:click="$set('showProductionSection', true)"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Proceso, pasos y materiales necesarios para fabricar este producto.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showProductionSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
-                                    <span>Proceso de Producción</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Proceso, pasos y materiales necesarios para fabricar este producto.
-                                    </span>
+                                    Proceso de Producción
                                 </button>
                                 @endif
 
@@ -529,62 +537,84 @@
                                 @if($type !== 'INSUMO')
                                 <button type="button" wire:click="activateAccesoriosSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Productos que se venden o instalan junto con este item (complementos, repuestos, kits).')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showAccesoriosSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showAccesoriosSection)}">
-                                    <span>Accesorios</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Productos que se venden o instalan junto con este item (complementos, repuestos, kits).
-                                    </span>
+                                    Accesorios
+                                </button>
+                                @endif
+                                @endif
+
+                                <!-- Pestaña Fotos - Siempre visible al editar -->
+                                @if($item_id)
+                                <button type="button" wire:click="activateImagesSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
+                                    @mouseenter="showTip($event, 'Imagen principal y galería de fotos/PDF del producto.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showImagesSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showImagesSection)}">
+                                    Fotos
+                                </button>
+                                @endif
+
+                                <!-- Pestaña Productos Sugeridos - No visible para items tipo INSUMO -->
+                                @if($type !== 'INSUMO')
+                                <button type="button" wire:click="activateSuggestedProductsSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
+                                    @mouseenter="showTip($event, 'Productos que se mostrarán como sugerencia debajo de este producto en el PDF de cotización.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showSuggestedProductsSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showSuggestedProductsSection)}">
+                                    Sugeridos
                                 </button>
                                 @endif
 
                                 <!-- Pestaña de dimensiones para los productos inventoriables -->
-                                @if ($inventoriable === 1)
+                                @if ($inventoriable === 1 && $hasFullItemEditAccess)
                                 <button type="button" wire:click="activateDimensionSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Dimensiones del producto y escalas de corte / venta por cantidad.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-black/5': @js($showDimensionSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showDimensionSection)}">
-                                    <span>Medidas</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Dimensiones del producto y escalas de corte / venta por cantidad.
-                                    </span>
+                                    Medidas
                                 </button>
                                 @endif
 
                                 <!-- Pestaña Página Web / B2B - Siempre visible al editar -->
                                 @if($item_id)
                                 <button type="button" wire:click="activateWebB2bSection({{$item_id}})"
-                                    x-data="{ tip: false }" @mouseenter="tip = true" @mouseleave="tip = false"
-                                    class="relative px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    @mouseenter="showTip($event, 'Parámetros para la tienda web (WooCommerce): % de stock a publicar y cantidad mínima; y escalas de descuento por volumen para clientes B2B.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
                                     :class="{'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm ring-1 ring-black/5': @js($showWebB2bSection),
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showWebB2bSection)}">
-                                    <span>Página Web / B2B</span>
-                                    <span x-show="tip" x-cloak style="display:none" class="absolute top-full right-0 mt-2 w-64 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-50 pointer-events-none">
-                                        Parámetros para la tienda web (WooCommerce): % de stock a publicar y cantidad mínima; y escalas de descuento por volumen para clientes B2B.
-                                    </span>
+                                    Página Web / B2B
                                 </button>
                                 @endif
                             </nav>
+
+                            <!-- Tooltip flotante único: fixed para no recortarse con el scroll horizontal del nav.
+                                 La visibilidad y la posición se resuelven en el mismo :style (evita que
+                                 x-show y :style compitan por la propiedad display del mismo elemento). -->
+                            <span x-cloak style="display:none" :style="(tipVisible ? '' : 'display:none;') + tipStyle" x-text="tipText"
+                                class="fixed w-60 p-2.5 rounded-lg bg-gray-800 text-white text-[11px] font-normal normal-case leading-snug text-left shadow-xl z-[9999] pointer-events-none"></span>
                         </div>
                     </div>
                 @endif
 
                 <!-- Contenido según la pestaña activa -->
                 @php
-                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
+                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection))
                         ? 'general'
-                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web')));
+                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showImagesSection ? 'img' : 'web')))));
                 @endphp
                 {{-- Wrapper con key que CAMBIA por pestaña: fuerza a Livewire a reemplazar
                      todo el subarbol al cambiar de pestana, en vez de intentar hacer patch
                      de los bloques condicionales de una pestana sobre los de otra (eso
                      desbalanceaba los marcadores de bloque y reventaba el morph). --}}
                 <div wire:key="items-tabcontent-{{ $item_id ?: 'new' }}-{{ $__activeItemTab }}">
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showWebB2bSection))
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection))
                 <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
@@ -848,6 +878,24 @@
                         </div>
 
                         <div class="mb-3">
+                            <label class="inline-flex items-center gap-2 select-none cursor-pointer">
+                                <input type="checkbox" wire:model="is_cuttable"
+                                    class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Se vende por centímetro (Perfiles, Cintas LED, Cables...)</span>
+                                <div x-data="{ show: false }" class="relative inline-block">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                        Al marcarlo, en Cálculo de Costos este producto se cotiza por cm en vez de por unidad — usa la longitud registrada en la pestaña "Medidas".
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
                             <textarea wire:model="description"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -1013,25 +1061,6 @@
                                     </button>
                                 </div>
                             </div>
-                        @endif                        
-
-                        <!-- Sección de Galería de Imágenes -->
-                        @if ($item_id)
-                        <div class="border-t border-gray-300 dark:border-gray-600 my-6"></div>
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                Imágenes del Producto
-                            </h3>
-                            <button type="button" @click="$dispatch('openImageModalCargar', { productId: {{ $item_id }} })"
-                                class="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-lg hover:bg-indigo-200 transition-colors">
-                                Gestionar Galería
-                            </button>
-                        </div>
                         @endif
 
                         <!-- Mensajes -->
@@ -1072,9 +1101,9 @@
                     </div>
                 </form>
                 </div>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showWebB2bSection))
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection))
                     @php
-                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : 'web_b2b'));
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web_b2b')));
                     @endphp
                     <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
@@ -1088,6 +1117,8 @@
                         @livewire('tenant.items.manage-dimensions', ['itemId' => $item_id], key('dim-'.$item_id))
                     @elseif($showAccesoriosSection)
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
+                    @elseif($showSuggestedProductsSection)
+                        @livewire('tenant.items.item-suggested-products', ['itemId' => $item_id], key('sugg-'.$item_id))
                     @elseif($showWebB2bSection)
                         <div class="p-6 space-y-6">
                             <!-- SECCIÓN 1: PARÁMETROS DE PÁGINA WEB (WOOCOMMERCE) -->
@@ -1258,10 +1289,99 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- SECCIÓN 3: PARÁMETROS DE PORTAL DE CLIENTES (B2B) -->
+                            <div class="border p-5 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 space-y-4">
+                                <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center select-none">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        Parámetros de Portal de Clientes (B2B)
+                                    </h4>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            % Stock Portal B2B
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Porcentaje del stock neto disponible que se mostrará en el Portal de Clientes. Ej: 30% de 100 unidades mostrará 30.
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="number" wire:model="b2bStockPercentage"
+                                                min="0" max="100" step="1"
+                                                class="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                placeholder="30">
+                                            <span class="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
+                                        </div>
+                                        @error('b2bStockPercentage') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                                            Cant Mínima Portal B2B
+                                            <!-- Tooltip -->
+                                            <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                                                    Si el stock disponible cae por debajo de esta cantidad, el disponible en el Portal de Clientes pasará a ser automáticamente cero (0) / Agotado.
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input type="number" wire:model="b2bMinStock"
+                                            min="0" step="any"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="0">
+                                        @error('b2bMinStock') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-end pt-2">
+                                    <button type="button" wire:click="saveB2bStockParams"
+                                        class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-transparent rounded-lg font-medium text-sm text-white transition-colors">
+                                        Guardar parámetros Portal B2B
+                                    </button>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
+                                        Misma lógica que los parámetros de WordPress, pero para lo que ve el cliente en su Portal.
+                                    </p>
+                                </div>
+                            </div>
                         </div>{{-- /p-6 space-y-6 (contenido pestaña Web/B2B) --}}
                     @endif
                 @endif
                 </div>{{-- /items-tabcontent wrapper --}}
+
+                <!-- Pestaña Fotos: se monta UNA SOLA VEZ (mientras exista item) y solo se
+                     muestra/oculta con Alpine, igual que "Modal Values" abajo — este
+                     componente tiene mucho estado interno con Alpine (visor, carrusel,
+                     zoom) y destruirlo/recrearlo cada vez que se cambia de pestaña
+                     (como hacían las demás pestañas anidadas) rompía esas referencias
+                     con "currentPreview is not defined" / "zoomedImage is not defined". -->
+                @if($item_id)
+                <div wire:key="images-tab-slot"
+                     x-data="{ open: @js((bool) $showImagesSection) }"
+                     x-init="$wire.$watch('showImagesSection', v => open = v)"
+                     x-show="open"
+                     x-cloak
+                     style="display:none"
+                     class="p-6">
+                    @livewire('tenant.components.product-image-modal-cargar', ['productId' => $item_id, 'embedded' => true], key('img-embed-'.$item_id))
+                </div>
+                @endif
 
             </div>
         </div>

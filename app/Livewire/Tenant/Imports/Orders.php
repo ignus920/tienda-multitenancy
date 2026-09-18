@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Tenant\Imports\ImpLabels;
 use App\Models\Tenant\Imports\ImpShippments;
 use App\Models\Tenant\Imports\ImpShipmentComments;
+use App\Models\Tenant\Tickets\TickDepartment;
+use App\Models\Tenant\UsrNotification;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -3219,12 +3221,21 @@ class Orders extends Component
         $jsonImagePaths = !empty($imagePaths) ? json_encode($imagePaths) : null;
 
         try {
+            // Esta solicitud siempre es sobre Importaciones: se fija directo al
+            // departamento "Importaciones" (Parámetros Departamentos) para dejarlo
+            // enlazado desde que se crea el borrador, sin pedirle al usuario que
+            // elija un departamento (aquí no aplica ninguno más). La notificación
+            // a sus usuarios asignados se envía luego, al convertirlo en producto
+            // real (ver convertNewProductToReal()), no en este paso.
+            $importsDepartmentId = TickDepartment::where('name', 'like', 'Importaciones%')->value('id');
+
             $newProductId = DB::connection('tenant')->table('imp_new_products')->insertGetId([
                 'code' => $this->newProductCode,
                 'description' => $this->newProductDescription,
                 'observations' => $this->newProductObservations,
                 'image_path' => $jsonImagePaths,
                 'status' => 'PENDING',
+                'department_id' => $importsDepartmentId,
                 'created_by' => Auth::id(),
                 'created_at' => now(),
                 'updated_at' => now()
@@ -3420,6 +3431,31 @@ class Orders extends Component
                 ]);
 
             DB::connection('tenant')->commit();
+
+            // Aviso a Importaciones justo cuando el producto ya quedó creado en
+            // el ERP real (no al crear el borrador), tal como se solicitó.
+            // Consulta directa en la conexión tenant — evitar el JOIN cruzado
+            // central/tenant de TickDepartment::users() (User vive en
+            // central, tick_department_user vive en tenant), que falla o da
+            // resultados vacíos en producción.
+            if ($newProduct->department_id) {
+                $recipientIds = DB::connection('tenant')->table('tick_department_user')
+                    ->where('department_id', $newProduct->department_id)
+                    ->where('status', 1)
+                    ->pluck('user_id')
+                    ->toArray();
+
+                UsrNotification::notify(
+                    $recipientIds,
+                    'importaciones',
+                    'ImpNewProduct',
+                    $newProduct->id,
+                    'Producto nuevo creado: ' . $this->newProductCode,
+                    $this->newProductDescription,
+                    route('imports.imports-orders'),
+                    Auth::id()
+                );
+            }
 
             $this->showModalConvertNewProduct = false;
             $this->dispatch('show-toast', [

@@ -342,7 +342,7 @@ class Quoter extends Component
 
             Log::info('🔄 Cargando items de los detalles...');
             try {
-                $quote->load('detalles.item');
+                $quote->load('detalles.item.suggestedProducts.suggestedItem');
                 Log::info('📦 Items cargados');
 
                 // Debug: verificar si hay items null
@@ -588,7 +588,7 @@ class Quoter extends Component
 
         try {
             $quote = VntQuote::findOrFail($id);
-            $quote->load(['detalles.item', 'customer']);
+            $quote->load(['detalles.item.suggestedProducts.suggestedItem', 'customer']);
 
             // Cargar sucursal de entrega
             $deliveryBranch = $quote->branch ?? null;

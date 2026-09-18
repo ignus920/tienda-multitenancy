@@ -13,6 +13,7 @@ use App\Models\Tenant\TaskPlanner\EmployeeSchedule;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use App\Services\TaskPlanner\TimeTrackingService;
+use App\Services\TaskPlanner\AvailabilityCalendarService;
 use Illuminate\Support\Facades\Auth;
 use Exception;
 
@@ -41,6 +42,15 @@ class MyTasksToday extends Component
     public $showAttachModal = false;
     public $attachTaskId = null;
     public $attachFiles = [];
+
+    public $showDetailModal = false;
+    public $detailTaskId = null;
+
+    public $showBlockModal = false;
+    public $blockingTaskId = null;
+    public $blockReason = '';
+
+    public $activeView = 'today'; // 'today' | 'calendar'
 
     public $userId;
 
@@ -252,6 +262,123 @@ class MyTasksToday extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Observación agregada.']);
     }
 
+    /**
+     * Un trabajador normal solo puede ver/comentar/bloquear tareas que tiene
+     * asignadas o programadas — nunca cualquier tarea del sistema por ID.
+     */
+    private function userOwnsTask($taskId): bool
+    {
+        $userId = Auth::id();
+
+        return Task::where('id', $taskId)
+            ->where(function ($q) use ($userId) {
+                $q->whereHas('assignments', fn($qq) => $qq->where('user_id', $userId))
+                  ->orWhereHas('schedules', fn($qq) => $qq->where('user_id', $userId));
+            })
+            ->exists();
+    }
+
+    public function openDetailModal($taskId)
+    {
+        $this->ensureTenantConnection();
+
+        abort_unless($this->userOwnsTask($taskId), 403);
+
+        $this->detailTaskId = $taskId;
+        $this->newComment = '';
+        $this->showDetailModal = true;
+    }
+
+    public function addDetailComment()
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->userOwnsTask($this->detailTaskId), 403);
+
+        $this->validate(['newComment' => 'required|string']);
+
+        TaskComment::create([
+            'task_id' => $this->detailTaskId,
+            'user_id' => Auth::id(),
+            'comment' => $this->newComment,
+        ]);
+
+        $this->newComment = '';
+    }
+
+    public function openBlockModal($taskId)
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->userOwnsTask($taskId), 403);
+
+        $this->blockingTaskId = $taskId;
+        $this->blockReason = '';
+        $this->showBlockModal = true;
+    }
+
+    public function confirmBlock(TimeTrackingService $service)
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->userOwnsTask($this->blockingTaskId), 403);
+
+        $this->validate(['blockReason' => 'required|string']);
+        $service->block(Task::findOrFail($this->blockingTaskId), Auth::id(), $this->blockReason);
+        $this->showBlockModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea marcada como bloqueada.']);
+    }
+
+    public function unblockTask($taskId, TimeTrackingService $service)
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->userOwnsTask($taskId), 403);
+
+        $service->unblock(Task::findOrFail($taskId), Auth::id());
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea desbloqueada.']);
+    }
+
+    /**
+     * Fuente de eventos para el calendario de solo lectura del trabajador
+     * (su propio "Mi Calendario"): siempre sus propias tareas programadas,
+     * más las mismas marcas de indisponibilidad/horario que ve gerencia.
+     */
+    public function getMyCalendarEvents($start, $end, AvailabilityCalendarService $availabilityService)
+    {
+        $this->ensureTenantConnection();
+
+        $userId = Auth::id();
+
+        $colors = [
+            'p1_urgente' => '#ef4444',
+            'p2_alta' => '#f97316',
+            'p3_normal' => '#3b82f6',
+            'p4_baja' => '#9ca3af',
+        ];
+
+        $events = TaskSchedule::with('task')
+            ->where('user_id', $userId)
+            ->whereNotIn('schedule_status', ['cancelada'])
+            ->where('scheduled_start', '<', $end)
+            ->where('scheduled_end', '>', $start)
+            ->get()
+            ->map(function ($schedule) use ($colors) {
+                $color = $colors[$schedule->task->priority] ?? '#6366f1';
+
+                return [
+                    'id' => $schedule->id,
+                    'title' => $schedule->task->title,
+                    'start' => $schedule->scheduled_start->toIso8601String(),
+                    'end' => $schedule->scheduled_end->toIso8601String(),
+                    'backgroundColor' => $color,
+                    'borderColor' => $color,
+                    'extendedProps' => [
+                        'taskId' => $schedule->task_id,
+                        'status' => $schedule->task->status,
+                    ],
+                ];
+            })->toArray();
+
+        return array_merge($events, $availabilityService->backgroundEventsForUser($userId, $start, $end));
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
@@ -326,6 +453,10 @@ class MyTasksToday extends Component
             ->get()
             ->groupBy(fn($s) => $s->scheduled_start->toDateString());
 
+        $detailTask = $this->detailTaskId
+            ? Task::with(['department', 'assignments.user', 'comments.user', 'history.user', 'schedules', 'pauses.user', 'timeLogs.user', 'materials.item', 'checklists', 'attachments'])->find($this->detailTaskId)
+            : null;
+
         return view('livewire.tenant.task-planner.my-tasks-today', [
             'today' => $today,
             'daySchedule' => $daySchedule,
@@ -337,6 +468,7 @@ class MyTasksToday extends Component
             'upcomingDays' => $upcomingDays,
             'fillerTasks' => $fillerTasks,
             'pauseReasons' => \App\Models\Tenant\TaskPlanner\TaskPause::REASONS,
+            'detailTask' => $detailTask,
         ])->layout('layouts.app');
     }
 }

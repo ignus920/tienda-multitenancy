@@ -8,6 +8,7 @@ use App\Models\Tenant\Projects\ProjectNotification;
 use App\Models\Tenant\Projects\ProjectMention;
 use App\Models\Tenant\Projects\ProjectTask;
 use App\Models\Tenant\TaskPlanner\TaskNotification;
+use App\Models\Tenant\UsrNotification;
 use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +29,10 @@ class NotificationBell extends Component
     public $operativeNotifications = [];
     public $operativeCount = 0;
 
+    // "Tareas por hacer" — genéricas, para cualquier módulo (usr_notifications)
+    public $taskTodoNotifications = [];
+    public $taskTodoCount = 0;
+
     public $activeTab = 'general';
     public $showDropdown = false;
     public $userId;
@@ -39,6 +44,7 @@ class NotificationBell extends Component
         $this->loadPendingMentions();
         $this->loadPendingTasks();
         $this->loadOperativeNotifications();
+        $this->loadTaskTodoNotifications();
     }
 
     public function boot()
@@ -104,6 +110,23 @@ class NotificationBell extends Component
         ]);
     }
 
+    /**
+     * Aviso en tiempo real de "Tareas por hacer" (genérico, cualquier módulo).
+     * Canal privado personal, evento propio: no interfiere con los demás.
+     */
+    #[On('echo-private:user.{userId},.NewUserNotification')]
+    public function onNewTaskTodoNotification($payload = null)
+    {
+        $data = is_array($payload) && isset($payload[0]) ? $payload[0] : $payload;
+
+        $this->loadTaskTodoNotifications();
+        $this->dispatch('play-notification-sound');
+        $this->dispatch('show-toast', [
+            'type' => 'info',
+            'message' => $data['title'] ?? 'Tienes una nueva tarea por hacer',
+        ]);
+    }
+
     #[On('notifications-updated')]
     public function loadNotifications()
     {
@@ -137,8 +160,10 @@ class NotificationBell extends Component
             ->toArray();
 
         // El wire:poll.60s ya llama a este método: aprovechamos para refrescar
-        // también las notificaciones operativas como respaldo del WebSocket.
+        // también las notificaciones operativas y de "tareas por hacer" como
+        // respaldo del WebSocket.
         $this->loadOperativeNotifications();
+        $this->loadTaskTodoNotifications();
     }
 
     public function loadOperativeNotifications()
@@ -171,6 +196,7 @@ class NotificationBell extends Component
                 'type' => $n->type,
                 'message' => $n->message,
                 'time_ago' => Carbon::parse($n->created_at)->locale('es')->diffForHumans(),
+                'sort_at' => $n->created_at,
             ])->toArray();
         } catch (\Throwable $e) {
             $this->operativeNotifications = [];
@@ -198,6 +224,72 @@ class NotificationBell extends Component
             ->update(['read_at' => now()]);
 
         $this->loadOperativeNotifications();
+        $this->showDropdown = false;
+    }
+
+    /**
+     * "Tareas por hacer" — notificaciones genéricas (usr_notifications),
+     * disparadas por cualquier módulo del sistema (ej: Solicitudes/Tickets).
+     */
+    public function loadTaskTodoNotifications()
+    {
+        $this->ensureTenantConnection();
+
+        if (!Auth::check()) {
+            $this->taskTodoNotifications = [];
+            $this->taskTodoCount = 0;
+            return;
+        }
+
+        try {
+            if (!Schema::connection('tenant')->hasTable('usr_notifications')) {
+                $this->taskTodoNotifications = [];
+                $this->taskTodoCount = 0;
+                return;
+            }
+
+            $rows = UsrNotification::where('user_id', Auth::id())
+                ->whereNull('read_at')
+                ->latest('id')
+                ->limit(20)
+                ->get();
+
+            $this->taskTodoCount = $rows->count();
+            $this->taskTodoNotifications = $rows->map(fn($n) => [
+                'id' => $n->id,
+                'module' => $n->module,
+                'title' => $n->title,
+                'message' => $n->message,
+                'link' => $n->link,
+                'time_ago' => Carbon::parse($n->created_at)->locale('es')->diffForHumans(),
+                'sort_at' => $n->created_at,
+            ])->toArray();
+        } catch (\Throwable $e) {
+            $this->taskTodoNotifications = [];
+            $this->taskTodoCount = 0;
+        }
+    }
+
+    public function markTaskTodoAsRead($id)
+    {
+        $this->ensureTenantConnection();
+
+        UsrNotification::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->update(['read_at' => now()]);
+
+        $this->loadTaskTodoNotifications();
+    }
+
+    public function markAllTaskTodoAsRead()
+    {
+        $this->ensureTenantConnection();
+
+        UsrNotification::where('user_id', Auth::id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        $this->loadTaskTodoNotifications();
         $this->showDropdown = false;
     }
 
@@ -266,6 +358,7 @@ class NotificationBell extends Component
                 'creator_name' => $t->creator ? $t->creator->name : 'Usuario',
                 'creator_avatar' => $t->creator ? $t->creator->getAvatarUrl() : '',
                 'time_ago' => Carbon::parse($t->created_at)->locale('es')->diffForHumans(),
+                'sort_at' => $t->created_at,
             ];
         })->toArray();
     }
@@ -312,6 +405,70 @@ class NotificationBell extends Component
     public function toggleDropdown()
     {
         $this->showDropdown = !$this->showDropdown;
+    }
+
+    /**
+     * "Tareas asignadas" — vista UNIFICADA de las 3 listas que ya existen
+     * (pendingTasks/ProjectTask, operativeNotifications/TaskNotification,
+     * taskTodoNotifications/UsrNotification). Esto es SOLO de presentación:
+     * no reemplaza ni toca ninguno de los métodos de carga/marcar-leído de
+     * arriba — cada fila sigue apuntando al método original de su origen
+     * (o a ninguno, en el caso de ProjectTask, que nunca tuvo "marcar
+     * leído": solo se quita de la lista cuando la tarea se completa).
+     */
+    public function getUnifiedTasksProperty()
+    {
+        $rows = collect();
+
+        foreach ($this->pendingTasks as $t) {
+            $rows->push([
+                'source' => 'project_task',
+                'title' => $t['title'],
+                'subtitle' => $t['project_title'],
+                'tag_label' => 'Proyecto',
+                'tag_color' => 'indigo',
+                'time_ago' => $t['time_ago'],
+                'sort_at' => $t['sort_at'],
+                'unread' => false, // no existe "leído" para esto: solo se quita al completarse
+                'href' => route('tenant.projects.workspace', $t['project_id']),
+                'mark_method' => null,
+                'mark_id' => null,
+            ]);
+        }
+
+        foreach ($this->operativeNotifications as $n) {
+            $rows->push([
+                'source' => 'operativa',
+                'title' => $n['message'],
+                'subtitle' => null,
+                'tag_label' => 'Planificador',
+                'tag_color' => 'amber',
+                'time_ago' => $n['time_ago'],
+                'sort_at' => $n['sort_at'],
+                'unread' => true,
+                'href' => $n['type'] === 'mas_tiempo' ? route('tenant.task-planner') : route('tenant.task-planner.my-tasks'),
+                'mark_method' => 'markOperativeAsRead',
+                'mark_id' => $n['id'],
+            ]);
+        }
+
+        foreach ($this->taskTodoNotifications as $n) {
+            $rows->push([
+                'source' => 'usr_notification',
+                'title' => $n['title'],
+                'subtitle' => $n['message'],
+                'tag_label' => 'Solicitud',
+                'tag_color' => 'emerald',
+                'time_ago' => $n['time_ago'],
+                'sort_at' => $n['sort_at'],
+                'unread' => true,
+                'href' => $n['link'] ?: '#',
+                'mark_method' => 'markTaskTodoAsRead',
+                'mark_id' => $n['id'],
+            ]);
+        }
+
+        return $rows->sortByDesc('sort_at')->values();
     }
 
     public function render()

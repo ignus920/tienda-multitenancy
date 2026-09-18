@@ -17,25 +17,26 @@
             this.viewMode = this.viewMode === 'list' ? 'grid' : 'list';
             localStorage.setItem('portal_view_mode', this.viewMode);
         },
-        addToCart(id, code, sku, name, priceCash, priceCredit, scale1Qty, scale1Discount, scale2Qty, scale2Discount, boxQty, boxDiscount) {
+        addToCart(id, code, sku, name, priceCash, priceCredit, scale1Qty, scale1Discount, scale2Qty, scale2Discount, boxQty, boxDiscount, visibleStock) {
             let exists = this.cart.find(item => item.id === id);
             if (exists) {
                 exists.qty++;
             } else {
-                this.cart.push({ 
-                    id, 
-                    code, 
-                    sku, 
-                    name, 
-                    priceCash, 
-                    priceCredit, 
-                    scale1Qty: parseInt(scale1Qty) || 0, 
-                    scale1Discount: parseFloat(scale1Discount) || 0, 
-                    scale2Qty: parseInt(scale2Qty) || 0, 
-                    scale2Discount: parseFloat(scale2Discount) || 0, 
-                    boxQty: parseInt(boxQty) || 0, 
-                    boxDiscount: parseFloat(boxDiscount) || 0, 
-                    qty: 1 
+                this.cart.push({
+                    id,
+                    code,
+                    sku,
+                    name,
+                    priceCash,
+                    priceCredit,
+                    scale1Qty: parseInt(scale1Qty) || 0,
+                    scale1Discount: parseFloat(scale1Discount) || 0,
+                    scale2Qty: parseInt(scale2Qty) || 0,
+                    scale2Discount: parseFloat(scale2Discount) || 0,
+                    boxQty: parseInt(boxQty) || 0,
+                    boxDiscount: parseFloat(boxDiscount) || 0,
+                    visibleStock: parseInt(visibleStock) || 0,
+                    qty: 1
                 });
             }
         },
@@ -66,6 +67,9 @@
         },
         get totalItems() {
             return this.cart.reduce((sum, item) => sum + item.qty, 0);
+        },
+        get exceedsAvailable() {
+            return this.cart.some(item => item.qty > item.visibleStock);
         }
      }"
 >
@@ -418,10 +422,11 @@
                             }
                             
                             $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
-                            $visibleStock = round($realStock * 0.30);
-                            if ($realStock > 100) { $visibleStock = 30; }
+                            $b2bPercentage = $product->b2b_stock_percentage ?? 30;
+                            $b2bMinStock = $product->b2b_min_stock ?? 0;
+                            $visibleStock = $realStock >= $b2bMinStock ? round($realStock * ($b2bPercentage / 100)) : 0;
                             if ($visibleStock < 0) { $visibleStock = 0; }
-                            
+
                             $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
                             
                             $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
@@ -477,6 +482,30 @@
                                 </div>
                             </div>
 
+                            <!-- Productos sugeridos -->
+                            @if($product->suggestedProducts->isNotEmpty())
+                            <div class="hidden sm:block relative flex-shrink-0" x-data="{ showSuggested: false }">
+                                <button @click.stop="showSuggested = !showSuggested" @click.away="showSuggested = false"
+                                    title="Ver productos sugeridos para este ítem"
+                                    class="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center animate-pulse hover:animate-none">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                                </button>
+                                <div x-show="showSuggested" x-transition x-cloak
+                                    class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-2">
+                                    <p class="px-3 pb-1.5 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase border-b border-gray-100 dark:border-gray-700">También te podría interesar</p>
+                                    <div class="max-h-56 overflow-y-auto">
+                                        @foreach($product->suggestedProducts as $suggestion)
+                                            @if($suggestion->suggestedItem)
+                                            <div class="px-3 py-1.5 text-[11px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                                {{ $suggestion->suggestedItem->name }}
+                                            </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
                             <!-- Stock disponible (columna, solo desktop) -->
                             <div class="hidden sm:flex w-16 flex-shrink-0 justify-center">
                                 @if($visibleStock > 0)
@@ -495,7 +524,7 @@
                                 @if($priceCash > 0)
                                     @if($paymentFilter === 'contado')
                                         <button
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }}, {{ $visibleStock }})"
                                             class="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 transition-all"
                                             title="Agregar a tu pedido">
                                             <span class="text-[12px] font-extrabold">${{ number_format($priceCash, 0, ',', '.') }}</span>
@@ -514,7 +543,7 @@
                                 @if($priceCredit && $priceCredit > 0)
                                     @if($paymentFilter === 'credito')
                                         <button
-                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
+                                            @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }}, {{ $visibleStock }})"
                                             class="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white active:scale-95 transition-all"
                                             title="Agregar a tu pedido">
                                             <span class="text-[12px] font-extrabold">${{ number_format($priceCredit, 0, ',', '.') }}</span>
@@ -573,10 +602,11 @@
                         }
                         
                         $realStock = ($product->total_stock ?? 0) - ($product->reserved_stock ?? 0);
-                        $visibleStock = round($realStock * 0.30);
-                        if ($realStock > 100) { $visibleStock = 30; }
+                        $b2bPercentage = $product->b2b_stock_percentage ?? 30;
+                        $b2bMinStock = $product->b2b_min_stock ?? 0;
+                        $visibleStock = $realStock >= $b2bMinStock ? round($realStock * ($b2bPercentage / 100)) : 0;
                         if ($visibleStock < 0) { $visibleStock = 0; }
-                        
+
                         $imageUrl = $product->getPrincipalThumbnailUrl('COMERCIAL');
                             
                         $scale1Qty = $product->dimensions ? $product->dimensions->scale_1_qty : 0;
@@ -620,9 +650,31 @@
                         <div class="p-2.5 flex flex-col flex-1 justify-between">
                             <div>
                                 <div class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-1 line-clamp-2 text-center min-h-[2rem]">{{ $product->name }}</div>
-                                <div class="flex items-center justify-center mb-1">
+                                <div class="flex items-center justify-center gap-1 mb-1">
                                     @if($product->sku)
                                         <span class="text-[9px] font-mono font-bold text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-700">SKU: {{ $product->sku }}</span>
+                                    @endif
+                                    @if($product->suggestedProducts->isNotEmpty())
+                                    <div class="relative" x-data="{ showSuggested: false }">
+                                        <button @click.stop="showSuggested = !showSuggested" @click.away="showSuggested = false"
+                                            title="Ver productos sugeridos para este ítem"
+                                            class="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center animate-pulse hover:animate-none">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                                        </button>
+                                        <div x-show="showSuggested" x-transition x-cloak
+                                            class="absolute left-1/2 -translate-x-1/2 mt-2 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-2 text-left">
+                                            <p class="px-3 pb-1.5 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase border-b border-gray-100 dark:border-gray-700">También te podría interesar</p>
+                                            <div class="max-h-56 overflow-y-auto">
+                                                @foreach($product->suggestedProducts as $suggestion)
+                                                    @if($suggestion->suggestedItem)
+                                                    <div class="px-3 py-1.5 text-[11px] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                                        {{ $suggestion->suggestedItem->name }}
+                                                    </div>
+                                                    @endif
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
                                     @endif
                                 </div>
                                 <div class="mb-2 flex justify-center">
@@ -638,7 +690,7 @@
                                 <div>
                                     @if($priceCash > 0)
                                         @if($paymentFilter === 'contado')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }}, {{ $visibleStock }})"
                                                     class="w-full py-1 px-1 rounded-md border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Contado</span>
                                                 <span class="block text-[11px] font-black text-emerald-700 dark:text-emerald-300">$ {{ number_format($priceCash, 0, ',', '.') }}</span>
@@ -656,7 +708,7 @@
                                 <div>
                                     @if($priceCredit && $priceCredit > 0)
                                         @if($paymentFilter === 'credito')
-                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }})"
+                                            <button @click="addToCart({{ $product->id }}, '{{ $product->internal_code }}', '{{ $product->sku }}', '{{ addslashes($product->name) }}', {{ $priceCash }}, {{ $priceCredit ?: 0 }}, {{ $scale1Qty ?: 0 }}, {{ $scale1Discount ?: 0 }}, {{ $scale2Qty ?: 0 }}, {{ $scale2Discount ?: 0 }}, {{ $boxQty ?: 0 }}, {{ $boxDiscount ?: 0 }}, {{ $visibleStock }})"
                                                     class="w-full py-1 px-1 rounded-md border border-yellow-500/30 bg-yellow-50/50 dark:bg-yellow-900/10 hover:scale-[1.02] active:scale-95 transition-all text-center">
                                                 <span class="block text-[7px] font-bold text-yellow-600 dark:text-yellow-400 uppercase">Crédito</span>
                                                 <span class="block text-[11px] font-black text-yellow-700 dark:text-yellow-300">$ {{ number_format($priceCredit, 0, ',', '.') }}</span>
@@ -769,10 +821,12 @@
                              </div>
 
                              <!-- Fila Inferior: Controles de cantidad, P. Unitario y Total de fila -->
-                             <div class="flex items-center justify-between mt-2.5">
-                                 <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
+                             <div class="flex flex-col mt-2.5">
+                             <div class="flex items-center justify-between">
+                                 <div class="flex items-center gap-0.5 bg-white dark:bg-gray-800 rounded-md border"
+                                      :class="item.qty > item.visibleStock ? 'border-orange-400' : 'border-gray-200 dark:border-gray-600'">
                                      <button @click="updateQty(index, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">−</button>
-                                     <span class="w-7 text-center text-xs font-bold text-gray-900 dark:text-white" x-text="item.qty"></span>
+                                     <span class="w-7 text-center text-xs font-bold" :class="item.qty > item.visibleStock ? 'text-orange-500' : 'text-gray-900 dark:text-white'" x-text="item.qty"></span>
                                      <button @click="updateQty(index, 1)" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white text-sm font-bold">+</button>
                                  </div>
 
@@ -780,8 +834,12 @@
                                       x-text="'P. Unitario $' + Math.round(getItemPrice(item)).toLocaleString('es-CO')">
                                  </div>
 
-                                 <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200" 
+                                 <span class="text-sm font-extrabold text-gray-800 dark:text-gray-200"
                                        x-text="'$' + (Math.round(getItemPrice(item)) * item.qty).toLocaleString('es-CO')"></span>
+                             </div>
+                             <p x-show="item.qty > item.visibleStock" x-cloak class="text-[10px] font-semibold text-orange-500 mt-1">
+                                 Pediste más de lo disponible (<span x-text="item.visibleStock"></span> disp.) — ventas deberá confirmar la cantidad.
+                             </p>
                              </div>
                         </div>
                     </template>
@@ -791,7 +849,7 @@
                 <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-4">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-gray-600 dark:text-gray-400">Total Estimado</span>
-                        <span class="text-xl font-extrabold text-indigo-600 dark:text-indigo-400" x-text="'$' + total.toLocaleString('es-CO')"></span>
+                        <span class="text-xl font-extrabold text-indigo-600 dark:text-indigo-400" x-text="'$' + Math.round(total).toLocaleString('es-CO')"></span>
                     </div>
 
                     <!-- Dirección / Sucursales -->
@@ -822,7 +880,12 @@
                             class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white">
                     </div>
 
-                    <!-- Comprobante -->
+                    {{-- Comprobante de pago: deshabilitado temporalmente para la fase
+                         piloto (el cliente ya lo puede confirmar en submitOrder() sin
+                         adjuntarlo). Para reactivarlo, cambiar la condición de abajo
+                         a "true" y restaurar la regla 'required' en
+                         CustomerPortal::submitOrder(). --}}
+                    @if (false)
                     <div title="Adjunta el comprobante de pago de tu transferencia para proceder con la verificación de tu pedido">
                         <label class="text-[10px] font-bold text-gray-700 dark:text-gray-300 block mb-1">Comprobante de Pago (Obligatorio)</label>
                         <div class="border-2 border-dashed {{ $errors->has('proofPaymentFile') || !$proofPaymentFile ? 'border-red-400 bg-red-50/5' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50' }} rounded-lg p-3 text-center cursor-pointer hover:border-indigo-400 transition-colors"
@@ -845,29 +908,34 @@
                             </label>
                         </div>
                     </div>
+                    @endif
 
                     <!-- Botón enviar -->
-                    <button 
+                    <button
                         :disabled="cart.length === 0"
-                        title="Enviar el pedido actual y su respectivo comprobante de pago para la verificación de un auxiliar comercial"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
+                        :title="exceedsAvailable ? 'Alguna cantidad supera lo disponible: se enviará como solicitud de confirmación' : 'Enviar esta cotización para que un asesor comercial la confirme'"
+                        class="w-full text-white font-bold py-3 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm text-sm flex items-center justify-center gap-2"
+                        :class="exceedsAvailable ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700'"
                         wire:loading.attr="disabled"
                         wire:target="submitOrder"
                         @click="$wire.submitOrder(cart.map(item => ({ id: item.id, code: item.code, name: item.name, price: $wire.paymentFilter === 'credito' ? item.priceCredit : item.priceCash, label: $wire.paymentFilter === 'credito' ? 'Crédito' : 'Contado', qty: item.qty }))).then(res => { if (res) { cart = []; } })"
                     >
                         <!-- Icono dinámico -->
-                        <span wire:loading.remove wire:target="submitOrder">🚀</span>
+                        <span wire:loading.remove wire:target="submitOrder" x-text="exceedsAvailable ? '⚠️' : '🚀'"></span>
                         <svg wire:loading wire:target="submitOrder" class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
 
                         <!-- Texto dinámico -->
-                        <span wire:loading.remove wire:target="submitOrder">Enviar Pedido para Verificación</span>
-                        <span wire:loading wire:target="submitOrder">Guardando Pedido...</span>
+                        <span wire:loading.remove wire:target="submitOrder" x-text="exceedsAvailable ? 'Solicitar Confirmación Cantidades' : 'Confirmar Pedido'"></span>
+                        <span wire:loading wire:target="submitOrder">Enviando...</span>
                     </button>
-                    <p class="text-[9px] text-gray-400 text-center leading-relaxed">
-                        Al enviar el pedido, queda en estado <strong>Por verificar</strong> hasta que un auxiliar comercial apruebe y genere la OP correspondiente.
+                    <p class="text-[9px] text-gray-400 text-center leading-relaxed" x-show="!exceedsAvailable">
+                        Al enviar, se crea tu cotización y un asesor comercial la confirmará para generar tu pedido.
+                    </p>
+                    <p class="text-[9px] text-orange-500 font-semibold text-center leading-relaxed" x-show="exceedsAvailable" x-cloak>
+                        Hay cantidades por encima de lo disponible — ventas revisará y te confirmará antes de generar tu pedido.
                     </p>
                 </div>
             </div>

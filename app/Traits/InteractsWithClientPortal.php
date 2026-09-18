@@ -8,6 +8,7 @@ use App\Models\Tenant\Customer\VntWarehouse;
 use App\Models\Tenant\Invoices\VntInvoices;
 use App\Models\Tenant\Invoices\VntInvoicesXsales;
 use App\Models\Tenant\Remissions\InvRemissions;
+use App\Models\Tenant\Quoter\VntQuote;
 use App\Services\Tenant\TenantManager;
 
 /**
@@ -122,6 +123,26 @@ trait InteractsWithClientPortal
     protected function clientInvoiceQuery()
     {
         return VntInvoices::query()->whereIn('id', $this->clientInvoiceIds() ?: [0]);
+    }
+
+    /**
+     * Cotizaciones enviadas por el cliente desde el Portal (from_portal = 1).
+     */
+    protected function clientQuoteQuery()
+    {
+        $warehouseIds = $this->clientWarehouseIds();
+
+        return VntQuote::query()
+            ->where('from_portal', true)
+            ->whereIn('customerId', $warehouseIds ?: [0]);
+    }
+
+    protected function findClientQuoteOrFail(int $quoteId): VntQuote
+    {
+        $quote = $this->clientQuoteQuery()->whereKey($quoteId)->first();
+        abort_if(!$quote, 403, 'Esta cotización no pertenece a tu empresa.');
+
+        return $quote;
     }
 
     protected function findClientRemissionOrFail(int $remissionId): InvRemissions

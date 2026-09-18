@@ -183,11 +183,15 @@ class CustomerPortal extends Component
             ->select(
                 'inv_items.*',
                 DB::raw('SUM(inv_items_store.stock_items_store) as total_stock'),
-                DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock')
+                DB::raw('(SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)) as reserved_stock'),
+                // % y cantidad mínima del Portal B2B: se configuran por producto en la
+                // bodega principal (storeId=2), igual patrón que wp_stock_percentage.
+                DB::raw('(SELECT b2b_stock_percentage FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1) as b2b_stock_percentage'),
+                DB::raw('(SELECT b2b_min_stock FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1) as b2b_min_stock')
             )
             ->where('inv_items.status', 1)
             ->where('inv_items.type', '!=', 'INSUMO')
-            ->with(['principalImage', 'invValues', 'tax', 'dimensions'])
+            ->with(['principalImage', 'invValues', 'tax', 'dimensions', 'suggestedProducts.suggestedItem.principalImage'])
             ->leftJoin('inv_items_store', 'inv_items.id', '=', 'inv_items_store.itemId')
             ->groupBy(
                 'inv_items.id',
@@ -208,6 +212,7 @@ class CustomerPortal extends Component
                 'inv_items.handles_serial',
                 'inv_items.status',
                 'inv_items.generic',
+                'inv_items.is_cuttable',
                 'inv_items.created_at',
                 'inv_items.updated_at',
                 'inv_items.deleted_at'
@@ -229,10 +234,17 @@ class CustomerPortal extends Component
         }
 
         if ($this->stockFilter === 'in_stock') {
+            // Misma fórmula que % Stock WordPress / Can Mínima WordPress, pero con
+            // b2b_stock_percentage / b2b_min_stock (storeId=2): si el stock neto cae
+            // por debajo del mínimo configurado, cuenta como agotado (0); si no, se
+            // muestra el % configurado del stock real. Sin configurar, usa 30% / 0
+            // (aprox. el comportamiento fijo que tenía el portal antes de esto).
             $query->havingRaw("
-                CASE 
-                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) > 100 THEN 30
-                    ELSE ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) * 0.30)
+                CASE
+                    WHEN (COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)))
+                         >= COALESCE((SELECT b2b_min_stock FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1), 0)
+                    THEN ROUND((COALESCE(SUM(inv_items_store.stock_items_store), 0) - (SELECT COALESCE(SUM(quantity), 0) FROM inv_reservations WHERE item_id = inv_items.id AND status_id = 1 AND stock_type = 1 AND deleted_at IS NULL AND due_date >= DATE_SUB(CURDATE(), INTERVAL 15 DAY))) * COALESCE((SELECT b2b_stock_percentage FROM inv_items_store s2 WHERE s2.itemId = inv_items.id AND s2.storeId = 2 ORDER BY s2.id DESC LIMIT 1), 30) / 100)
+                    ELSE 0
                 END > 0
             ");
         }
@@ -280,20 +292,14 @@ class CustomerPortal extends Component
             return false;
         }
 
-        if (!$this->proofPaymentFile) {
-            $this->dispatch('swal', [
-                'title' => 'Comprobante Requerido',
-                'text' => 'El comprobante de pago es obligatorio para procesar el pedido.',
-                'icon' => 'warning'
-            ]);
-            return false;
-        }
-
+        // Fase piloto: el comprobante de pago queda opcional (antes era
+        // 'required'). Para reactivarlo cuando termine el piloto, volver
+        // esta regla a 'required' y destapar el bloque del blade en
+        // customer-portal.blade.php (buscar "Comprobante de pago:").
         try {
             $this->validate([
-                'proofPaymentFile' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'proofPaymentFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             ], [
-                'proofPaymentFile.required' => 'El comprobante de pago es obligatorio',
                 'proofPaymentFile.mimes' => 'El comprobante debe ser un archivo de tipo: pdf, jpg, jpeg, png',
                 'proofPaymentFile.max' => 'El comprobante no debe pesar más de 5MB',
             ]);
@@ -325,22 +331,46 @@ class CustomerPortal extends Component
             $lastQuote = \App\Models\Tenant\Quoter\VntQuote::lockForUpdate()->orderBy('consecutive', 'desc')->first();
             $nextQuoteConsecutive = $lastQuote ? $lastQuote->consecutive + 1 : 1;
 
-            // Obtener la primera bodega física activa del inquilino (tenant) para el descuento de inventario
-            $physicalStore = \App\Models\Tenant\Items\InvStore::where('status', 1)->first();
+            // Bodega física a la que queda asociada la cotización. Debe ser la
+            // MISMA bodega ("PRINCIPAL", storeId=2) que ya usa el resto del
+            // Portal (% Stock Portal B2B) y donde está el equipo comercial —
+            // el panel de Cotizaciones (Quoter.php) solo le muestra a cada
+            // vendedor las cotizaciones de SU bodega asignada, así que si
+            // aquí se pone una bodega distinta, la cotización del cliente
+            // queda invisible para ellos aunque exista en la base de datos.
+            $physicalStore = \App\Models\Tenant\Items\InvStore::find(2)
+                ?? \App\Models\Tenant\Items\InvStore::where('status', 1)->first();
             $physicalStoreId = $physicalStore ? $physicalStore->id : 1;
-            $tenantBranchId = $physicalStore ? $physicalStore->warehouseId : 1;
 
             // Sucursal de entrega del cliente B2B (dirección de despacho)
             $customerBranchId = $this->selectedBranchId ?: $contact->warehouseId;
+
+            // ¿Alguna cantidad pedida supera lo que el Portal le mostró como
+            // disponible? Se recalcula aquí (no se confía en lo que mandó el
+            // navegador) para decidir el mensaje y dejarle la alerta al
+            // comercial en las observaciones de la cotización.
+            $exceedsAvailable = false;
+            foreach ($cartItems as $item) {
+                if ((int) $item['qty'] > $this->computeVisibleStock((int) $item['id'])) {
+                    $exceedsAvailable = true;
+                    break;
+                }
+            }
+
+            $observations = 'Pedido B2B recibido desde el Portal de Clientes';
+            if ($exceedsAvailable) {
+                $observations .= "\n⚠️ El cliente pidió cantidades por encima de lo ofrecido — requiere confirmar disponibilidad antes de convertir a OP.";
+            }
 
             $quote = \App\Models\Tenant\Quoter\VntQuote::create([
                 'consecutive' => $nextQuoteConsecutive,
                 'status' => 'REGISTRADO',
                 'typeQuote' => 'POS',
+                'from_portal' => true,
                 'customerId' => $contact->warehouseId,
                 'warehouseId' => $physicalStoreId, // Asignar la bodega física del ERP
                 'userId' => $user->id,
-                'observations' => 'Pedido B2B recibido desde el Portal de Clientes',
+                'observations' => $observations,
                 'branchId' => $customerBranchId, // Sucursal de entrega del cliente
                 'flete' => 0
             ]);
@@ -362,101 +392,28 @@ class CustomerPortal extends Component
                 ]);
             }
 
-            // 2. Almacenar el archivo de comprobante de pago
-            $tenantId = session('tenant_id', 'default');
-            $proofPaymentPath = $this->proofPaymentFile->store("remissions/proofs/{$tenantId}", 'public');
-
-            // 3. Obtener consecutivo y crear Remisión (InvRemissions)
-            $lastRemission = \App\Models\Tenant\Remissions\InvRemissions::lockForUpdate()->orderBy('consecutive', 'desc')->first();
-            $nextRemissionConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
-
-            // Obtener el primer método de pago (transferencia, etc. por defecto)
-            $methodPayment = \App\Models\Tenant\MethodPayments\VntMethodPayMents::first();
-            $methodPaymentId = $methodPayment ? $methodPayment->id : null;
-
-            $paymentsArray = [[
-                'method_payment_id' => $methodPaymentId,
-                'value' => $quote->total,
-                'proof_payment' => $proofPaymentPath,
-                'observation' => 'Comprobante cargado por el cliente desde el portal'
-            ]];
-
-            $remission = \App\Models\Tenant\Remissions\InvRemissions::create([
-                'consecutive' => $nextRemissionConsecutive,
-                'status' => 'REGISTRADO',
-                'quoteId' => $quote->id,
-                'warehouseId' => $physicalStoreId, // Asignar correctamente el ID de la bodega física (inv_store.id)
-                'deliveryTypeId' => 1, // Por defecto Contra entrega/estándar
-                'methodPaymentId' => $methodPaymentId,
-                'userId' => $quote->userId,
-                'created_by' => $user->id,
-                'deliveryDate' => now()->format('Y-m-d'),
-                'expiration' => 0,
-                'modify' => 0,
-                'obs' => 'Pedido B2B registrado desde el Portal de Clientes',
-                'observations_delivery' => $this->shippingAddress,
-                'flete' => 0,
-                'proof_payment' => $proofPaymentPath,
-                'payment_details' => $paymentsArray,
-                'from_portal' => true,
-            ]);
-
-            // 4. Crear detalles de remisión y descontar inventario
-            foreach ($cartItems as $item) {
-                $itemModel = \App\Models\Tenant\Items\Items::find($item['id']);
-                $taxPercentage = $itemModel && $itemModel->taxRelation ? $itemModel->taxRelation->value : 0;
-                $taxLabel = $itemModel && $itemModel->taxRelation ? $itemModel->taxRelation->name : 'N/A';
-
-                \App\Models\Tenant\Remissions\InvDetailRemissions::create([
-                    'quantity' => $item['qty'],
-                    'tax' => $taxPercentage,
-                    'tax_label' => $taxLabel,
-                    'value' => $item['price'],
-                    'remissionId' => $remission->id,
-                    'itemId' => $item['id'],
-                    'description' => $item['name']
-                ]);
-
-                // Descontar inventario de la bodega física activa del inquilino
-                $itemStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $item['id'])
-                    ->where('storeId', $physicalStoreId)
-                    ->first();
-
-                $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
-                $isAssembled = $productModel && $productModel->type === 'ENSAMBLADO';
-
-                if ($itemStore) {
-                    $newStock = $itemStore->stock_items_store - $item['qty'];
-                    if ($newStock < 0 && !$isAssembled) {
-                        throw new \Exception("Stock insuficiente para el producto '{$item['name']}'. Disponible: {$itemStore->stock_items_store}");
-                    }
-                    $itemStore->update(['stock_items_store' => $newStock]);
-                } else {
-                    if (!$isAssembled) {
-                        throw new \Exception("El producto '{$item['name']}' no cuenta con inventario registrado en esta sucursal.");
-                    }
-                }
-            }
-
-            // 5. Crear autorizaciones de cartera automáticas (Chuliado automático)
-            $authTypes = ['empaque', 'despacho', 'pago'];
-            foreach ($authTypes as $authType) {
-                \App\Models\Tenant\Sales\VntOrderAuthorization::create([
-                    'remission_id' => $remission->id,
-                    'auth_type' => $authType,
-                    'status' => 1,
-                    'user_id' => auth()->id() // Asignar el ID de usuario autenticado
-                ]);
-            }
+            // NOTA (fase piloto): antes, aquí mismo se creaba de una vez la
+            // InvRemissions (la OP real), se descontaba inventario y se
+            // autoaprobaban las autorizaciones de cartera — el pedido del
+            // cliente quedaba "aprobado" sin que nadie del equipo comercial
+            // lo revisara. Eso ya NO se hace: el pedido del cliente se queda
+            // como cotización (arriba) hasta que un asesor comercial la
+            // revise desde el panel de Cotizaciones y decida convertirla en
+            // OP manualmente (mismo flujo que ya usan con cualquier otra
+            // cotización, en ProductQuoter::confirmOrder()).
 
             DB::connection('tenant')->commit();
 
             // Resetear estados del backend
             $this->reset('proofPaymentFile');
-            
-            $this->dispatch('swal', [
-                'title' => '¡Pedido Enviado!',
-                'text' => "El pedido #{$nextRemissionConsecutive} ha sido registrado con éxito y enviado para verificación.",
+
+            $this->dispatch('swal', $exceedsAvailable ? [
+                'title' => 'Solicitud de Confirmación Enviada',
+                'text' => "Tu cotización #{$nextQuoteConsecutive} tiene cantidades por encima de lo disponible. Nuestro equipo comercial confirmará qué cantidades sí se pueden entregar.",
+                'icon' => 'warning'
+            ] : [
+                'title' => '¡Pedido Confirmado!',
+                'text' => "Tu cotización #{$nextQuoteConsecutive} fue enviada dentro de las cantidades disponibles. Nuestro equipo comercial la confirmará en breve.",
                 'icon' => 'success'
             ]);
             return true;
@@ -473,5 +430,44 @@ class CustomerPortal extends Component
             ]);
             return false;
         }
+    }
+
+    /**
+     * Misma fórmula que usa el catálogo del Portal (% Stock Portal B2B +
+     * Cant Mínima Portal B2B, bodega principal storeId=2) para saber cuánta
+     * cantidad de un ítem se le puede mostrar/ofrecer al cliente. Se vuelve
+     * a calcular aquí en submitOrder() en vez de confiar en lo que mandó el
+     * navegador.
+     */
+    private function computeVisibleStock(int $itemId): int
+    {
+        $totalStock = (float) DB::connection('tenant')->table('inv_items_store')
+            ->where('itemId', $itemId)
+            ->sum('stock_items_store');
+
+        $reservedStock = (float) DB::connection('tenant')->table('inv_reservations')
+            ->where('item_id', $itemId)
+            ->where('status_id', 1)
+            ->where('stock_type', 1)
+            ->whereNull('deleted_at')
+            ->where('due_date', '>=', now()->subDays(15))
+            ->sum('quantity');
+
+        $realStock = $totalStock - $reservedStock;
+
+        $storeConfig = DB::connection('tenant')->table('inv_items_store')
+            ->where('itemId', $itemId)
+            ->where('storeId', 2)
+            ->orderByDesc('id')
+            ->first();
+
+        $percentage = $storeConfig->b2b_stock_percentage ?? 30;
+        $minStock = $storeConfig->b2b_min_stock ?? 0;
+
+        if ($realStock < $minStock) {
+            return 0;
+        }
+
+        return max(0, (int) round($realStock * ($percentage / 100)));
     }
 }

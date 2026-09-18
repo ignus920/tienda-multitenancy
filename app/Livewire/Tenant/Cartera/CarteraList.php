@@ -609,7 +609,7 @@ class CarteraList extends Component
 
         try {
             $quote = VntQuote::findOrFail($quoteId);
-            $quote->load(['detalles', 'detalles.item', 'customer.company', 'customer.warehouse.city']);
+            $quote->load(['detalles', 'detalles.item.suggestedProducts.suggestedItem', 'customer.company', 'customer.warehouse.city']);
 
             $company = $this->getCompanyInfo($quote);
 

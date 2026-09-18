@@ -17,16 +17,21 @@ class VntQuote extends Model
         'consecutive',
         'status',
         'typeQuote',
+        'from_portal',
         'customerId',
         'warehouseId',
         'userId',
         'observations',
+        'client_note',
+        'client_confirmed_at',
         'branchId',
         'flete',
         'empaque'
     ];
 
     protected $casts = [
+        'from_portal' => 'boolean',
+        'client_confirmed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
