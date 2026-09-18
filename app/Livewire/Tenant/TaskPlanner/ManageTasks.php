@@ -690,6 +690,10 @@ class ManageTasks extends Component
 
         $hadConflicts = !empty($this->scheduleConflicts);
 
+        // Novedad: Auto-configurar la fecha límite automáticamente (al final del día)
+        $task->deadline_at = $end->copy()->endOfDay();
+        $task->save();
+
         $schedulingService->scheduleTask($task, $userIds, $start, $end, Auth::id(), $this->rescheduleReason ?: null);
 
         $this->showScheduleModal = false;
@@ -923,8 +927,27 @@ class ManageTasks extends Component
         if ($this->calendarUserId) {
             $events = array_merge(
                 $events,
-                app(AvailabilityCalendarService::class)->backgroundEventsForUser((int) $this->calendarUserId, $start, $end)
+                app(\App\Services\TaskPlanner\AvailabilityCalendarService::class)->backgroundEventsForUser((int) $this->calendarUserId, $start, $end)
             );
+        } else {
+            // Si no hay trabajador seleccionado, igual mostrar las indisponibilidades de todos para que gerencia sepa.
+            $unavailabilities = \App\Models\Tenant\TaskPlanner\EmployeeUnavailability::with('user')
+                ->where('start_datetime', '<', $end)
+                ->where('end_datetime', '>', $start)
+                ->get();
+            
+            foreach ($unavailabilities as $unavailability) {
+                $events[] = [
+                    'id' => 'unav_' . $unavailability->id,
+                    'title' => 'AUSENTE: ' . ($unavailability->user->name ?? 'Empleado') . ' - ' . ($unavailability->reason ?: 'Ausente'),
+                    'start' => $unavailability->start_datetime->toIso8601String(),
+                    'end' => $unavailability->end_datetime->toIso8601String(),
+                    'backgroundColor' => '#fca5a5',
+                    'borderColor' => '#ef4444',
+                    'textColor' => '#7f1d1d',
+                    'editable' => false,
+                ];
+            }
         }
 
         return $events;
