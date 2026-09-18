@@ -93,7 +93,20 @@
                     </button>
                 @else
                     <button type="button"
-                        onclick="confirmSendMaterialRequest(@js($materialRequest->items->where('is_removed', false)->values()->map(fn ($i) => ['description' => $i->description, 'quantity' => $i->quantity_requested])))"
+                        x-data="{ items: @js($materialRequest->items->where('is_removed', false)->values()->map(fn ($i) => ['description' => $i->description, 'quantity' => $i->quantity_requested])) }"
+                        @click="
+                            const rows = items.map((item) => '<tr><td style=\'padding:6px 8px;text-align:left;border-bottom:1px solid #f3f4f6;\'>' + item.description + '</td><td style=\'padding:6px 8px;text-align:right;font-weight:700;border-bottom:1px solid #f3f4f6;\'>' + item.quantity + '</td></tr>').join('');
+                            Swal.fire({
+                                title: '¿Enviar esta solicitud a Importaciones?',
+                                html: '<div class=\'mt-2 text-left\'><p class=\'text-xs text-gray-500 dark:text-gray-400 mb-3\'>Verifica la lista antes de confirmar — esto es lo que se le va a pedir a Bodega:</p><div style=\'max-height:280px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;\'><table style=\'width:100%;font-size:13px;border-collapse:collapse;\'><thead><tr style=\'background:#f9fafb;\'><th style=\'padding:6px 8px;text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;\'>Producto</th><th style=\'padding:6px 8px;text-align:right;color:#6b7280;font-size:11px;text-transform:uppercase;\'>Cantidad</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>',
+                                showCancelButton: true,
+                                confirmButtonText: 'Sí, enviar a Importaciones',
+                                cancelButtonText: 'Cancelar',
+                                confirmButtonColor: '#7c3aed',
+                                cancelButtonColor: '#6b7280',
+                                customClass: { popup: 'rounded-xl dark:bg-slate-900', title: 'text-lg font-bold text-gray-900 dark:text-white' }
+                            }).then((result) => { if (result.isConfirmed) { $wire.markRequestReviewed() } })
+                        "
                         class="px-4 py-1.5 text-2xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow transition-colors">
                         Enviar a Importaciones
                     </button>
@@ -121,46 +134,4 @@
         </div>
         @endif
     @endif
-
-    <script>
-        window.confirmSendMaterialRequest = function (items) {
-            const rows = items.map((item) => `
-                <tr>
-                    <td style="padding:6px 8px; text-align:left; border-bottom:1px solid #f3f4f6;">${item.description}</td>
-                    <td style="padding:6px 8px; text-align:right; font-weight:700; border-bottom:1px solid #f3f4f6;">${item.quantity}</td>
-                </tr>
-            `).join('');
-
-            Swal.fire({
-                title: '¿Enviar esta solicitud a Importaciones?',
-                html: `<div class="mt-2 text-left">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Verifica la lista antes de confirmar — esto es lo que se le va a pedir a Bodega:</p>
-                        <div style="max-height:280px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:8px;">
-                            <table style="width:100%; font-size:13px; border-collapse:collapse;">
-                                <thead>
-                                    <tr style="background:#f9fafb;">
-                                        <th style="padding:6px 8px; text-align:left; color:#6b7280; font-size:11px; text-transform:uppercase;">Producto</th>
-                                        <th style="padding:6px 8px; text-align:right; color:#6b7280; font-size:11px; text-transform:uppercase;">Cantidad</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                       <\/div>`,
-                showCancelButton: true,
-                confirmButtonText: 'Sí, enviar a Importaciones',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#7c3aed',
-                cancelButtonColor: '#6b7280',
-                customClass: {
-                    popup: 'rounded-xl dark:bg-slate-900',
-                    title: 'text-lg font-bold text-gray-900 dark:text-white',
-                },
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    @this.markRequestReviewed();
-                }
-            });
-        }
-    </script>
 </div>
