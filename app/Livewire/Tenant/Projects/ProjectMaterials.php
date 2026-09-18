@@ -401,7 +401,7 @@ class ProjectMaterials extends Component
 
         $this->notifyParticipants(
             'Laboratorio cerró la Lista de Materiales — ya está lista para generar la Solicitud de Materiales.',
-            'lista_materiales_cerrada',
+            'materiales_cerrada',
             'Lista de Materiales cerrada'
         );
 
@@ -432,7 +432,7 @@ class ProjectMaterials extends Component
 
         $this->notifyParticipants(
             'Laboratorio volvió a abrir la Lista de Materiales para agregar o corregir productos.',
-            'lista_materiales_abierta',
+            'materiales_abierta',
             'Lista de Materiales reabierta'
         );
 
