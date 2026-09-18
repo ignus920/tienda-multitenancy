@@ -105,19 +105,16 @@ class ProjectMaterialRequests extends Component
     }
 
     /**
-     * Solo perfil Laboratorio (son quienes saben qué tienen de sobra antes
-     * de pedirle a Bodega) o Super Administrador/Administrador.
+     * Solo Laboratorio puede ajustar/enviar la Solicitud de Materiales —
+     * ni siquiera Super Administrador/Administrador, porque ellos no son
+     * quienes piden materiales a Bodega, mismo criterio que Cerrar/Abrir
+     * Lista de Materiales. El resto de perfiles con acceso (canManageOutbound)
+     * igual pueden VER la lista, pero sin botones de acción.
      */
     private function canManage(): bool
     {
         $user = Auth::user();
-        if (!$user) return false;
-
-        if (in_array((int) $user->profile_id, Project::FULL_ACCESS_PROFILES, true)) {
-            return true;
-        }
-
-        return (int) $user->profile_id === self::LABORATORIO_PROFILE_ID;
+        return $user && (int) $user->profile_id === self::LABORATORIO_PROFILE_ID;
     }
 
     private function checkCanManage(): bool
