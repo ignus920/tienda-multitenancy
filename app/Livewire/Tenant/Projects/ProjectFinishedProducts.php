@@ -138,6 +138,8 @@ class ProjectFinishedProducts extends Component
 
     public function selectErpProduct($itemId, $itemName, $itemPrice, $itemCode = '')
     {
+        $itemPrice = round((float) $itemPrice);
+
         $this->selectedErpItem = [
             'id' => $itemId,
             'name' => $itemName,
@@ -149,7 +151,7 @@ class ProjectFinishedProducts extends Component
         // digita a mano, Camilo ya lo dejó configurado en el ítem.
         $this->price = $itemPrice;
 
-        $priceFormatted = '$' . number_format($itemPrice, 2);
+        $priceFormatted = '$' . number_format($itemPrice, 0);
         $this->search = $itemCode
             ? "{$itemCode} - {$itemName} ({$priceFormatted})"
             : "{$itemName} ({$priceFormatted})";

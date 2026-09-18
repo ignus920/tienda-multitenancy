@@ -405,6 +405,34 @@ class ProjectMaterials extends Component
             'Lista de Materiales cerrada'
         );
 
+        // Lógica de inicio automático de producción/desarrollo al cerrar materiales
+        $wasAutoStarted = false;
+        $oldStatus = $project->status;
+
+        if ($project->type === 'external' && $project->status === 'orden_creada') {
+            $project->update(['status' => 'en_produccion']);
+            $wasAutoStarted = true;
+        } elseif ($project->type === 'internal' && $project->status === 'cotizacion') {
+            $project->update(['status' => 'en_produccion']);
+            $wasAutoStarted = true;
+        }
+
+        if ($wasAutoStarted) {
+            \App\Models\Tenant\Projects\ProjectStatusHistory::create([
+                'project_id' => $project->id,
+                'from_status' => $oldStatus,
+                'to_status' => 'en_produccion',
+                'changed_by' => Auth::id()
+            ]);
+
+            $autoMessage = ProjectMessage::create([
+                'project_id' => $project->id,
+                'user_id' => Auth::id(),
+                'message' => "**AVANCE AUTOMÁTICO**\n\nAl cerrar la Lista de Materiales, el proyecto ha iniciado su Producción/Desarrollo automáticamente."
+            ]);
+            broadcast(new NewProjectMessage($autoMessage));
+        }
+
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Lista de materiales cerrada']);
     }
 

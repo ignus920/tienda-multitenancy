@@ -268,6 +268,7 @@
                             @endif
 
                             <!-- Comercial / Laboratorio inicia producción -->
+                            {{--
                             @if($project->status === 'orden_creada' && in_array(Auth::user()->profile_id, [1, 2, 4]))
                                 <button wire:click="startProduction"
                                     wire:confirm="Al iniciar producción, la Orden de Pedido de este proyecto ya no se podrá editar. ¿Deseas continuar?"
@@ -275,14 +276,17 @@
                                     Iniciar Producción (Fábrica)
                                 </button>
                             @endif
+                            --}}
                         @else
                             <!-- Área responsable inicia desarrollo (proyecto interno) -->
+                            {{--
                             @if($project->status === 'cotizacion')
                                 <button wire:click="$set('showStartDevelopmentModal', true)"
                                     class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
                                     Iniciar Desarrollo
                                 </button>
                             @endif
+                            --}}
                         @endif
 
                         <!-- Se agregan avances y preguntas durante el desarrollo/producción -->
