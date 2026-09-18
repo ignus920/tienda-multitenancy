@@ -144,6 +144,16 @@
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Generando Entrada de Inventario...',
+                        text: 'Sincronizando con el ERP y Alegra — esto puede tardar unos segundos, no cierres esta ventana.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
                     $wire.generateInventoryEntry();
                 }
             })"
