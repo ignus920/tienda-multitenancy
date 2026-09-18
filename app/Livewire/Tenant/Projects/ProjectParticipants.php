@@ -133,7 +133,7 @@ class ProjectParticipants extends Component
                 'project_id' => $this->projectId,
                 'message_id' => null,
                 'sender_id' => Auth::id(),
-                'type' => 'mencion', // Usa mencion para que salga en la campanita
+                'type' => 'nuevo_participante', // Cambiado para que se marque como leído al hacer clic
             ]);
 
             $project = Project::find($this->projectId);
@@ -142,8 +142,8 @@ class ProjectParticipants extends Component
                 $this->projectId,
                 $project->title ?? 'Proyecto',
                 Auth::user()->name,
-                'Te ha agregado como participante de este proyecto.',
-                'mencion',
+                'Te han agregado como participante de este proyecto.',
+                'nuevo_participante',
                 $notification->id
             ));
         }

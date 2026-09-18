@@ -124,6 +124,10 @@
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
                                     {{ in_array($notification['type'], ['mencion_avance', 'respuesta_avance']) ? 'Avances de Proyectos' : '@mención' }}
                                 </span>
+                            @elseif($notification['type'] === 'nuevo_participante')
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                                    Asignación
+                                </span>
                             @endif
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
