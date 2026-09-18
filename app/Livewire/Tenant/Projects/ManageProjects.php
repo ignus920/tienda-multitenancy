@@ -69,6 +69,9 @@ class ManageProjects extends Component
     // Filtro por tipo de proyecto (interno, externo)
     public $projectTypeFilter = '';
 
+    // Usuario autenticado para el WebSocket
+    public $userId;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'selectedStatus' => ['except' => ''],
@@ -85,6 +88,8 @@ class ManageProjects extends Component
 
     public function mount()
     {
+        $this->userId = Auth::id();
+        
         if (empty($this->searchDateFrom) && empty($this->searchDateTo)) {
             $this->searchDateFrom = now()->subMonth()->format('Y-m-d');
             $this->searchDateTo = now()->format('Y-m-d');
