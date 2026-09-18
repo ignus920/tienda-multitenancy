@@ -54,6 +54,7 @@ class ProjectWorkspace extends Component
         ['qty' => 1, 'price_unit' => '', 'observations' => '']
     ];
     public $delivery_date;
+    public $isEditingOrder = false;
 
     // Campos de Pregunta para el Cliente (Laboratorio)
     public $newQuestionText = '';
@@ -463,6 +464,55 @@ class ProjectWorkspace extends Component
         }
     }
 
+    // Solo el creador del proyecto o un perfil de acceso total puede crear/editar la orden
+    private function canManageOrder(Project $project): bool
+    {
+        $user = Auth::user();
+        return $user && ($user->id === $project->created_by || in_array($user->profile_id, Project::FULL_ACCESS_PROFILES));
+    }
+
+    public function openCreateOrderModal()
+    {
+        $this->isEditingOrder = false;
+        $this->orderItems = [['qty' => 1, 'price_unit' => '', 'observations' => '']];
+        $this->delivery_date = null;
+        $this->resetErrorBag();
+        $this->showOrderModal = true;
+    }
+
+    // Precarga la orden ya guardada para poder corregirla o agregar ítems
+    public function openEditOrderModal()
+    {
+        $this->ensureTenantConnection();
+        $project = Project::findOrFail($this->projectId);
+
+        if (!$this->canManageOrder($project)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para editar esta orden.']);
+            return;
+        }
+
+        if ($project->status !== 'orden_creada') {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La orden ya no se puede editar porque el proyecto avanzó de estado.']);
+            return;
+        }
+
+        $orders = \App\Models\Tenant\Projects\ProjectOrder::where('project_id', $this->projectId)->orderBy('id')->get();
+        if ($orders->isEmpty()) {
+            $this->openCreateOrderModal();
+            return;
+        }
+
+        $this->orderItems = $orders->map(fn ($o) => [
+            'qty' => $o->qty,
+            'price_unit' => (string) $o->price_unit,
+            'observations' => $o->observations,
+        ])->toArray();
+        $this->delivery_date = optional($project->delivery_date)->format('Y-m-d');
+        $this->isEditingOrder = true;
+        $this->resetErrorBag();
+        $this->showOrderModal = true;
+    }
+
     public function saveProductionOrder()
     {
         $this->ensureTenantConnection();
@@ -477,13 +527,32 @@ class ProjectWorkspace extends Component
 
         $project = Project::findOrFail($this->projectId);
 
+        if (!$this->canManageOrder($project)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permiso para modificar esta orden.']);
+            return;
+        }
+
+        // La orden solo se puede crear o editar antes de avisarle a Fábrica
+        if (!in_array($project->status, ['cotizacion', 'negociacion', 'orden_creada'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La orden ya no se puede modificar porque el proyecto avanzó de estado.']);
+            $this->showOrderModal = false;
+            return;
+        }
+
+        $wasEditing = $this->isEditingOrder;
+
+        if ($wasEditing) {
+            // Reemplaza los ítems anteriores por los corregidos (misma estrategia que Cálculo de Costos)
+            \App\Models\Tenant\Projects\ProjectOrder::where('project_id', $project->id)->delete();
+        }
+
         $totalGeneral = 0;
-        
+
         // Guardar cada ítem
         foreach ($this->orderItems as $item) {
             $itemTotal = $item['qty'] * $item['price_unit'];
             $totalGeneral += $itemTotal;
-            
+
             \App\Models\Tenant\Projects\ProjectOrder::create([
                 'project_id' => $project->id,
                 'qty' => $item['qty'],
@@ -494,7 +563,7 @@ class ProjectWorkspace extends Component
         }
 
         $this->logStatusChange($project, 'orden_creada');
-        
+
         // Actualizamos el proyecto con el nuevo total y estado (ya no se guardan qty ni price_unit en la cabecera, o los dejamos en 0/null si se prefiere, pero actualizaremos el total)
         $project->update([
             'total_value' => $totalGeneral,
@@ -504,16 +573,21 @@ class ProjectWorkspace extends Component
 
         // Enviar mensaje automático al chat del proyecto
         $userName = \Illuminate\Support\Facades\Auth::user()->name;
+        $accion = $wasEditing ? 'ha Editado la Orden de Pedido' : 'ha Creado Orden de Pedido';
         $message = \App\Models\Tenant\Projects\ProjectMessage::create([
             'project_id' => $project->id,
             'user_id' => \Illuminate\Support\Facades\Auth::id(),
-            'message' => "**AVANCE DEL PROYECTO**\n\n{$userName} ha Creado Orden de Pedido"
+            'message' => "**AVANCE DEL PROYECTO**\n\n{$userName} {$accion}"
         ]);
         broadcast(new \App\Events\Tenant\Projects\NewProjectMessage($message));
 
         // Ya no asignamos una única cantidad y precio al componente
         $this->showOrderModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Orden de producción creada con ' . count($this->orderItems) . ' ítems']);
+        $this->isEditingOrder = false;
+        $successMessage = $wasEditing
+            ? 'Orden de producción actualizada con ' . count($this->orderItems) . ' ítems'
+            : 'Orden de producción creada con ' . count($this->orderItems) . ' ítems';
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => $successMessage]);
     }
 
     // Iniciar producción (Laboratorio o comercial) - Proyecto externo
