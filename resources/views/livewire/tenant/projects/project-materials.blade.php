@@ -23,7 +23,7 @@
                     @if($hasSalidaGenerada)
                         <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block">
                             <button type="button" disabled
-                                class="px-3 py-1.5 text-2xs font-bold text-white bg-amber-400 cursor-not-allowed rounded-lg shadow opacity-70">
+                                class="px-3 py-1.5 text-2xs font-bold text-white bg-amber-600 opacity-50 cursor-not-allowed rounded-lg shadow">
                                 Abrir Lista de Materiales
                             </button>
                             <div x-show="show" x-transition.opacity style="display: none;" class="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 px-2 py-1.5 bg-gray-900 text-white text-3xs rounded shadow-lg text-center font-normal whitespace-normal pointer-events-none">
