@@ -729,7 +729,12 @@
                             $wire.prefillScheduleFromDrop(taskId, startStr, null);
                         },
                         eventClick: (info) => {
-                            $wire.openDetailModal(info.event.extendedProps.taskId);
+                            if (info.event.id && info.event.id.startsWith('unav_')) {
+                                let id = info.event.id.split('_')[1];
+                                $wire.editUnavailability(id);
+                            } else if (info.event.extendedProps.taskId) {
+                                $wire.openDetailModal(info.event.extendedProps.taskId);
+                            }
                         },
                     });
 

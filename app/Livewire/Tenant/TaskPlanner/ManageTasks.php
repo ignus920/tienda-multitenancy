@@ -128,6 +128,7 @@ class ManageTasks extends Component
 
     // Modal Indisponibilidad
     public $showUnavailabilityModal = false;
+    public $unavailabilityId = null;
     public $unavailUserId = '';
     public $unavailStart = '';
     public $unavailEnd = '';
@@ -1048,8 +1049,22 @@ class ManageTasks extends Component
 
     public function openUnavailabilityModal()
     {
-        $this->reset(['unavailUserId', 'unavailStart', 'unavailEnd', 'unavailReason']);
+        $this->reset(['unavailabilityId', 'unavailUserId', 'unavailStart', 'unavailEnd', 'unavailReason']);
         $this->unavailType = 'permiso_personal';
+        $this->showUnavailabilityModal = true;
+    }
+
+    public function editUnavailability($id)
+    {
+        $this->ensureTenantConnection();
+        $unav = EmployeeUnavailability::findOrFail($id);
+        $this->unavailabilityId = $unav->id;
+        $this->unavailUserId = $unav->user_id;
+        // Ajuste de formato datetime para input datetime-local (Y-m-d\TH:i)
+        $this->unavailStart = \Carbon\Carbon::parse($unav->start_datetime)->format('Y-m-d\TH:i');
+        $this->unavailEnd = \Carbon\Carbon::parse($unav->end_datetime)->format('Y-m-d\TH:i');
+        $this->unavailType = $unav->type;
+        $this->unavailReason = $unav->reason;
         $this->showUnavailabilityModal = true;
     }
 
@@ -1067,14 +1082,27 @@ class ManageTasks extends Component
             'unavailEnd.after' => 'La fecha final debe ser después de la inicial.',
         ]);
 
-        EmployeeUnavailability::create([
-            'user_id' => $this->unavailUserId,
-            'start_datetime' => $this->unavailStart,
-            'end_datetime' => $this->unavailEnd,
-            'type' => $this->unavailType,
-            'reason' => $this->unavailReason,
-            'created_by' => Auth::id(),
-        ]);
+        if ($this->unavailabilityId) {
+            $unav = EmployeeUnavailability::findOrFail($this->unavailabilityId);
+            $unav->update([
+                'user_id' => $this->unavailUserId,
+                'start_datetime' => $this->unavailStart,
+                'end_datetime' => $this->unavailEnd,
+                'type' => $this->unavailType,
+                'reason' => $this->unavailReason,
+            ]);
+            $msg = 'Indisponibilidad actualizada.';
+        } else {
+            EmployeeUnavailability::create([
+                'user_id' => $this->unavailUserId,
+                'start_datetime' => $this->unavailStart,
+                'end_datetime' => $this->unavailEnd,
+                'type' => $this->unavailType,
+                'reason' => $this->unavailReason,
+                'created_by' => Auth::id(),
+            ]);
+            $msg = 'Indisponibilidad registrada.';
+        }
 
         // ¿Hay tareas ya programadas para ese trabajador dentro del rango?
         // No las movemos automáticamente (Gerencia decide), pero sí dejamos
@@ -1100,9 +1128,10 @@ class ManageTasks extends Component
         $this->showUnavailabilityModal = false;
 
         if ($clashing->count() > 0) {
+            $actionText = $this->unavailabilityId ? 'actualizada' : 'registrada';
             $this->dispatch('show-toast', [
                 'type' => 'warning',
-                'message' => 'Indisponibilidad registrada. Hay ' . $clashing->count() .
+                'message' => 'Indisponibilidad ' . $actionText . '. Hay ' . $clashing->count() .
                     ' tarea(s) programada(s) en ese horario que debes reprogramar.',
             ]);
         } else {
