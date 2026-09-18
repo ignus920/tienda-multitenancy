@@ -40,6 +40,10 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
+    .fc-header-toolbar {
+        margin-bottom: 1.5rem !important;
+    }
+
     .fc-toolbar-title {
         font-weight: 700 !important;
         font-size: 1.25rem !important;
@@ -51,10 +55,25 @@
 
     .fc-button {
         text-transform: capitalize;
-        border-radius: 8px !important;
         font-weight: 600 !important;
         padding: 0.4rem 1rem !important;
         box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .fc-button-group .fc-button {
+        border-radius: 0 !important;
+        margin-left: -1px;
+    }
+    .fc-button-group .fc-button:first-child {
+        border-top-left-radius: 6px !important;
+        border-bottom-left-radius: 6px !important;
+        margin-left: 0;
+    }
+    .fc-button-group .fc-button:last-child {
+        border-top-right-radius: 6px !important;
+        border-bottom-right-radius: 6px !important;
+    }
+    .fc-toolbar-chunk > .fc-button:not(.fc-button-group .fc-button) {
+        border-radius: 6px !important;
     }
     .fc-button-primary:not(:disabled):active, .fc-button-primary:not(:disabled).fc-button-active {
         box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
@@ -523,6 +542,7 @@
                     height: 'auto',
                     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
                     initialView: 'timeGridWeek',
+                    eventDisplay: 'block',
                     slotMinTime: '06:00:00',
                     slotMaxTime: '20:00:00',
                     nowIndicator: true,
