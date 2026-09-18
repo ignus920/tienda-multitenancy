@@ -69,7 +69,7 @@
                     class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Materiales
                 </button>
-                @if($canSeeMaterialRequests)
+                @if($canSeeMaterialRequests && $project->materials_locked)
                 <button wire:click="$set('activeTab', 'solicitud_materiales')"
                     class="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md transition-colors {{ $activeTab === 'solicitud_materiales' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
                     Solicitud de Materiales
@@ -270,6 +270,7 @@
                             <!-- Comercial / Laboratorio inicia producción -->
                             @if($project->status === 'orden_creada' && in_array(Auth::user()->profile_id, [1, 2, 4]))
                                 <button wire:click="startProduction"
+                                    wire:confirm="Al iniciar producción, la Orden de Pedido de este proyecto ya no se podrá editar. ¿Deseas continuar?"
                                     class="w-full inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-sm transition-colors">
                                     Iniciar Producción (Fábrica)
                                 </button>

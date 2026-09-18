@@ -77,7 +77,8 @@ class Remissions extends Component
         'sin_facturar' => 0,
         'consultas_nuevas' => 0,
         'sin_autorizacion' => 0,
-        'anulados' => 0
+        'anulados' => 0,
+        'proyectos' => 0
     ];
 
     public $showConfirmationsModal = false;
@@ -1356,6 +1357,14 @@ class Remissions extends Component
                     $q->where('auth_type', 'despacho')->where('status', 1);
                 })->count(),
             'anulados' => (clone $baseQuery)->where('status', 'ANULADO')->count(),
+            // Pedidos internos generados desde Proyectos (Salida de Mercancía) — no
+            // requieren autorizaciones de Cartera, por eso no usan $baseQuery.
+            'proyectos' => InvRemissions::whereNotNull('project_id')
+                ->when($storeId, function ($query) use ($storeId) {
+                    $query->where('warehouseId', $storeId);
+                })
+                ->where('status', '!=', 'ANULADO')
+                ->count(),
         ];
 
         // Consulta de remisiones con relaciones y filtros de búsqueda utilizando el helper
@@ -2347,9 +2356,10 @@ class Remissions extends Component
             'invoice',
             'deliveryTypeModel',
             'methodPayment',
-            'authorizations'
+            'authorizations',
+            'project'
         ])
-            ->when($this->statusFilter !== 'sin_autorizacion', function ($q) {
+            ->when(!in_array($this->statusFilter, ['sin_autorizacion', 'proyectos']), function ($q) {
                 $q->whereHas('authorizations', function ($sub) {
                     $sub->whereIn('auth_type', ['empaque', 'despacho', 'pago'])
                         ->where('status', 1);
@@ -2373,6 +2383,8 @@ class Remissions extends Component
                     $query->where('status', '!=', 'ANULADO')->whereDoesntHave('invoiceSale');
                 } elseif ($this->statusFilter === 'anulados') {
                     $query->where('status', 'ANULADO');
+                } elseif ($this->statusFilter === 'proyectos') {
+                    $query->whereNotNull('project_id')->where('status', '!=', 'ANULADO');
                 } elseif ($this->statusFilter === 'sin_autorizacion') {
                     $query->where('status', '!=', 'ANULADO')
                         ->where('status', '!=', 'ENTREGADO')

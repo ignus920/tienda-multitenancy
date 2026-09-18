@@ -115,7 +115,9 @@ class ProjectFinishedProducts extends Component
 
         $words = array_filter(explode(' ', trim($this->search)));
 
-        $query = Items::with('invValues')->active();
+        // Solo productos tipificados como "ENSAMBLADO" — los demás tipos no
+        // aplican como producto terminado y causarían inconsistencias.
+        $query = Items::with('invValues')->active()->byType('ENSAMBLADO');
         foreach ($words as $word) {
             $query->where(function ($q) use ($word) {
                 $q->where('name', 'like', '%' . $word . '%')
@@ -142,6 +144,10 @@ class ProjectFinishedProducts extends Component
             'price' => $itemPrice,
             'code' => $itemCode,
         ];
+
+        // El precio se toma directo del precio de lista del ERP — ya no se
+        // digita a mano, Camilo ya lo dejó configurado en el ítem.
+        $this->price = $itemPrice;
 
         $priceFormatted = '$' . number_format($itemPrice, 2);
         $this->search = $itemCode
