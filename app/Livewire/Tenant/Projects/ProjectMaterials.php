@@ -602,6 +602,10 @@ class ProjectMaterials extends Component
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
         $materialsLocked = $project ? (bool) $project->materials_locked : false;
 
+        $hasSalidaGenerada = ProjectMaterialRequest::where('project_id', $this->projectId)
+            ->where('status', 'salida_generada')
+            ->exists();
+
         return view('livewire.tenant.projects.project-materials', [
             'materials' => $materials,
             'subtotalErp' => $subtotalErp,
@@ -609,6 +613,7 @@ class ProjectMaterials extends Component
             'total' => $subtotalErp + $subtotalExterno,
             'isClosed' => $isClosed,
             'materialsLocked' => $materialsLocked,
+            'hasSalidaGenerada' => $hasSalidaGenerada,
             'isLaboratorio' => $this->isLaboratorio(),
             'materialsLockedByName' => $materialsLocked ? optional($project->materialsLockedBy)->name : null,
             'materialsLockedAt' => $materialsLocked ? $project->materials_locked_at : null,

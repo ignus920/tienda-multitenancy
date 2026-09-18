@@ -20,21 +20,34 @@
                         Cerrar Lista de Materiales
                     </button>
                 @else
-                    <button type="button"
-                        @click="Swal.fire({
-                            title: '¿Abrir de nuevo la Lista de Materiales?',
-                            text: 'Se notificará a todos los participantes del proyecto que la lista se reabrió.',
-                            icon: 'question',
-                            showCancelButton: true,
-                            confirmButtonColor: '#7c3aed',
-                            confirmButtonText: 'Sí, abrir lista',
-                            cancelButtonText: 'Cancelar'
-                        }).then((result) => {
-                            if (result.isConfirmed) { $wire.openMaterialsList() }
-                        })"
-                        class="px-3 py-1.5 text-2xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow transition-colors">
-                        Abrir Lista de Materiales
-                    </button>
+                    @if($hasSalidaGenerada)
+                        <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block">
+                            <button type="button" disabled
+                                class="px-3 py-1.5 text-2xs font-bold text-white bg-amber-400 cursor-not-allowed rounded-lg shadow opacity-70">
+                                Abrir Lista de Materiales
+                            </button>
+                            <div x-show="show" x-transition.opacity style="display: none;" class="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 px-2 py-1.5 bg-gray-900 text-white text-3xs rounded shadow-lg text-center font-normal whitespace-normal pointer-events-none">
+                                No se puede abrir porque ya existe una salida de almacén generada para este proyecto.
+                                <div class="absolute w-2 h-2 bg-gray-900 rotate-45 left-1/2 -translate-x-1/2 -bottom-1"></div>
+                            </div>
+                        </div>
+                    @else
+                        <button type="button"
+                            @click="Swal.fire({
+                                title: '¿Abrir de nuevo la Lista de Materiales?',
+                                text: 'Se notificará a todos los participantes del proyecto que la lista se reabrió.',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#7c3aed',
+                                confirmButtonText: 'Sí, abrir lista',
+                                cancelButtonText: 'Cancelar'
+                            }).then((result) => {
+                                if (result.isConfirmed) { $wire.openMaterialsList() }
+                            })"
+                            class="px-3 py-1.5 text-2xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow transition-colors">
+                            Abrir Lista de Materiales
+                        </button>
+                    @endif
                 @endif
             @endif
             @if($materials && $materials->count() > 0 && !$isClosed && !$materialsLocked)
