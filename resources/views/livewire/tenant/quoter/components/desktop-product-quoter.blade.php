@@ -3,7 +3,7 @@
     <template x-teleport="#customer-header-container">
         <div class="w-full flex items-center justify-end">
             @if(($isEditing || $isEditingRemission) && $selectedCustomer)
-            <div class="flex items-center justify-end gap-2 text-xs w-full">
+            <div class="flex items-center justify-end gap-2 text-base md:text-lg w-full">
                 @if($isEditing && $editingQuoteConsecutive)
                     <span class="font-bold text-indigo-600 dark:text-indigo-400 shrink-0">Cotización #{{ $editingQuoteConsecutive }}</span>
                     <span class="text-gray-300 dark:text-gray-600">·</span>
@@ -14,6 +14,11 @@
                 <span class="font-medium text-gray-900 dark:text-white truncate">
                     {{ $selectedCustomer['businessName'] ?: trim(($selectedCustomer['firstName'] ?? '') . ' ' . ($selectedCustomer['secondName'] ?? '') . ' ' . ($selectedCustomer['lastName'] ?? '') . ' ' . ($selectedCustomer['secondLastName'] ?? '')) }}
                 </span>
+                <button wire:click="editCustomer" class="p-1 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors" title="Editar Cliente">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                </button>
             </div>
             @endif
         </div>
