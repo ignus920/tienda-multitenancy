@@ -33,6 +33,7 @@
         padding: 2px 4px;
         font-weight: 500;
         transition: transform 0.15s ease-in-out;
+        cursor: pointer !important;
     }
     
     .fc-event:hover {
