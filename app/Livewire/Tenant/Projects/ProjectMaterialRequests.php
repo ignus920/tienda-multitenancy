@@ -346,7 +346,7 @@ class ProjectMaterialRequests extends Component
 
         $project = Project::find($request->project_id);
         $outboundObservations = 'Salida a Proyecto #' . $request->project_id
-            . ($project ? ' - ' . $project->name : '')
+            . ($project ? ' - ' . $project->title : '')
             . ' — Solicitud de materiales';
 
         // ── Paso 1: payload Alegra (mismo formato que MovementForm) ──
