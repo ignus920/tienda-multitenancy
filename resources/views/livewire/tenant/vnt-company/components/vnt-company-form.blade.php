@@ -379,6 +379,7 @@
                 <!-- Form -->
                 <form wire:submit="save" class="p-6 space-y-6">
                     <div class="space-y-6">
+                        @if(!$simplified)
                         <!-- Tipo de Contacto -->
                             <div class="md:col-span-2">
                                 <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Contacto <span class="text-red-500">*</span></label>
@@ -390,6 +391,7 @@
                                 </select>
                                 @error('type') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                             </div>
+                        @endif
                         <!-- Tipo de Identificación -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -751,7 +753,7 @@
                             @error('warehousePostcode') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        @if ($type && $type == 'CLIENTE')
+                        @if ($type && $type == 'CLIENTE' && !$simplified)
                             <!-- Listas de Precios B2B -->
                             <div class="md:col-span-2 p-4 bg-gray-100 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80">
                                 <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">Configuración de Listas de Precios</h4>
@@ -786,6 +788,7 @@
                         <!-- ...existing code... -->
 
                         <!-- Crear Usuario Checkbox -->
+                        @if(!$simplified)
                         <div class="md:col-span-2">
                             <div class="flex items-center gap-3 p-4 rounded-lg
                                 {{ empty($billingEmail) || $emailExists || $hasExistingUser ? 'bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' }}">
@@ -812,6 +815,7 @@
                                 </div>    
                             </div>
                         </div>
+                        @endif
 
                         <!-- Actions -->
                         <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
