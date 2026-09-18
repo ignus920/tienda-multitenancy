@@ -132,9 +132,29 @@
                 <p class="text-3xs text-purple-600 dark:text-purple-400">
                     Revisa las cantidades y genera la salida — descuenta el stock del ERP y sincroniza con Alegra.
                 </p>
-                <button wire:click="generateOutboundMovement({{ $materialRequest->id }})"
-                    wire:confirm="¿Generar la Salida de Mercancía para esta solicitud? Se descontará del ERP y de Alegra."
-                    type="button"
+                <button type="button"
+                    @click="
+                        Swal.fire({
+                            title: '¿Generar la Salida de Mercancía?',
+                            text: 'Se descontará del ERP y se sincronizará con Alegra.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#10b981',
+                            confirmButtonText: 'Sí, generar salida',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (!result.isConfirmed) return;
+                            Swal.fire({
+                                title: 'Generando Salida de Mercancía...',
+                                html: 'Sincronizando con el ERP y Alegra — esto puede tardar unos segundos, no cierres esta ventana.',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: false,
+                                didOpen: () => { Swal.showLoading() }
+                            });
+                            $wire.generateOutboundMovement({{ $materialRequest->id }}).then(() => { Swal.close() });
+                        })
+                    "
                     class="shrink-0 px-4 py-1.5 text-2xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow transition-colors">
                     Generar Salida de Mercancía
                 </button>
