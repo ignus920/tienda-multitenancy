@@ -38,6 +38,7 @@ class InvRemissions extends Model
         'proof_payment',
         'payment_details',
         'from_portal',
+        'project_id',
     ];
 
     protected $casts = [
@@ -50,6 +51,15 @@ class InvRemissions extends Model
     public function quote()
     {
         return $this->belongsTo(\App\Models\Tenant\Quoter\VntQuote::class, 'quoteId');
+    }
+
+    /**
+     * Proyecto de origen, cuando este "Pedido" fue generado automáticamente
+     * desde una Salida de Mercancía de Proyectos (no tiene quoteId/cliente).
+     */
+    public function project()
+    {
+        return $this->belongsTo(\App\Models\Tenant\Projects\Project::class, 'project_id');
     }
 
     /**

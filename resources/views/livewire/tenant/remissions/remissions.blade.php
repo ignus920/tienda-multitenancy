@@ -32,7 +32,7 @@
     </div>
     
     <!-- Tarjetas de Resumen -->
-    <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
         <!-- Registradas -->
         <div wire:click="setStatusFilter('registradas')" 
              class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'registradas' ? 'bg-red-500 border-red-600 shadow-red-200 dark:shadow-red-900/20' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}">
@@ -116,8 +116,24 @@
             </div>
         </div>
 
+        <!-- Órdenes de Proyecto -->
+        <div wire:click="setStatusFilter('proyectos')"
+             class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'proyectos' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
+             style="{{ $statusFilter === 'proyectos' ? 'background-color: #7c3aed !important; border-color: #6d28d9 !important;' : '' }}">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-xl font-bold transition-all duration-300 {{ $statusFilter === 'proyectos' ? 'bg-white/20 text-white' : 'text-white shadow-lg' }}"
+                     style="{{ $statusFilter === 'proyectos' ? '' : 'background-color: #7c3aed !important;' }}">
+                    {{ $summaryCounts['proyectos'] }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold transition-colors duration-300 {{ $statusFilter === 'proyectos' ? 'text-white/80' : 'text-gray-400' }} uppercase mb-0.5">Proyectos</p>
+                    <p class="text-[13px] font-semibold transition-colors duration-300 {{ $statusFilter === 'proyectos' ? 'text-white' : 'text-gray-700 dark:text-slate-300' }} leading-tight">Órdenes de Proyecto</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Anulados -->
-        <div wire:click="setStatusFilter('anulados')" 
+        <div wire:click="setStatusFilter('anulados')"
              class="p-4 rounded-lg border transition-all duration-300 cursor-pointer hover:shadow-lg group {{ $statusFilter === 'anulados' ? 'text-white' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 shadow-sm' }}"
              style="{{ $statusFilter === 'anulados' ? 'background-color: #64748b !important; border-color: #475569 !important; shadow-color: rgba(100, 116, 139, 0.2);' : '' }}">
             <div class="flex items-center space-x-4">
@@ -290,7 +306,9 @@
                     @forelse($remissions as $remission)
                         <tr class="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                             <td class="px-4 py-4 text-center">
-                                @if(!in_array(auth()->user()?->profile_id, [4, 6, 9, 16]))
+                                @if($remission->project_id)
+                                    <span class="text-2xs text-violet-500 dark:text-violet-400 font-semibold">Interno</span>
+                                @elseif(!in_array(auth()->user()?->profile_id, [4, 6, 9, 16]))
                                     @if($remission->status !== 'ANULADO' && !$remission->invoice)
                                         <input type="checkbox" wire:model.live="selectedRemissions" value="{{ $remission->id }}"
                                             class="rounded border-gray-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
@@ -317,12 +335,20 @@
                                 <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->created_at->format('H:i') }}</small>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
-                                #{{ $remission->quote->consecutive ?? 'N/A' }}
+                                @if($remission->project_id)
+                                    <span class="px-2 py-0.5 text-2xs font-bold rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-200">Proyecto</span>
+                                @else
+                                    #{{ $remission->quote->consecutive ?? 'N/A' }}
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
-                                {{ $remission->quote->customer_name ?? 'N/A' }}
-                                @if(isset($remission->quote->customer->company->identification))
-                                    <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->company->identification }}</small>
+                                @if($remission->project_id)
+                                    #{{ $remission->project_id }} - {{ $remission->project->title ?? 'Proyecto eliminado' }}
+                                @else
+                                    {{ $remission->quote->customer_name ?? 'N/A' }}
+                                    @if(isset($remission->quote->customer->company->identification))
+                                        <br><small class="text-gray-500 dark:text-slate-400">{{ $remission->quote->customer->company->identification }}</small>
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">
@@ -427,7 +453,11 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                @if($remission->invoice)
+                                @if($remission->project_id)
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-200">
+                                        Interno (no se factura)
+                                    </span>
+                                @elseif($remission->invoice)
                                     @if($remission->invoice->status === 'FACTURADO' && $remission->invoice->invoiceNumber)
                                         <!-- ✅ MODIFICADO: Mostrar número de factura en verde cuando esté facturado -->
                                         <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -474,6 +504,7 @@
                                         class="origin-top-right absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50"
                                         style="display: none;">
                                         <div class="py-1">
+                                            @if(!$remission->project_id)
                                             <button wire:click="printShippingGuide({{ $remission->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center font-semibold border-b border-gray-100 dark:border-gray-700">
                                                 <svg class="text-green-600 dark:text-green-400 mr-2" style="width: 18px; height: 18px; min-width: 18px; min-height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -482,6 +513,7 @@
                                                 </svg>
                                                 Imprimir Guía de Envío
                                             </button>
+                                            @endif
                                             <button wire:click="viewDetails({{ $remission->id }})"
                                                 class="w-full text-left px-4 py-2 text-sm text-indigo-800 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center">
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
@@ -492,7 +524,7 @@
                                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
                                                 Observaciones
                                             </button>
-                                            @if($canEditRemission && $remission->status !== 'ANULADO')
+                                            @if($canEditRemission && !$remission->project_id && $remission->status !== 'ANULADO')
                                                 @if($remission->invoice && $remission->invoice->api_data_id)
                                                 <button disabled
                                                     title="No se puede editar un pedido que ya está facturado en Alegra"
@@ -507,7 +539,7 @@
                                                 </button>
                                                 @endif
                                             @endif
-                                            @if($remission->status !== 'ANULADO')
+                                            @if($remission->status !== 'ANULADO' && !$remission->project_id)
                                             <button wire:click="printRemission({{ $remission->id }})" class="w-full text-left px-4 py-2 text-sm text-green-800 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center justify-between">
                                                 <div class="flex items-center">
                                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>

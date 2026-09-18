@@ -2,7 +2,42 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <h2 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Lista de Materiales</h2>
         <div class="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
-            @if($materials && $materials->count() > 0 && !$isClosed)
+            @if($isLaboratorio && !$isClosed)
+                @if(!$materialsLocked)
+                    <button type="button"
+                        @click="Swal.fire({
+                            title: '¿Cerrar la Lista de Materiales?',
+                            text: 'Ya no se podrán agregar ni editar materiales hasta que la vuelvas a abrir. Se notificará a todos los participantes del proyecto.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#7c3aed',
+                            confirmButtonText: 'Sí, cerrar lista',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) { $wire.closeMaterialsList() }
+                        })"
+                        class="px-3 py-1.5 text-2xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow transition-colors">
+                        Cerrar Lista de Materiales
+                    </button>
+                @else
+                    <button type="button"
+                        @click="Swal.fire({
+                            title: '¿Abrir de nuevo la Lista de Materiales?',
+                            text: 'Se notificará a todos los participantes del proyecto que la lista se reabrió.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#7c3aed',
+                            confirmButtonText: 'Sí, abrir lista',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) { $wire.openMaterialsList() }
+                        })"
+                        class="px-3 py-1.5 text-2xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow transition-colors">
+                        Abrir Lista de Materiales
+                    </button>
+                @endif
+            @endif
+            @if($materials && $materials->count() > 0 && !$isClosed && !$materialsLocked)
                 <button type="button" 
                         @click="Swal.fire({
                             title: 'Eliminar Lista Completa',
@@ -32,7 +67,16 @@
         </div>
     </div>
 
-    @if(!$isClosed)
+    @if($materialsLocked)
+    <div class="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/60 rounded-lg p-3 text-3xs text-purple-700 dark:text-purple-400">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <span>
+            Lista cerrada por Laboratorio{{ $materialsLockedByName ? " ({$materialsLockedByName})" : '' }}{{ $materialsLockedAt ? ' el ' . $materialsLockedAt->format('d/m/Y H:i') : '' }} — no se puede editar hasta que Laboratorio la vuelva a abrir.
+        </span>
+    </div>
+    @endif
+
+    @if(!$isClosed && !$materialsLocked)
     <!-- Buscador de productos ERP -->
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -124,12 +168,12 @@
                     <th class="text-right py-2 pr-2">Precio Unit.</th>
                     <th class="text-right py-2 pr-2">Subtotal</th>
                     <th class="text-left py-2 pr-2 w-[15%]">Observaciones</th>
-                    @if(!$isClosed)<th class="text-right py-2 w-20">Acciones</th>@endif
+                    @if(!$isClosed && !$materialsLocked)<th class="text-right py-2 w-20">Acciones</th>@endif
                 </tr>
             </thead>
             <tbody>
                 @forelse($materials as $material)
-                    <tr class="border-b border-gray-50 dark:border-gray-750 {{ !$material->is_active ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : '' }}">
+                    <tr class="border-b border-gray-50 dark:border-gray-750 {{ !$material->is_active ? 'opacity-50 bg-gray-50 dark:bg-gray-800/50' : ($material->insufficient_stock ? 'bg-orange-50 dark:bg-orange-900/10' : '') }}">
                         <td class="py-2 pr-2">
                             <div x-data="{ show: false }" @mouseenter="show = true" @mouseleave="show = false" class="relative inline-block">
                                 <span class="cursor-help px-1.5 py-0.5 rounded text-3xs font-bold {{ $material->origin === 'erp' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }}">
@@ -187,7 +231,7 @@
                                     </div>
                                 @endif
                             </td>
-                            @if(!$isClosed)
+                            @if(!$isClosed && !$materialsLocked)
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="saveEdit" class="text-emerald-600 hover:text-emerald-700 font-semibold text-2xs mr-2">Guardar</button>
                                 <button wire:click="cancelEdit" class="text-gray-400 hover:text-gray-600 font-semibold text-2xs">Cancelar</button>
@@ -201,8 +245,13 @@
                                     </span>
                                 @endif
                                 {{ $material->description }}
+                                @if($material->insufficient_stock)
+                                    <p class="text-3xs font-bold text-orange-600 dark:text-orange-400 mt-0.5 flex items-center gap-0.5">
+                                        <span>⚠️</span> Stock insuficiente · disponible: {{ $material->available_stock }}
+                                    </p>
+                                @endif
                             </td>
-                            <td class="py-2 pr-2 text-right">{{ rtrim(rtrim(number_format($material->quantity, 2), '0'), '.') }}</td>
+                            <td class="py-2 pr-2 text-right {{ $material->insufficient_stock ? 'text-orange-600 dark:text-orange-400 font-bold' : '' }}">{{ rtrim(rtrim(number_format($material->quantity, 2), '0'), '.') }}</td>
                             <td class="py-2 pr-2 text-right">${{ number_format($material->unit_value, 2) }}</td>
                             <td class="py-2 pr-2 text-right font-semibold">
                                 @if(!$material->is_active)
@@ -227,7 +276,7 @@
                                     </div>
                                 @endif
                             </td>
-                            @if(!$isClosed)
+                            @if(!$isClosed && !$materialsLocked)
                             <td class="py-2 text-right whitespace-nowrap">
                                 <button wire:click="editMaterial({{ $material->id }})" class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs mr-2">Editar</button>
                                 @if($material->is_active)

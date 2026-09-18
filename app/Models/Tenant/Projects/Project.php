@@ -35,7 +35,10 @@ class Project extends Model
         'completion_date',
         'lab_observations',
         'real_delivery_date',
-        'close_observations'
+        'close_observations',
+        'materials_locked',
+        'materials_locked_by',
+        'materials_locked_at',
     ];
 
     protected $casts = [
@@ -47,6 +50,8 @@ class Project extends Model
         'qty' => 'integer',
         'price_unit' => 'decimal:2',
         'total_value' => 'decimal:2',
+        'materials_locked' => 'boolean',
+        'materials_locked_at' => 'datetime',
     ];
 
     /**
@@ -145,6 +150,11 @@ class Project extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function materialsLockedBy()
+    {
+        return $this->belongsTo(User::class, 'materials_locked_by');
     }
 
     public function assignedUser()

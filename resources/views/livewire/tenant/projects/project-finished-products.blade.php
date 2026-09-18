@@ -10,7 +10,7 @@
     <div class="bg-gray-50 dark:bg-gray-850 rounded-lg p-4 border border-gray-100 dark:border-gray-750 space-y-3">
         <span class="text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agregar producto terminado</span>
         <p class="text-3xs text-gray-400">
-            El producto terminado debe existir en el ERP. Al darle "Agregar" solo queda en la lista, en borrador — revisa que todo esté correcto y luego dale "Generar Entrada de Inventario" para confirmar y sincronizar con el ERP y Alegra.
+            El producto terminado debe existir en el ERP tipificado como "ENSAMBLADO" (el buscador solo muestra esos). Al darle "Agregar" solo queda en la lista, en borrador — revisa que todo esté correcto y luego dale "Generar Entrada de Inventario" para confirmar y sincronizar con el ERP y Alegra.
         </p>
 
         <div class="flex flex-col md:flex-row md:items-start gap-2">
@@ -31,8 +31,9 @@
                     </div>
                 @endif
             </div>
-            <input wire:model="price" type="number" step="0.01" min="0" placeholder="Precio *"
-                class="block w-full md:w-28 shrink-0 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <input wire:model="price" type="number" step="0.01" min="0" placeholder="Precio (auto)" readonly
+                title="Se toma del precio de lista del producto en el ERP — no se puede editar aquí."
+                class="block w-full md:w-28 shrink-0 border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg px-3 py-2 text-xs cursor-not-allowed">
             <input wire:model="quantity" type="number" step="0.01" min="0.01" placeholder="Cantidad *"
                 class="block w-full md:w-20 shrink-0 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <button wire:click="addFinishedProduct" type="button"
@@ -42,7 +43,7 @@
         </div>
         @error('price') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
         @error('quantity') <span class="text-3xs text-red-500 block font-semibold">{{ $message }}</span> @enderror
-        <p class="text-3xs text-gray-400">Haz clic sobre un resultado de la búsqueda para seleccionarlo. Completa Precio/Cantidad y haz clic en "Agregar".</p>
+        <p class="text-3xs text-gray-400">Haz clic sobre un resultado de la búsqueda para seleccionarlo — el precio se llena solo con el precio de lista del ERP. Completa la Cantidad y haz clic en "Agregar".</p>
     </div>
     @endif
 

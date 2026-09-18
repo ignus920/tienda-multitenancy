@@ -26,11 +26,16 @@
         <div class="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/60 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
                 <h3 class="text-2xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
-                    Solicitud actual
-                    @if($materialRequest->status === 'revisada')
-                        <span class="ml-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 normal-case font-semibold">Enviada a Importaciones</span>
+                    @if($materialRequest->status === 'salida_generada')
+                        Historial de la solicitud
+                        <span class="ml-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 normal-case font-semibold">Salida generada</span>
                     @else
-                        <span class="ml-2 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 normal-case font-semibold">Pendiente de revisión</span>
+                        Solicitud actual
+                        @if($materialRequest->status === 'revisada')
+                            <span class="ml-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 normal-case font-semibold">Enviada a Importaciones</span>
+                        @else
+                            <span class="ml-2 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 normal-case font-semibold">Pendiente de revisión</span>
+                        @endif
                     @endif
                 </h3>
             </div>
@@ -38,17 +43,31 @@
             <p class="text-3xs text-purple-600 dark:text-purple-400">
                 Verifica qué materiales ya tienes disponibles en Laboratorio antes de enviar. Las cantidades quedan redondeadas a unidades enteras — ajustar aquí NO cambia la lista de materiales del proyecto, solo lo que le vas a pedir a Bodega.
             </p>
-            @else
+            @elseif($materialRequest->status === 'revisada')
             <p class="text-3xs text-purple-600 dark:text-purple-400">
                 Revisión de materiales: esta es la solicitud que Laboratorio ya envió. Verifica las cantidades antes de generar la Salida de Mercancía — ajustar aquí NO cambia la lista de materiales del proyecto.
             </p>
+            @else
+            <p class="text-3xs text-purple-600 dark:text-purple-400">
+                Esta solicitud ya se convirtió en Salida de Mercancía (se descontó del ERP y se sincronizó con Alegra) — quedó registrada como historial, ya no se puede editar ni volver a enviar.
+                @if($materialRequest->requestedBy)
+                    Enviada por {{ $materialRequest->requestedBy->name }} el {{ $materialRequest->updated_at->format('d/m/Y H:i') }}.
+                @endif
+            </p>
+            @endif
+
+            @if($materialRequest->status === 'pendiente' && $hasPendingUpdates)
+            <div class="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/60 rounded-lg p-3 text-3xs text-amber-700 dark:text-amber-400">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <span>La Lista de Materiales cambió mientras tenías esta pantalla abierta — actualiza antes de seguir editando o enviar.</span>
+            </div>
             @endif
 
             <div class="space-y-1.5">
                 @foreach($materialRequest->items as $item)
                     <div class="flex items-center justify-between gap-3 bg-white dark:bg-gray-850 rounded-lg px-3 py-2 {{ $item->is_removed ? 'opacity-50' : '' }}">
                         <span class="text-xs text-gray-800 dark:text-gray-200 flex-1 {{ $item->is_removed ? 'line-through' : '' }}">{{ $item->description }}</span>
-                        @if($materialRequest->status === 'pendiente' && $canManage)
+                        @if($materialRequest->status === 'pendiente' && $canManage && !$hasPendingUpdates)
                             <input type="number" min="1" step="1" value="{{ $item->quantity_requested }}"
                                 wire:change="updateRequestItemQuantity({{ $item->id }}, $event.target.value)"
                                 @if($item->is_removed) disabled @endif
@@ -66,14 +85,19 @@
 
             @if($materialRequest->status === 'pendiente' && $canManage)
             <div class="flex justify-end gap-2 pt-2">
-                <button wire:click="cancelMaterialRequest" wire:confirm="¿Cancelar esta solicitud de materiales?" type="button"
-                    class="px-3 py-1.5 text-2xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                    Cancelar Solicitud
-                </button>
-                <button wire:click="markRequestReviewed" type="button"
-                    class="px-4 py-1.5 text-2xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow transition-colors">
-                    Enviar a Importaciones
-                </button>
+                @if($hasPendingUpdates)
+                    <button wire:click="refreshMaterialsList" type="button"
+                        class="px-4 py-1.5 text-2xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow transition-colors flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        Actualizar Lista
+                    </button>
+                @else
+                    <button type="button"
+                        onclick="confirmSendMaterialRequest(@js($materialRequest->items->where('is_removed', false)->values()->map(fn ($i) => ['description' => $i->description, 'quantity' => $i->quantity_requested])))"
+                        class="px-4 py-1.5 text-2xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow transition-colors">
+                        Enviar a Importaciones
+                    </button>
+                @endif
             </div>
             @elseif($materialRequest->status === 'pendiente' && $canManageOutbound)
                 <p class="text-3xs text-gray-500 dark:text-gray-400 text-center pt-2">
@@ -97,4 +121,46 @@
         </div>
         @endif
     @endif
+
+    <script>
+        window.confirmSendMaterialRequest = function (items) {
+            const rows = items.map((item) => `
+                <tr>
+                    <td style="padding:6px 8px; text-align:left; border-bottom:1px solid #f3f4f6;">${item.description}</td>
+                    <td style="padding:6px 8px; text-align:right; font-weight:700; border-bottom:1px solid #f3f4f6;">${item.quantity}</td>
+                </tr>
+            `).join('');
+
+            Swal.fire({
+                title: '¿Enviar esta solicitud a Importaciones?',
+                html: `<div class="mt-2 text-left">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Verifica la lista antes de confirmar — esto es lo que se le va a pedir a Bodega:</p>
+                        <div style="max-height:280px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:8px;">
+                            <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                                <thead>
+                                    <tr style="background:#f9fafb;">
+                                        <th style="padding:6px 8px; text-align:left; color:#6b7280; font-size:11px; text-transform:uppercase;">Producto</th>
+                                        <th style="padding:6px 8px; text-align:right; color:#6b7280; font-size:11px; text-transform:uppercase;">Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                       <\/div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Sí, enviar a Importaciones',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#7c3aed',
+                cancelButtonColor: '#6b7280',
+                customClass: {
+                    popup: 'rounded-xl dark:bg-slate-900',
+                    title: 'text-lg font-bold text-gray-900 dark:text-white',
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    @this.markRequestReviewed();
+                }
+            });
+        }
+    </script>
 </div>

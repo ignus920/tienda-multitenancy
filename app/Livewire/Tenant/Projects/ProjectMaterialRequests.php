@@ -3,6 +3,7 @@
 namespace App\Livewire\Tenant\Projects;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMaterial;
 use App\Models\Tenant\Projects\ProjectMaterialRequest;
@@ -22,6 +23,8 @@ use App\Models\Tenant\Items\Items;
 use App\Models\Tenant\Items\InvValues;
 use App\Models\Tenant\Items\UnitMeasurements;
 use App\Models\Tenant\Items\InvItemsStore;
+use App\Models\Tenant\Remissions\InvRemissions;
+use App\Models\Tenant\Remissions\InvDetailRemissions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +37,11 @@ class ProjectMaterialRequests extends Component
 
     public $projectId;
 
+    // true cuando Materiales cambió mientras esta pantalla ya estaba abierta
+    // — mientras esté en true, se oculta "Enviar a Importaciones" y se
+    // obliga a actualizar primero, para que nadie envíe una lista vieja.
+    public $hasPendingUpdates = false;
+
     public function mount($projectId)
     {
         $this->projectId = $projectId;
@@ -42,6 +50,30 @@ class ProjectMaterialRequests extends Component
     public function boot()
     {
         $this->ensureTenantConnection();
+    }
+
+    /**
+     * Se dispara por WebSocket cuando alguien cambia algo en Materiales
+     * mientras esta pantalla ya está abierta (por ejemplo, en otra sesión).
+     * No refresca los datos solo, para no ocultarle nada a quien está a
+     * punto de darle "Enviar" — solo prende la advertencia y cambia el
+     * botón por "Actualizar Lista".
+     */
+    #[On('echo-private:project.{projectId},.MaterialsListSynced')]
+    public function markListOutdated()
+    {
+        $this->hasPendingUpdates = true;
+    }
+
+    /**
+     * El propio render() de Livewire ya vuelve a consultar la solicitud
+     * desde la base de datos en cada acción — solo hace falta apagar la
+     * advertencia para que reaparezca "Enviar a Importaciones" con los
+     * datos ya frescos.
+     */
+    public function refreshMaterialsList()
+    {
+        $this->hasPendingUpdates = false;
     }
 
     private function ensureTenantConnection()
@@ -125,12 +157,14 @@ class ProjectMaterialRequests extends Component
         if (!$this->checkCanManage()) return;
         if ($this->checkNotClosed()) return;
 
+        // Bloquea una solicitud nueva si ya hay una en curso (pendiente/revisada)
+        // o si ya se ejecutó la salida — esa acción no se puede repetir.
         $existing = ProjectMaterialRequest::where('project_id', $this->projectId)
-            ->whereIn('status', ['pendiente', 'revisada'])
+            ->whereIn('status', ['pendiente', 'revisada', 'salida_generada'])
             ->exists();
 
         if ($existing) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Ya hay una solicitud de materiales en curso para este proyecto.']);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Ya hay una solicitud de materiales para este proyecto — no se puede generar otra.']);
             return;
         }
 
@@ -313,6 +347,11 @@ class ProjectMaterialRequests extends Component
 
         $unidad = UnitMeasurements::where('description', 'UNIDAD')->first();
 
+        $project = Project::find($request->project_id);
+        $outboundObservations = 'Salida a Proyecto #' . $request->project_id
+            . ($project ? ' - ' . $project->name : '')
+            . ' — Solicitud de materiales';
+
         // ── Paso 1: payload Alegra (mismo formato que MovementForm) ──
         $itemsAlegra = [];
         foreach ($request->items as $reqItem) {
@@ -339,7 +378,7 @@ class ProjectMaterialRequests extends Component
             'date' => now()->format('Y-m-d'),
             'items' => $itemsAlegra,
             'warehouse' => ['id' => '1'],
-            'observations' => 'Salida a Proyecto #' . $request->project_id . ' — Solicitud de materiales',
+            'observations' => $outboundObservations,
         ] : [];
 
         $service = new MovementsService();
@@ -369,7 +408,7 @@ class ProjectMaterialRequests extends Component
 
             $movement = InvInventoryAdjustment::create([
                 'date' => now()->format('Y-m-d'),
-                'observations' => 'Salida a Proyecto #' . $request->project_id . ' — Solicitud de materiales',
+                'observations' => $outboundObservations,
                 'type' => 'salida',
                 'status' => 1,
                 'storeId' => $store->id,
@@ -407,6 +446,44 @@ class ProjectMaterialRequests extends Component
                         'stock_items_store' => -$reqItem->quantity_requested,
                     ]);
                 }
+            }
+
+            // ── Crea también un "Pedido" interno en Remisiones para que Bodega
+            // lo vea en la pantalla de Pedidos y lo alistone/entregue. Es un
+            // ticket 100% interno: sin cotización/cliente, nunca se factura
+            // y no aparece en el Portal de Clientes.
+            $lastRemission = InvRemissions::lockForUpdate()->orderBy('consecutive', 'desc')->first();
+            $remissionConsecutive = $lastRemission ? $lastRemission->consecutive + 1 : 1;
+
+            $remission = InvRemissions::create([
+                'consecutive' => $remissionConsecutive,
+                'status' => 'ALISTAMIENTO',
+                'quoteId' => null,
+                'project_id' => $request->project_id,
+                'warehouseId' => $store->id,
+                'userId' => Auth::id(),
+                'created_by' => Auth::id(),
+                'deliveryDate' => $project?->delivery_date,
+                'expiration' => 0,
+                'modify' => 0,
+                'obs' => $outboundObservations,
+                'flete' => 0,
+            ]);
+
+            foreach ($request->items as $reqItem) {
+                if (!$reqItem->item_id) {
+                    continue;
+                }
+
+                $invValue = InvValues::where('itemId', $reqItem->item_id)->first();
+
+                InvDetailRemissions::create([
+                    'remissionId' => $remission->id,
+                    'itemId' => $reqItem->item_id,
+                    'quantity' => $reqItem->quantity_requested,
+                    'value' => $invValue ? floatval($invValue->values) : 0,
+                    'tax' => 0,
+                ]);
             }
 
             $request->update([
@@ -460,9 +537,11 @@ class ProjectMaterialRequests extends Component
         $project = Project::find($this->projectId);
         $isClosed = $project ? in_array($project->status, ['terminado', 'cerrado_entregado']) : false;
 
+        // Se trae la última solicitud SIN importar el estado (incluye 'salida_generada')
+        // para que, una vez ya se ejecutó la salida, la pantalla la muestre como
+        // historial de solo lectura en vez de "olvidarla" y dejar abrir una nueva.
         $materialRequest = ProjectMaterialRequest::where('project_id', $this->projectId)
-            ->whereIn('status', ['pendiente', 'revisada'])
-            ->with('items')
+            ->with(['items', 'requestedBy'])
             ->latest('id')
             ->first();
 
