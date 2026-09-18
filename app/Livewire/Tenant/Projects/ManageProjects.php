@@ -3,6 +3,7 @@
 namespace App\Livewire\Tenant\Projects;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use Livewire\WithPagination;
 use App\Models\Tenant\Projects\Project;
 use App\Models\Tenant\Projects\ProjectMention;
@@ -106,6 +107,13 @@ class ManageProjects extends Component
         $this->searchDateFrom = now()->subMonth()->format('Y-m-d');
         $this->searchDateTo = now()->format('Y-m-d');
         
+        $this->resetPage();
+    }
+
+    #[On('echo-private:user.{userId},.NewProjectNotification')]
+    public function onProjectUpdate($payload = null)
+    {
+        // Fuerza el re-render de la vista para actualizar el listado
         $this->resetPage();
     }
 

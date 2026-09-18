@@ -10,7 +10,9 @@ use App\Models\Auth\Tenant;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Support\Facades\Auth;
 
-class ProjectParticipants extends Component
+use App\Livewire\Tenant\Projects\ManageProjects;
+use App\Models\Tenant\Projects\ProjectNotification;
+use App\Events\Tenant\Projects\NewProjectNotification;
 {
     public $projectId;
     public $selectedUserId = '';
@@ -118,10 +120,31 @@ class ProjectParticipants extends Component
             return;
         }
 
-        ProjectParticipant::firstOrCreate(
+        $participant = ProjectParticipant::firstOrCreate(
             ['project_id' => $this->projectId, 'user_id' => $this->selectedUserId],
             ['role' => $user->profile->name ?? 'Sin área']
         );
+
+        if ($participant->wasRecentlyCreated) {
+            $notification = ProjectNotification::create([
+                'user_id' => $this->selectedUserId,
+                'project_id' => $this->projectId,
+                'message_id' => null,
+                'sender_id' => Auth::id(),
+                'type' => 'mencion', // Usa mencion para que salga en la campanita
+            ]);
+
+            $project = Project::find($this->projectId);
+            broadcast(new NewProjectNotification(
+                $this->selectedUserId,
+                $this->projectId,
+                $project->title ?? 'Proyecto',
+                Auth::user()->name,
+                'Te ha agregado como participante de este proyecto.',
+                'mencion',
+                $notification->id
+            ));
+        }
 
         $this->selectedUserId = '';
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Participante agregado']);
@@ -146,7 +169,22 @@ class ProjectParticipants extends Component
             return;
         }
 
+        $userIdToRemove = $participant->user_id;
         $participant->delete();
+        
+        $project = Project::find($this->projectId);
+        
+        // Broadcast silencioso para actualizar la grilla del usuario eliminado
+        broadcast(new NewProjectNotification(
+            $userIdToRemove,
+            $this->projectId,
+            $project->title ?? 'Proyecto',
+            Auth::user()->name,
+            '', // Sin mensaje
+            'actualizacion_silenciosa',
+            0
+        ));
+
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Participante eliminado']);
     }
 
