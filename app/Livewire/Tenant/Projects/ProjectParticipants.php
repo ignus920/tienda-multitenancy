@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Livewire\Tenant\Projects\ManageProjects;
 use App\Models\Tenant\Projects\ProjectNotification;
 use App\Events\Tenant\Projects\NewProjectNotification;
+
+class ProjectParticipants extends Component
 {
     public $projectId;
     public $selectedUserId = '';
