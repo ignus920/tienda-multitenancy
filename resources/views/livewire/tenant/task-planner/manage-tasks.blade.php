@@ -1,4 +1,79 @@
 <div class="py-4 w-full px-4 sm:px-6">
+<style>
+    /* Premium FullCalendar Styling */
+    :root {
+        --fc-border-color: #e5e7eb;
+        --fc-daygrid-event-dot-width: 8px;
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: #f3f4f6;
+        
+        /* Buttons */
+        --fc-button-text-color: #fff;
+        --fc-button-bg-color: #4f46e5;
+        --fc-button-border-color: #4f46e5;
+        --fc-button-hover-bg-color: #4338ca;
+        --fc-button-hover-border-color: #4338ca;
+        --fc-button-active-bg-color: #3730a3;
+        --fc-button-active-border-color: #3730a3;
+        
+        /* Today Highlight */
+        --fc-today-bg-color: #eef2ff;
+    }
+
+    .dark {
+        --fc-border-color: #374151;
+        --fc-neutral-bg-color: #1f2937;
+        --fc-today-bg-color: #312e81;
+    }
+
+    .fc-event {
+        border-radius: 6px;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        border: none !important;
+        padding: 2px 4px;
+        font-weight: 500;
+        transition: transform 0.15s ease-in-out;
+    }
+    
+    .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .fc-toolbar-title {
+        font-weight: 700 !important;
+        font-size: 1.25rem !important;
+        color: #111827;
+    }
+    .dark .fc-toolbar-title {
+        color: #f9fafb;
+    }
+
+    .fc-button {
+        text-transform: capitalize;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        padding: 0.4rem 1rem !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .fc-button-primary:not(:disabled):active, .fc-button-primary:not(:disabled).fc-button-active {
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+    }
+    
+    .fc-col-header-cell {
+        padding: 8px 0;
+        background-color: #f9fafb;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+    }
+    .dark .fc-col-header-cell {
+        background-color: #1f2937;
+        color: #9ca3af;
+    }
+</style>
     <!-- Encabezado -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
         <div>
