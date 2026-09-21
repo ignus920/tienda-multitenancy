@@ -166,7 +166,7 @@ class ProjectParticipants extends Component
             return;
         }
 
-        if ((int) $participant->user_id === (int) $project->assigned_to_id) {
+        if ((int) $participant->user_id === (int) $project->assigned_to) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No puedes quitar al usuario asignado al proyecto']);
             return;
         }
@@ -227,7 +227,7 @@ class ProjectParticipants extends Component
             'isFullyClosed' => $isFullyClosed,
             'canManageParticipants' => $this->canManageParticipants(),
             'createdBySalesperson' => $createdBySalesperson,
-            'assignedToId' => $project ? $project->assigned_to_id : null,
+            'assignedToId' => $project ? $project->assigned_to : null,
         ]);
     }
 }
