@@ -169,7 +169,7 @@
                                             class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
                                         <span class="text-3xs text-gray-400">cm</span>
                                     @else
-                                        <input type="number" step="0.01" min="0.01" value="{{ $line['quantity'] }}"
+                                        <input type="number" step="1" min="1" value="{{ $line['quantity'] }}"
                                             wire:change="$set('lines.{{ $i }}.quantity', $event.target.value)"
                                             class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
                                     @endif
@@ -213,10 +213,60 @@
                     <span class="text-sm font-bold text-gray-900 dark:text-white">Total costo</span>
                     <span class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">${{ number_format($totals['total'], 2) }}</span>
                 </div>
+
+                <!-- Tiempos de ensamble -->
+                <div class="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+                    <h3 class="text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-3">Tiempo Estimado ensamble:</h3>
+                    <div class="grid grid-cols-3 gap-2 text-center pb-2">
+                        <!-- 1 Unidad -->
+                        <div>
+                            <div class="flex justify-center gap-1 mb-1">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-3xs text-gray-400">Horas</span>
+                                    <input type="number" wire:model="time_1_hours" min="0" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-3xs text-gray-400">Minutos</span>
+                                    <input type="number" wire:model="time_1_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold border-b-2 border-indigo-100 dark:border-indigo-900/50 pb-1">1 Unidad</span>
+                        </div>
+                        
+                        <!-- 3 Unidades -->
+                        <div>
+                            <div class="flex justify-center gap-1 mb-1">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-3xs text-gray-400">Horas</span>
+                                    <input type="number" wire:model="time_3_hours" min="0" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-3xs text-gray-400">Minutos</span>
+                                    <input type="number" wire:model="time_3_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold border-b-2 border-indigo-100 dark:border-indigo-900/50 pb-1">3 Unidades</span>
+                        </div>
+
+                        <!-- 5 Unidades -->
+                        <div>
+                            <div class="flex justify-center gap-1 mb-1">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-3xs text-gray-400">Horas</span>
+                                    <input type="number" wire:model="time_5_hours" min="0" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-3xs text-gray-400">Minutos</span>
+                                    <input type="number" wire:model="time_5_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold border-b-2 border-indigo-100 dark:border-indigo-900/50 pb-1">5 Unidades</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-3">
-                <h3 class="text-2xs font-bold text-gray-400 uppercase">Precio de venta</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-2xs font-bold text-gray-400 uppercase mb-1">Precio de venta</label>
