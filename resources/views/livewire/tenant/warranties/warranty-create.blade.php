@@ -3,19 +3,26 @@
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-xl font-bold text-gray-900 dark:text-white">Registrar Solicitud de Garantía</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Registrar Solicitud de Garantía</h1>
+                    @if($hasChatbotData && $chatbotTrackingCode)
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
+                            Radicado: {{ $chatbotTrackingCode }}
+                        </span>
+                    @endif
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     Pedido / OP #{{ $remission->consecutive ?? '' }} - Cliente: {{ $remission->quote->customer_name ?? '' }} 
                     ({{ $remission->quote->city ?? 'Ciudad No Definida' }})
                 </p>
                 <p class="text-xs text-gray-400 mt-1">Fecha OP: {{ $remission->created_at ?? 'N/A' }}</p>
             </div>
             <div>
-                <a href="{{ route('tenant.remissions') }}" class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl text-xs font-bold uppercase transition-all shadow-sm">
+                <a href="{{ $hasChatbotData ? route('tenant.warranties.chatbot') : route('tenant.remissions') }}" class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl text-xs font-bold uppercase transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Volver a Pedidos
+                    {{ $hasChatbotData ? 'Volver a Bandeja' : 'Volver a Pedidos' }}
                 </a>
             </div>
         </div>
@@ -100,12 +107,12 @@
                         <!-- Detalles (Falla y Solicitud) -->
                         <td class="px-6 py-4">
                             <div class="space-y-2">
-                                <input type="text" wire:model.blur="items.{{ $index }}.failure" placeholder="Descripción detallada de la falla física..." 
-                                       class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500"
-                                       {{ !$item['isSelected'] ? 'disabled' : '' }}>
-                                <input type="text" wire:model.blur="items.{{ $index }}.request" placeholder="¿Qué solución está solicitando el cliente?..." 
-                                       class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500"
-                                       {{ !$item['isSelected'] ? 'disabled' : '' }}>
+                                <textarea wire:model.blur="items.{{ $index }}.failure" placeholder="Descripción detallada de la falla física..." 
+                                       class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500 resize-none" rows="2"
+                                       {{ !$item['isSelected'] ? 'disabled' : '' }}></textarea>
+                                <textarea wire:model.blur="items.{{ $index }}.request" placeholder="¿Qué solución está solicitando el cliente?..." 
+                                       class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500 resize-none" rows="2"
+                                       {{ !$item['isSelected'] ? 'disabled' : '' }}></textarea>
                             </div>
                         </td>
                         <!-- Evidencias -->
@@ -131,7 +138,7 @@
 
         <!-- Botones de Acción -->
         <div class="flex justify-end gap-4 mt-6">
-            <a href="{{ route('tenant.remissions') }}" class="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors flex items-center">
+            <a href="{{ $hasChatbotData ? route('tenant.warranties.chatbot') : route('tenant.remissions') }}" class="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors flex items-center">
                 Cancelar
             </a>
             <button wire:click="save" class="bg-indigo-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 dark:shadow-none">
@@ -193,11 +200,11 @@
                             <div class="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
                                 <div class="flex items-center gap-2 overflow-hidden">
                                     @if($isVideo)
-                                        <div @click="previewMediaUrl = '{{ $url }}'; previewMediaType = 'video'" class="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-bold cursor-pointer hover:bg-emerald-200 transition-colors">
+                                        <div @click="previewMediaUrl = '{{ asset('storage/' . $url) }}'; previewMediaType = 'video'" class="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-bold cursor-pointer hover:bg-emerald-200 transition-colors">
                                             Vid
                                         </div>
                                     @else
-                                        <img @click="previewMediaUrl = '{{ $url }}'; previewMediaType = 'image'" src="{{ $url }}" class="w-10 h-10 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity">
+                                        <img @click="previewMediaUrl = '{{ asset('storage/' . $url) }}'; previewMediaType = 'image'" src="{{ asset('storage/' . $url) }}" class="w-10 h-10 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity">
                                     @endif
                                     <div class="text-xs truncate max-w-[200px] text-emerald-800 dark:text-emerald-400 font-medium flex flex-col">
                                         <span>Archivo adjunto por el cliente</span>

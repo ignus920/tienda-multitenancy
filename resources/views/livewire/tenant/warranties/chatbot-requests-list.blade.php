@@ -14,7 +14,7 @@
             <h2 class="font-semibold text-gray-800 dark:text-gray-100">Bandeja de Entrada <span class="text-gray-400 font-medium">({{ $requests->total() }})</span></h2>
             
             <div class="w-1/3">
-                <input wire:model.live.debounce.300ms="search" type="text" class="w-full text-sm border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Buscar por OP o Empresa...">
+                <input wire:model.live.debounce.300ms="search" type="text" class="w-full text-sm border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Buscar por Factura o Empresa...">
             </div>
         </header>
 
@@ -25,7 +25,8 @@
                         <tr>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-left">Fecha</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-left">Empresa</div></th>
-                            <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Ref / OP</div></th>
+                            <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Radicado</div></th>
+                            <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Ref / Factura</div></th>
                             <th class="p-2"><div class="font-semibold text-left">Productos</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Estado</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Acciones</div></th>
@@ -39,6 +40,10 @@
                                 </td>
                                 <td class="p-2 whitespace-nowrap">
                                     <div class="font-medium text-gray-800 dark:text-gray-100">{{ $request->company_name }}</div>
+                                <td class="p-2 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                                        {{ $request->tracking_code ?? 'N/A' }}
+                                    </span>
                                 </td>
                                 <td class="p-2 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
@@ -63,7 +68,7 @@
                                 </td>
                                 <td class="p-2 whitespace-nowrap text-center">
                                     @if($request->status === 'pending')
-                                        <button wire:click="processRequest({{ $request->id }})" class="btn-sm bg-indigo-500 hover:bg-indigo-600 text-white">
+                                        <button wire:click="processRequest({{ $request->id }})" class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                             Abrir Caso
                                         </button>
                                     @else
