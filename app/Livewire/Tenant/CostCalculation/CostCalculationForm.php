@@ -24,6 +24,14 @@ class CostCalculationForm extends Component
     public $salePrice = null;
     public $maxDiscountPercent = null;
 
+    // Tiempos de ensamble (opcionales)
+    public $time_1_hours = null;
+    public $time_1_minutes = null;
+    public $time_3_hours = null;
+    public $time_3_minutes = null;
+    public $time_5_hours = null;
+    public $time_5_minutes = null;
+
     // Metadatos (solo lectura)
     public $creatorId;
     public $creatorName = '';
@@ -129,6 +137,14 @@ class CostCalculationForm extends Component
         $this->priceListLabel = $calc->price_list_label;
         $this->salePrice = $calc->sale_price;
         $this->maxDiscountPercent = $calc->max_discount_percent;
+
+        $this->time_1_hours = $calc->time_1_hours;
+        $this->time_1_minutes = $calc->time_1_minutes;
+        $this->time_3_hours = $calc->time_3_hours;
+        $this->time_3_minutes = $calc->time_3_minutes;
+        $this->time_5_hours = $calc->time_5_hours;
+        $this->time_5_minutes = $calc->time_5_minutes;
+
         $this->creatorId = $calc->created_by;
         $this->creatorName = $calc->creator->name ?? 'Usuario';
         $this->updatedByName = $calc->updater->name ?? '';
@@ -269,6 +285,35 @@ class CostCalculationForm extends Component
         if ($label && isset($prices[$label])) {
             return (float) $prices[$label];
         }
+        
+        if ($label && str_ends_with($label, '%')) {
+            $requestedPct = (float) str_replace('%', '', $label);
+            
+            $bestMatchValue = null;
+            $bestMatchPct = -1;
+            
+            foreach ($prices as $k => $v) {
+                if ($k === 'Lista') {
+                    if ($bestMatchPct === -1) {
+                        $bestMatchValue = $v;
+                        $bestMatchPct = 0;
+                    }
+                    continue;
+                }
+                if (str_ends_with($k, '%')) {
+                    $pct = (float) str_replace('%', '', $k);
+                    if ($pct <= $requestedPct && $pct > $bestMatchPct) {
+                        $bestMatchPct = $pct;
+                        $bestMatchValue = $v;
+                    }
+                }
+            }
+            
+            if ($bestMatchValue !== null) {
+                return (float) $bestMatchValue;
+            }
+        }
+
         return $prices ? (float) array_values($prices)[0] : 0.0;
     }
 
@@ -381,6 +426,12 @@ class CostCalculationForm extends Component
                 'price_list_label' => $this->priceListLabel,
                 'sale_price' => $this->salePrice ?: null,
                 'max_discount_percent' => $this->maxDiscountPercent ?: null,
+                'time_1_hours' => $this->time_1_hours ?: null,
+                'time_1_minutes' => $this->time_1_minutes ?: null,
+                'time_3_hours' => $this->time_3_hours ?: null,
+                'time_3_minutes' => $this->time_3_minutes ?: null,
+                'time_5_hours' => $this->time_5_hours ?: null,
+                'time_5_minutes' => $this->time_5_minutes ?: null,
             ];
 
             if ($this->calculationId) {

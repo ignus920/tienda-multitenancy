@@ -23,6 +23,12 @@ class CostCalculation extends Model
         'updated_by',
         'deleted_by',
         'deletion_reason',
+        'time_1_hours',
+        'time_1_minutes',
+        'time_3_hours',
+        'time_3_minutes',
+        'time_5_hours',
+        'time_5_minutes',
     ];
 
     protected $casts = [
