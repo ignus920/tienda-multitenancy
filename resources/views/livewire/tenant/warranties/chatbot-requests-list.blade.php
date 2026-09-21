@@ -14,7 +14,7 @@
             <h2 class="font-semibold text-gray-800 dark:text-gray-100">Bandeja de Entrada <span class="text-gray-400 font-medium">({{ $requests->total() }})</span></h2>
             
             <div class="w-1/3">
-                <input wire:model.live.debounce.300ms="search" type="text" class="w-full text-sm border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Buscar por OP o Empresa...">
+                <input wire:model.live.debounce.300ms="search" type="text" class="w-full text-sm border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Buscar por Factura o Empresa...">
             </div>
         </header>
 
@@ -25,7 +25,7 @@
                         <tr>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-left">Fecha</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-left">Empresa</div></th>
-                            <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Ref / OP</div></th>
+                            <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Ref / Factura</div></th>
                             <th class="p-2"><div class="font-semibold text-left">Productos</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Estado</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Acciones</div></th>
