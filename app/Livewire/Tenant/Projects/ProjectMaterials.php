@@ -617,9 +617,33 @@ class ProjectMaterials extends Component
             $material->available_stock = null;
             $material->insufficient_stock = false;
             if ($material->origin === 'erp' && $material->item_id && $material->is_active) {
-                $stock = (int) ($material->item?->invItemsStore()->sum('stock_items_store') ?? 0);
-                $material->available_stock = $stock;
-                $material->insufficient_stock = $material->quantity > $stock;
+                $item = $material->item;
+                $stockTotal = 0;
+                
+                if ($item) {
+                    // Stock bruto de todas las bodegas
+                    $stockBruto = (int) $item->invItemsStore()->sum('stock_items_store');
+                    
+                    // Mercancía bloqueada en cuarentena
+                    $quarantine = (int) \Illuminate\Support\Facades\DB::connection('tenant')
+                        ->table('inv_quarantine_movements')
+                        ->where('item_id', $item->id)
+                        ->whereNull('deleted_at')
+                        ->sum('quantity');
+                        
+                    // Mercancía bloqueada en vitrina
+                    $showroom = (int) \Illuminate\Support\Facades\DB::connection('tenant')
+                        ->table('inv_showroom_movements')
+                        ->where('item_id', $item->id)
+                        ->whereNull('deleted_at')
+                        ->sum('quantity');
+                        
+                    // Stock real disponible
+                    $stockTotal = max(0, $stockBruto - $quarantine - $showroom);
+                }
+                
+                $material->available_stock = $stockTotal;
+                $material->insufficient_stock = $material->quantity > $stockTotal;
             }
         }
 

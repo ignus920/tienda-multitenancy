@@ -44,15 +44,35 @@
                         {{ strtoupper(substr($participant->user->name ?? '?', 0, 2)) }}
                     </div>
                     <div>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $participant->user->name ?? 'Usuario eliminado' }}</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $participant->user->name ?? 'Usuario eliminado' }}</p>
+                            @if(isset($assignedToId) && (int) $participant->user_id === (int) $assignedToId)
+                                <span class="px-1.5 py-0.5 rounded text-3xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">Asignado</span>
+                            @endif
+                        </div>
                         <p class="text-2xs text-gray-400">{{ $participant->role }}</p>
                     </div>
                 </div>
                 @if(!$isClosed && $canManageParticipants)
-                <button wire:click="removeParticipant({{ $participant->id }})" wire:confirm="¿Quitar a {{ $participant->user->name ?? 'este usuario' }} del proyecto?"
-                    class="text-2xs font-semibold text-red-500 hover:text-red-600">
-                    Quitar
-                </button>
+                    @if(isset($assignedToId) && (int) $participant->user_id === (int) $assignedToId)
+                        <span class="text-2xs font-semibold text-gray-300 dark:text-gray-600 cursor-not-allowed">No removible</span>
+                    @else
+                        <button type="button" 
+                            @click="Swal.fire({
+                                title: '¿Quitar participante?',
+                                text: '¿Quitar a {{ addslashes($participant->user->name ?? 'este usuario') }} del proyecto?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#ef4444',
+                                confirmButtonText: 'Sí, quitar',
+                                cancelButtonText: 'Cancelar'
+                            }).then((result) => {
+                                if (result.isConfirmed) { $wire.removeParticipant({{ $participant->id }}) }
+                            })"
+                            class="text-2xs font-semibold text-red-500 hover:text-red-600">
+                            Quitar
+                        </button>
+                    @endif
                 @endif
             </div>
         @empty
