@@ -31,4 +31,12 @@ class VntChatbotWarrantyRequest extends Model
     {
         return $this->belongsTo(VntWarranty::class, 'warranty_id');
     }
+
+    public function getTrackingCodeAttribute()
+    {
+        if (preg_match('/\(Radicado:\s*(GAR-[A-Z0-9]+)\)/i', $this->description, $matches)) {
+            return $matches[1];
+        }
+        return null;
+    }
 }
