@@ -166,6 +166,8 @@ class WarrantyCreate extends Component
                         $requestText = $chatbotRecord->product_details;
                     }
 
+                    $failureText = $requestText; // Pre-fill the failure with what the customer wrote
+
                     $this->chatbotMediaUrls = $chatbotRecord->media_urls ?? [];
                 }
             }
@@ -179,7 +181,8 @@ class WarrantyCreate extends Component
                 'available_qty' => $availableQty,
                 'qty' => 0,
                 'failure' => $failureText,
-                'request' => $requestText,
+                'request' => '', // Dejamos la solución solicitada vacía para que la llene el asesor
+                'chatbot_report' => $requestText, // Guardamos el texto original intocable
                 'isSelected' => false
             ];
             
