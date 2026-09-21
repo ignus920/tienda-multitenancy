@@ -12,6 +12,7 @@ class ManageDimensions extends Component
 {
     public $itemId;
     public $dimensions_id;
+    public $is_cuttable = false;
     public $high;
     public $long;
     public $width;
@@ -40,20 +41,31 @@ class ManageDimensions extends Component
 
     public function saveInfoDimensions()
     {
+        $rules = [
+            'high' => 'required|numeric',
+            'width' => 'required|numeric',
+            'weight' => 'required|numeric',
+            'quntityxbox' => 'required|numeric',
+        ];
+
+        if ($this->is_cuttable) {
+            $rules['long'] = 'required|numeric';
+        } else {
+            $rules['long'] = 'nullable|numeric';
+            // Si no es cortable, forzar a 0 para que no guarde basura
+            if (empty($this->long)) {
+                $this->long = 0;
+            }
+        }
+
         $validator = \Illuminate\Support\Facades\Validator::make([
             'high' => $this->high,
             'long' => $this->long,
             'width' => $this->width,
             'weight' => $this->weight,
             'quntityxbox' => $this->quntityxbox,
-        ], [
-            'high' => 'required|numeric',
-            'long' => 'required|numeric',
-            'width' => 'required|numeric',
-            'weight' => 'required|numeric',
-            'quntityxbox' => 'required|numeric',
-        ], [
-            'required' => 'Por favor complete todos los campos obligatorios de dimensiones (Alto, Largo, Ancho, Peso, Cant. Caja).',
+        ], $rules, [
+            'required' => 'Por favor complete todos los campos obligatorios de dimensiones.',
             'numeric' => 'Los campos de dimensiones deben ser valores numéricos.'
         ]);
 
@@ -116,6 +128,11 @@ class ManageDimensions extends Component
 
         $this->ensureTenantConnection();
         $itemDimension = InvItemsDimensions::where('item_id', $itemId)->first();
+        $item = \App\Models\Tenant\Items\Items::find($itemId);
+
+        if ($item) {
+            $this->is_cuttable = (bool) $item->is_cuttable;
+        }
 
         if ($itemDimension) {
             $this->dimensions_id = $itemDimension->id;
