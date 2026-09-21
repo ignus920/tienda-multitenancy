@@ -30,33 +30,33 @@
                     <div class="flex items-center w-full max-w-sm">
                         <!-- Step 1 -->
                         <div class="flex-1">
-                            <div class="relative flex flex-col items-center">
+                            <div class="flex flex-col items-center">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm {{ $currentStep >= 1 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500' }}">
                                     1
                                 </div>
-                                <div class="absolute top-10 text-xs font-medium {{ $currentStep >= 1 ? 'text-indigo-600' : 'text-gray-500' }}">Validación</div>
+                                <div class="mt-2 text-xs font-medium {{ $currentStep >= 1 ? 'text-indigo-600' : 'text-gray-500' }}">Validación</div>
                             </div>
                         </div>
                         <div class="flex-auto border-t-2 transition duration-500 ease-in-out {{ $currentStep >= 2 ? 'border-indigo-600' : 'border-gray-200' }}"></div>
                         
                         <!-- Step 2 -->
                         <div class="flex-1">
-                            <div class="relative flex flex-col items-center">
+                            <div class="flex flex-col items-center">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm {{ $currentStep >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500 dark:bg-gray-700' }}">
                                     2
                                 </div>
-                                <div class="absolute top-10 text-xs font-medium {{ $currentStep >= 2 ? 'text-indigo-600' : 'text-gray-500' }}">Productos</div>
+                                <div class="mt-2 text-xs font-medium {{ $currentStep >= 2 ? 'text-indigo-600' : 'text-gray-500' }}">Productos</div>
                             </div>
                         </div>
                         <div class="flex-auto border-t-2 transition duration-500 ease-in-out {{ $currentStep >= 3 ? 'border-indigo-600' : 'border-gray-200' }}"></div>
                         
                         <!-- Step 3 -->
                         <div class="flex-1">
-                            <div class="relative flex flex-col items-center">
+                            <div class="flex flex-col items-center">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm {{ $currentStep >= 3 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500 dark:bg-gray-700' }}">
                                     3
                                 </div>
-                                <div class="absolute top-10 text-xs font-medium {{ $currentStep >= 3 ? 'text-indigo-600' : 'text-gray-500' }}">Detalles</div>
+                                <div class="mt-2 text-xs font-medium {{ $currentStep >= 3 ? 'text-indigo-600' : 'text-gray-500' }}">Detalles</div>
                             </div>
                         </div>
                     </div>
