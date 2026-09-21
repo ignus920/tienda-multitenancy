@@ -151,11 +151,28 @@
                                                 </div>
                                                 
                                                 @if(isset($productMedia[$id]) && count($productMedia[$id]) > 0)
-                                                <ul class="mt-2 space-y-1">
-                                                    @foreach($productMedia[$id] as $file)
-                                                        <li class="text-xs text-green-600 dark:text-green-400 flex items-center">
-                                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                            {{ $file->getClientOriginalName() }}
+                                                <ul class="mt-3 space-y-2">
+                                                    @foreach($productMedia[$id] as $index => $file)
+                                                        <li class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                                            <div class="flex items-center truncate">
+                                                                @php
+                                                                    $isImage = str_starts_with($file->getMimeType(), 'image/');
+                                                                @endphp
+                                                                @if($isImage)
+                                                                    <a href="{{ $file->temporaryUrl() }}" target="_blank" class="flex items-center hover:underline text-indigo-600 dark:text-indigo-400 truncate" title="Ver imagen">
+                                                                        <svg class="w-4 h-4 mr-2 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                                        <span class="text-xs truncate">{{ $file->getClientOriginalName() }}</span>
+                                                                    </a>
+                                                                @else
+                                                                    <span class="flex items-center text-gray-700 dark:text-gray-300 truncate">
+                                                                        <svg class="w-4 h-4 mr-2 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                                        <span class="text-xs truncate">{{ $file->getClientOriginalName() }}</span>
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                            <button type="button" wire:click="removeMedia({{ $id }}, {{ $index }})" class="ml-2 text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Eliminar archivo">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                            </button>
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -175,7 +192,12 @@
                     <!-- Asesor Comercial (Mover del Paso 3 al 2) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Asesor Comercial (Opcional)</label>
-                        <input wire:model="advisor_name" type="text" placeholder="¿Qué comercial lo atiende?" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm px-3 py-2 border">
+                        <select wire:model="advisor_name" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm px-3 py-2 border">
+                            <option value="">¿Qué comercial lo atiende?</option>
+                            @foreach($salespeople as $salesperson)
+                                <option value="{{ $salesperson['name'] }}">{{ $salesperson['name'] }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div class="pt-4 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 -mx-8 -mb-8 p-6 rounded-b-2xl border-t border-gray-100 dark:border-gray-750">
@@ -183,10 +205,11 @@
                             <svg class="mr-2 -ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                             Volver
                         </button>
-                        <button type="submit" class="group relative inline-flex items-center justify-center py-2.5 px-6 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-200 dark:shadow-none transition-all" wire:loading.attr="disabled" wire:target="submit, productMedia">
-                            <span wire:loading.remove wire:target="submit">Enviar Solicitud de Garantía</span>
+                        <button type="submit" class="group relative inline-flex items-center justify-center py-2.5 px-6 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-200 dark:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed" wire:loading.attr="disabled" wire:target="submit, productMedia">
+                            <span wire:loading.remove wire:target="submit, productMedia">Enviar Solicitud de Garantía</span>
                             <span wire:loading wire:target="submit">Enviando...</span>
-                            <svg wire:loading.remove wire:target="submit" class="ml-2 -mr-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span wire:loading wire:target="productMedia">Cargando Archivos...</span>
+                            <svg wire:loading.remove wire:target="submit, productMedia" class="ml-2 -mr-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </button>
                     </div>
                 </form>

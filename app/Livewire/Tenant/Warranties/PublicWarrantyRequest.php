@@ -30,6 +30,7 @@ class PublicWarrantyRequest extends Component
     public $productDescriptions = [];
     public $productMedia = [];
     public $advisor_name;
+    public $salespeople = [];
 
     public $isSubmitted = false;
     public $requestFolio = '';
@@ -46,6 +47,11 @@ class PublicWarrantyRequest extends Component
         $this->tenant_id = $tenant_id;
         $this->currentStep = 1;
         $this->initTenant();
+
+        // Cargar vendedores POS (perfil 4) para el select
+        $this->salespeople = \App\Models\Auth\User::whereHas('tenants', function ($q) use ($tenant_id) {
+            $q->where('tenants.id', $tenant_id);
+        })->where('profile_id', 4)->orderBy('name')->get(['name'])->toArray();
     }
 
     public function hydrate()
@@ -132,6 +138,15 @@ class PublicWarrantyRequest extends Component
         }
 
         $this->currentStep = 2;
+    }
+
+    public function removeMedia($productId, $index)
+    {
+        if (isset($this->productMedia[$productId][$index])) {
+            unset($this->productMedia[$productId][$index]);
+            // Re-index array
+            $this->productMedia[$productId] = array_values($this->productMedia[$productId]);
+        }
     }
 
     public function submit()
