@@ -103,6 +103,17 @@ class PublicWarrantyRequest extends Component
             return;
         }
 
+        // Verificar si ya existe una solicitud de garantía EN PROCESO (pendiente) para esta factura
+        $existingRequest = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::where('reference_number', $this->invoice_number)
+            ->where('status', 'pending')
+            ->first();
+            
+        if ($existingRequest) {
+            $radicado = $existingRequest->tracking_code ?? 'En trámite';
+            $this->addError('invoice_number', "Ya existe una solicitud de garantía en proceso (Radicado: {$radicado}) para esta factura. Por favor espere a que un asesor se comunique con usted antes de radicar otra.");
+            return;
+        }
+
         // Validación simple aprobada
         $this->invoice_id = $invoice->id;
         $this->company_name = $customer->businessName ?? trim($customer->firstName . ' ' . $customer->lastName);
