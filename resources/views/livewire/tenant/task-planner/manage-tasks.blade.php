@@ -729,6 +729,15 @@
                             info.event.remove();
                             $wire.prefillScheduleFromDrop(taskId, startStr, null);
                         },
+                        eventContent: function(arg) {
+                            let titleHtml = '<div class="fc-event-title font-semibold">' + arg.event.title + '</div>';
+                            let timeHtml = '<div class="fc-event-time">' + arg.timeText + '</div>';
+                            let durationHtml = '';
+                            if (arg.event.extendedProps && arg.event.extendedProps.durationText) {
+                                durationHtml = '<div class="fc-event-duration mt-0.5 text-xs opacity-90">' + arg.event.extendedProps.durationText + '</div>';
+                            }
+                            return { html: '<div class="fc-event-main-frame">' + timeHtml + titleHtml + durationHtml + '</div>' };
+                        },
                         eventClick: (info) => {
                             if (info.event.id && info.event.id.startsWith('unav_')) {
                                 let id = info.event.id.split('_')[1];

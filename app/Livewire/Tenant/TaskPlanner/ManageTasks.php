@@ -99,6 +99,8 @@ class ManageTasks extends Component
     public $showProposalModal = false;
     public $proposalGroups = [];
 
+    public $isReschedulingToAnotherDay = false;
+
     // Modal Detalle de tarea
     public $showDetailModal = false;
     public $detailTaskId = null;
@@ -678,6 +680,14 @@ class ManageTasks extends Component
             'scheduleEndTime' => 'required',
         ]);
 
+        if ($this->isReschedulingToAnotherDay) {
+            $this->validate([
+                'rescheduleReason' => 'required|string',
+            ], [
+                'rescheduleReason.required' => 'Debe seleccionar un motivo de reprogramación.',
+            ]);
+        }
+
         $task = Task::with('assignments')->findOrFail($this->schedulingTaskId);
         $userIds = $task->assignments->pluck('user_id')->toArray();
 
@@ -918,6 +928,15 @@ class ManageTasks extends Component
                 'extendedProps' => [
                     'taskId' => $schedule->task_id,
                     'status' => $schedule->task->status,
+                    'durationText' => (function() use ($schedule) {
+                        $diffMinutes = $schedule->scheduled_start->diffInMinutes($schedule->scheduled_end);
+                        $hours = intdiv($diffMinutes, 60);
+                        $minutes = $diffMinutes % 60;
+                        $parts = [];
+                        if ($hours > 0) $parts[] = $hours . ' horas';
+                        if ($minutes > 0) $parts[] = $minutes . ' minutos';
+                        return implode(' ; ', $parts);
+                    })(),
                 ],
             ];
         })->toArray();
@@ -964,10 +983,33 @@ class ManageTasks extends Component
     {
         $this->ensureTenantConnection();
 
-        $task = Task::findOrFail($taskId);
+        $task = Task::with('assignments')->findOrFail($taskId);
         $start = Carbon::parse($startIso);
         $end = $endIso ? Carbon::parse($endIso) : $start->copy()->addMinutes($task->total_occupied_minutes);
 
+        $currentSchedule = TaskSchedule::where('task_id', $task->id)
+            ->whereNotIn('schedule_status', ['cancelada'])
+            ->latest('id')
+            ->first();
+
+        // Si ya estaba agendado y se mueve DENTRO DEL MISMO DÍA, auto-guardar
+        if ($currentSchedule && $currentSchedule->scheduled_start->format('Y-m-d') === $start->format('Y-m-d')) {
+            $schedulingService = app(SchedulingService::class);
+            $userIds = $task->assignments->pluck('user_id')->toArray();
+
+            // Auto-configurar fecha límite al final del día si el nuevo horario lo sobrepasa
+            if ($end->copy()->endOfDay()->gt($task->deadline_at)) {
+                $task->deadline_at = $end->copy()->endOfDay();
+                $task->save();
+            }
+
+            $schedulingService->scheduleTask($task, $userIds, $start, $end, Auth::id(), 'Reprogramado mismo día');
+            
+            $this->dispatch('calendar-refresh');
+            return;
+        }
+
+        // Si se mueve a OTRO DÍA o viene desde la bandeja (no estaba agendado)
         $this->schedulingTaskId = $task->id;
         $this->scheduleDate = $start->format('Y-m-d');
         $this->scheduleStartTime = $start->format('H:i');
@@ -975,6 +1017,8 @@ class ManageTasks extends Component
         $this->rescheduleReason = '';
         $this->scheduleConflicts = [];
         $this->suggestedSlots = [];
+        
+        $this->isReschedulingToAnotherDay = $currentSchedule ? true : false;
         $this->showScheduleModal = true;
 
         $this->checkScheduleConflicts(app(SchedulingService::class));
