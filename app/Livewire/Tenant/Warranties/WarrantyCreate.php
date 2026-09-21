@@ -250,10 +250,6 @@ class WarrantyCreate extends Component
                 $this->dispatch('show-toast', ['type' => 'error', 'message' => "Debe ingresar una descripción de la falla para {$item['description']}."]);
                 return;
             }
-            if (empty(trim($item['request']))) {
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => "Debe ingresar qué solicita el cliente para {$item['description']}."]);
-                return;
-            }
         }
 
         try {
@@ -280,7 +276,7 @@ class WarrantyCreate extends Component
                         'item_id' => $item['item_id'],
                         'quantity' => $item['qty'],
                         'failure_description' => $item['failure'],
-                        'client_request' => $item['request'],
+                        'client_request' => $item['request'] ?: 'Unificado con la descripción de falla',
                     ]);
 
                     // Guardar archivos de evidencia manuales
