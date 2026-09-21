@@ -27,21 +27,18 @@ class PublicWarrantyRequest extends Component
     
     // Paso 2
     public $selectedProducts = []; // Formato: [ itemId => ['selected' => true, 'qty' => 1] ]
+    public $productDescriptions = [];
+    public $productMedia = [];
     public $advisor_name;
 
-    // Paso 3
-    public $description;
-    public $media_files = [];
-    
     public $isSubmitted = false;
     public $requestFolio = '';
 
     protected $messages = [
         'nit.required' => 'El NIT de la empresa es obligatorio.',
         'invoice_number.required' => 'El número de factura es obligatorio.',
-        'description.required' => 'Por favor describa el motivo de la garantía.',
-        'media_files.*.max' => 'Cada archivo no debe superar los 10 MB.',
-        'media_files.*.mimes' => 'Solo se permiten imágenes (JPG, PNG) o videos (MP4, MOV).',
+        'productMedia.*.*.max' => 'Cada archivo no debe superar los 10 MB.',
+        'productMedia.*.*.mimes' => 'Solo se permiten imágenes (JPG, PNG) o videos (MP4, MOV).',
     ];
 
     public function mount($tenant_id)
@@ -107,6 +104,8 @@ class PublicWarrantyRequest extends Component
         // Cargar productos de la factura
         $this->foundProducts = [];
         $this->selectedProducts = [];
+        $this->productDescriptions = [];
+        $this->productMedia = [];
         
         if ($invoice->quote && $invoice->quote->detalles) {
             foreach ($invoice->quote->detalles as $detail) {
@@ -135,10 +134,17 @@ class PublicWarrantyRequest extends Component
         $this->currentStep = 2;
     }
 
-    public function validateStep2()
+    public function submit()
     {
+        $this->validate([
+            'productMedia.*.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4,mov|max:10240',
+        ]);
+
         // Verificar que al menos un producto fue seleccionado
         $hasSelected = false;
+        $productDetailsString = [];
+        $allMediaUrls = [];
+
         foreach ($this->selectedProducts as $id => $data) {
             if (isset($data['selected']) && $data['selected'] == true) {
                 $hasSelected = true;
@@ -148,6 +154,20 @@ class PublicWarrantyRequest extends Component
                     $this->addError("selectedProducts.{$id}.qty", 'La cantidad debe ser mayor a 0');
                     return;
                 }
+
+                $prod = collect($this->foundProducts)->firstWhere('id', $id);
+                $qty = $data['qty'];
+                $desc = $this->productDescriptions[$id] ?? 'Sin detalle específico';
+                
+                $detailsChunk = "Producto: {$qty} x {$prod['name']} ({$prod['reference']})\nDetalle/Falla: {$desc}";
+                $productDetailsString[] = $detailsChunk;
+
+                if (!empty($this->productMedia[$id])) {
+                    foreach ($this->productMedia[$id] as $file) {
+                        $path = $file->store('warranties/chatbot', 'public');
+                        $allMediaUrls[] = $path;
+                    }
+                }
             }
         }
 
@@ -156,64 +176,19 @@ class PublicWarrantyRequest extends Component
             return;
         }
 
-        $this->currentStep = 3;
-    }
-    
-    public function previousStep()
-    {
-        $this->currentStep--;
-    }
-
-    public function submit()
-    {
-        $this->validate([
-            'description' => 'required|string',
-            'media_files.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4,mov|max:10240',
-        ]);
-
-        $mediaUrls = [];
-        if (!empty($this->media_files)) {
-            foreach ($this->media_files as $file) {
-                $path = $file->store('warranties/chatbot', 'public');
-                $mediaUrls[] = $path;
-            }
-        }
-
         $folio = 'GAR-' . strtoupper(Str::random(6));
-
-        // Construir string legible para el detalle de productos (retrocompatibilidad)
-        $productDetailsString = [];
-        $jsonProducts = [];
-        foreach ($this->foundProducts as $prod) {
-            $id = $prod['id'];
-            if (isset($this->selectedProducts[$id]) && $this->selectedProducts[$id]['selected']) {
-                $qty = $this->selectedProducts[$id]['qty'];
-                $productDetailsString[] = "{$qty} x {$prod['name']} ({$prod['reference']})";
-                
-                $jsonProducts[] = [
-                    'id' => $id,
-                    'name' => $prod['name'],
-                    'qty' => $qty
-                ];
-            }
-        }
-
-        $detailsText = implode("\n", $productDetailsString);
+        $detailsText = implode("\n\n------------------------\n\n", $productDetailsString);
 
         // Guardar
         $request = VntChatbotWarrantyRequest::create([
             'company_name' => $this->company_name . ' (NIT: ' . $this->nit . ')',
             'reference_number' => $this->invoice_number,
             'advisor_name' => $this->advisor_name,
-            'product_details' => $detailsText, // Guarda el texto para la vista
-            'description' => $this->description . "\n\n(Radicado Público: " . $folio . ")",
-            'media_urls' => $mediaUrls,
+            'product_details' => $detailsText,
+            'description' => "Solicitud enviada a través del portal público.\n(Radicado: " . $folio . ")",
+            'media_urls' => $allMediaUrls,
             'status' => 'pending',
         ]);
-
-        // Si quisieras agregar un campo JSON en el futuro para enlazar automáticamente los items:
-        // $request->products_json = json_encode($jsonProducts);
-        // $request->save();
 
         $this->requestFolio = $folio;
         $this->isSubmitted = true;
