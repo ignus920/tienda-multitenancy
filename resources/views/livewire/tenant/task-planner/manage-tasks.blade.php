@@ -209,19 +209,19 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-3 items-center">
             <input wire:model.live.debounce.300ms="search" type="search" placeholder="Buscar tarea..."
                 class="block w-full md:max-w-xs border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-            <select wire:model.live="filterDepartment" class="block w-full md:w-auto border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs">
+            <select wire:model.live="filterDepartment" class="block w-full md:w-auto border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg pl-3 pr-8 py-2 text-xs">
                 <option value="">Todos los departamentos</option>
                 @foreach($departments as $dept)
                 <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="filterPriority" class="block w-full md:w-auto border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs">
+            <select wire:model.live="filterPriority" class="block w-full md:w-auto border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg pl-3 pr-8 py-2 text-xs">
                 <option value="">Toda prioridad</option>
                 @foreach(\App\Models\Tenant\TaskPlanner\Task::PRIORITIES as $value => $label)
                 <option value="{{ $value }}">{{ $label }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="filterStatus" class="block w-full md:w-auto border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs">
+            <select wire:model.live="filterStatus" class="block w-full md:w-auto border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg pl-3 pr-8 py-2 text-xs">
                 <option value="">Todo estado (activas)</option>
                 @foreach(\App\Models\Tenant\TaskPlanner\Task::STATUSES as $value => $label)
                 <option value="{{ $value }}">{{ $label }}</option>
