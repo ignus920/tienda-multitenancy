@@ -104,8 +104,8 @@ class WarrantyCreate extends Component
             $invoice = \App\Models\Tenant\Invoices\VntInvoices::where('consecutive', $reference)
                 ->orWhere('invoiceNumber', $reference)->first();
                 
-            if ($invoice && $invoice->quote_id) {
-                $remission = InvRemissions::where('quote_id', $invoice->quote_id)->first();
+            if ($invoice && $invoice->quoteId) {
+                $remission = InvRemissions::where('quoteId', $invoice->quoteId)->first();
             }
         }
         
