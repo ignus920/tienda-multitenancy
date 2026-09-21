@@ -103,15 +103,18 @@ class PublicWarrantyRequest extends Component
             return;
         }
 
-        // Verificar si ya existe una solicitud de garantía EN PROCESO (pendiente) para esta factura
-        $existingRequest = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::where('reference_number', $this->invoice_number)
+        // Buscar productos que ya tengan una solicitud de garantía pendiente en el chatbot para esta factura
+        $pendingRequests = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::where('reference_number', $this->invoice_number)
             ->where('status', 'pending')
-            ->first();
+            ->get();
             
-        if ($existingRequest) {
-            $radicado = $existingRequest->tracking_code ?? 'En trámite';
-            $this->addError('invoice_number', "Ya existe una solicitud de garantía en proceso (Radicado: {$radicado}) para esta factura. Por favor espere a que un asesor se comunique con usted antes de radicar otra.");
-            return;
+        $pendingProductCodes = [];
+        foreach ($pendingRequests as $req) {
+            if (preg_match_all('/\((.*?)\)\nDetalle\/Falla:/', $req->product_details, $matches)) {
+                foreach ($matches[1] as $code) {
+                    $pendingProductCodes[] = trim($code);
+                }
+            }
         }
 
         // Validación simple aprobada
@@ -127,11 +130,14 @@ class PublicWarrantyRequest extends Component
         if ($invoice->quote && $invoice->quote->detalles) {
             foreach ($invoice->quote->detalles as $detail) {
                 if ($detail->item) {
+                    $isPending = in_array($detail->item->internal_code, $pendingProductCodes);
+
                     $this->foundProducts[] = [
                         'id' => $detail->item->id,
                         'name' => $detail->item->name,
                         'reference' => $detail->item->internal_code,
                         'max_qty' => $detail->quantity,
+                        'is_pending' => $isPending,
                     ];
                     
                     // Inicializar el modelo
