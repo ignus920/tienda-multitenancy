@@ -170,6 +170,7 @@
                                         <span class="text-3xs text-gray-400">cm</span>
                                     @else
                                         <input type="number" step="1" min="1" value="{{ $line['quantity'] }}"
+                                            onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                                             wire:change="$set('lines.{{ $i }}.quantity', $event.target.value)"
                                             class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
                                     @endif
