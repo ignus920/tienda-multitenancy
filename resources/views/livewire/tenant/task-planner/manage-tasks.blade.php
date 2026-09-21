@@ -730,13 +730,13 @@
                             $wire.prefillScheduleFromDrop(taskId, startStr, null);
                         },
                         eventContent: function(arg) {
-                            let titleHtml = '<div class="fc-event-title font-semibold">' + arg.event.title + '</div>';
-                            let timeHtml = '<div class="fc-event-time">' + arg.timeText + '</div>';
+                            let titleHtml = '\x3Cdiv class="fc-event-title font-semibold">' + arg.event.title + '\x3C/div>';
+                            let timeHtml = '\x3Cdiv class="fc-event-time">' + arg.timeText + '\x3C/div>';
                             let durationHtml = '';
                             if (arg.event.extendedProps && arg.event.extendedProps.durationText) {
-                                durationHtml = '<div class="fc-event-duration mt-0.5 text-xs opacity-90">' + arg.event.extendedProps.durationText + '</div>';
+                                durationHtml = '\x3Cdiv class="fc-event-duration mt-0.5 text-xs opacity-90">' + arg.event.extendedProps.durationText + '\x3C/div>';
                             }
-                            return { html: '<div class="fc-event-main-frame">' + timeHtml + titleHtml + durationHtml + '</div>' };
+                            return { html: '\x3Cdiv class="fc-event-main-frame">' + timeHtml + titleHtml + durationHtml + '\x3C/div>' };
                         },
                         eventClick: (info) => {
                             if (info.event.id && info.event.id.startsWith('unav_')) {
