@@ -3,8 +3,15 @@
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-xl font-bold text-gray-900 dark:text-white">Registrar Solicitud de Garantía</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Registrar Solicitud de Garantía</h1>
+                    @if($hasChatbotData && $chatbotTrackingCode)
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
+                            Radicado: {{ $chatbotTrackingCode }}
+                        </span>
+                    @endif
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     Pedido / OP #{{ $remission->consecutive ?? '' }} - Cliente: {{ $remission->quote->customer_name ?? '' }} 
                     ({{ $remission->quote->city ?? 'Ciudad No Definida' }})
                 </p>
