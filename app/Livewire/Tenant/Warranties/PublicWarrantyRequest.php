@@ -61,6 +61,8 @@ class PublicWarrantyRequest extends Component
         if ($this->tenant_id) {
             $tenant = \App\Models\Auth\Tenant::find($this->tenant_id);
             if ($tenant) {
+                $tenantManager = app(\App\Services\Tenant\TenantManager::class);
+                $tenantManager->setConnection($tenant);
                 tenancy()->initialize($tenant);
             } else {
                 abort(404, 'Empresa no encontrada.');
