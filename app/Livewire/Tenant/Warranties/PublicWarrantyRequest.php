@@ -13,6 +13,7 @@ class PublicWarrantyRequest extends Component
 {
     use WithFileUploads;
 
+    public $tenant_id;
     public $currentStep = 1;
     
     // Paso 1
@@ -43,9 +44,22 @@ class PublicWarrantyRequest extends Component
         'media_files.*.mimes' => 'Solo se permiten imágenes (JPG, PNG) o videos (MP4, MOV).',
     ];
 
-    public function mount()
+    public function mount($tenant_id)
     {
+        $this->tenant_id = $tenant_id;
         $this->currentStep = 1;
+    }
+
+    public function boot()
+    {
+        if ($this->tenant_id) {
+            $tenant = \App\Models\Auth\Tenant::find($this->tenant_id);
+            if ($tenant) {
+                tenancy()->initialize($tenant);
+            } else {
+                abort(404, 'Empresa no encontrada.');
+            }
+        }
     }
 
     public function validateStep1()
