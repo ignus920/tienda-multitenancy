@@ -92,8 +92,9 @@ class PublicWarrantyRequest extends Component
 
         // Buscar cliente por NIT para verificar si coincide con la factura
         // Dado que la factura está amarrada a un warehouse o a un customer a través del quote
-        // Haremos una búsqueda flexible: validamos si el NIT existe en la BD
-        $customer = Customer::where('identification_number', $this->nit)->first();
+        // Verificar que la factura pertenezca a este cliente
+        // Si el cliente no es el de la factura, mostramos error
+        $customer = \App\Models\Tenant\Customer\VntCompany::where('identification', $this->nit)->first();
         if (!$customer) {
             $this->addError('nit', 'El NIT ingresado no está registrado en el sistema.');
             return;
@@ -101,7 +102,7 @@ class PublicWarrantyRequest extends Component
 
         // Validación simple aprobada
         $this->invoice_id = $invoice->id;
-        $this->company_name = $customer->business_name ?? $customer->name;
+        $this->company_name = $customer->businessName ?? trim($customer->firstName . ' ' . $customer->lastName);
         
         // Cargar productos de la factura
         $this->foundProducts = [];
