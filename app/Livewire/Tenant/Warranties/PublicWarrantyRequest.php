@@ -48,9 +48,15 @@ class PublicWarrantyRequest extends Component
     {
         $this->tenant_id = $tenant_id;
         $this->currentStep = 1;
+        $this->initTenant();
     }
 
-    public function boot()
+    public function hydrate()
+    {
+        $this->initTenant();
+    }
+
+    private function initTenant()
     {
         if ($this->tenant_id) {
             $tenant = \App\Models\Auth\Tenant::find($this->tenant_id);
