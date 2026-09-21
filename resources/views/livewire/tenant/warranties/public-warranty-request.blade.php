@@ -159,10 +159,13 @@
                                                                     $isImage = str_starts_with($file->getMimeType(), 'image/');
                                                                 @endphp
                                                                 @if($isImage)
-                                                                    <a href="{{ $file->temporaryUrl() }}" target="_blank" class="flex items-center hover:underline text-indigo-600 dark:text-indigo-400 truncate" title="Ver imagen">
-                                                                        <svg class="w-4 h-4 mr-2 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                                        <span class="text-xs truncate">{{ $file->getClientOriginalName() }}</span>
-                                                                    </a>
+                                                                    <div class="flex items-center gap-3">
+                                                                        <img src="{{ $file->temporaryUrl() }}" class="h-10 w-10 object-cover rounded shadow-sm border border-gray-200 dark:border-gray-600">
+                                                                        <div class="flex flex-col max-w-[150px] sm:max-w-[200px]">
+                                                                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ $file->getClientOriginalName() }}</span>
+                                                                            <a href="{{ $file->temporaryUrl() }}" target="_blank" class="text-[10px] text-indigo-500 hover:underline">Abrir en pestaña nueva</a>
+                                                                        </div>
+                                                                    </div>
                                                                 @else
                                                                     <span class="flex items-center text-gray-700 dark:text-gray-300 truncate">
                                                                         <svg class="w-4 h-4 mr-2 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
