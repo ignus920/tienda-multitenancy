@@ -4,7 +4,7 @@ use App\Livewire\Tenant\Warranties\WarrantiesList;
 use App\Livewire\Tenant\Warranties\WarrantyCreate;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/tenant/garantias/solicitud', \App\Livewire\Tenant\Warranties\PublicWarrantyRequest::class)
+Route::get('/tenant/{tenant_id}/garantias/solicitud', \App\Livewire\Tenant\Warranties\PublicWarrantyRequest::class)
     ->name('tenant.warranties.public.request');
 
 Route::middleware(['auth', 'verified'])->group(function () {
