@@ -190,7 +190,7 @@
                             <input type="checkbox" wire:model="tempChecklists.{{ $idx }}.is_required" class="rounded border-gray-300 text-indigo-600">
                             Obligatorio
                         </label>
-                        <button wire:click="$dispatch('swal:confirm', { action: 'removeChecklistItem', params: {{ $idx }}, title: '¿Quitar paso?', text: 'Se eliminará de la lista.' })" type="button" class="p-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
+                        <button wire:click="removeChecklistItem({{ $idx }})" type="button" class="p-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50" title="Quitar paso">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>
@@ -249,7 +249,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <input wire:model="tempMaterials.{{ $idx }}.estimated_quantity" type="number" step="0.01" class="block w-16 border border-gray-200 rounded px-1 py-0.5 text-xs text-center" title="Cantidad estimada">
-                            <button wire:click="$dispatch('swal:confirm', { action: 'removeMaterial', params: {{ $idx }}, title: '¿Quitar material?', text: 'Se eliminará de la lista.' })" type="button" class="text-gray-400 hover:text-red-500">
+                            <button wire:click="removeMaterial({{ $idx }})" type="button" class="text-gray-400 hover:text-red-500" title="Quitar material">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
