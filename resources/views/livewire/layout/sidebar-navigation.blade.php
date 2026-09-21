@@ -343,7 +343,7 @@ new class extends Component
                 @if($garSub('chat'))
                 <a href="{{ route('tenant.warranties.chatbot') }}" wire:navigate
                     class="block rounded-md px-2 py-1 text-sm transition-colors duration-150 {{ request()->routeIs('tenant.warranties.chatbot') ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'hover:text-indigo-600 dark:hover:text-indigo-400' }}">
-                    Chatbot (Nuevas)
+                    Bandeja Web (Nuevas)
                 </a>
                 @endif
                 @if($garSub('war'))
@@ -365,7 +365,7 @@ new class extends Component
                 @endif
                 @if($garSub('chat'))
                 <a href="{{ route('tenant.warranties.chatbot') }}" wire:navigate
-                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Chatbot (Nuevas)</a>
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Bandeja Web (Nuevas)</a>
                 @endif
                 @if($garSub('war'))
                 <a href="{{ route('tenant.warranties') }}" wire:navigate
