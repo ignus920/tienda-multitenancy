@@ -107,15 +107,21 @@
                         
                         <div class="space-y-4">
                             @foreach($foundProducts as $prod)
-                                @php $id = $prod['id']; @endphp
-                                <div class="flex flex-col p-4 border {{ isset($selectedProducts[$id]['selected']) && $selectedProducts[$id]['selected'] ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800' }} rounded-xl transition-colors">
-                                    <div class="flex items-start cursor-pointer" wire:click="$toggle('selectedProducts.{{ $id }}.selected')">
+                                @php 
+                                    $id = $prod['id']; 
+                                    $isPending = $prod['is_pending'] ?? false;
+                                @endphp
+                                <div class="flex flex-col p-4 border {{ isset($selectedProducts[$id]['selected']) && $selectedProducts[$id]['selected'] ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10' : ($isPending ? 'border-gray-200 bg-gray-50 dark:bg-gray-800/50 opacity-70' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800') }} rounded-xl transition-colors">
+                                    <div class="flex items-start {{ $isPending ? 'cursor-not-allowed' : 'cursor-pointer' }}" {!! $isPending ? '' : 'wire:click="$toggle(\'selectedProducts.'.$id.'.selected\')"' !!}>
                                         <div class="flex items-center h-5 mt-1">
-                                            <input type="checkbox" wire:model="selectedProducts.{{ $id }}.selected" class="focus:ring-indigo-500 h-5 w-5 text-indigo-600 border-gray-300 rounded cursor-pointer" id="prod-{{ $id }}">
+                                            <input type="checkbox" {{ $isPending ? 'disabled' : '' }} wire:model="selectedProducts.{{ $id }}.selected" class="focus:ring-indigo-500 h-5 w-5 text-indigo-600 border-gray-300 rounded {{ $isPending ? 'cursor-not-allowed bg-gray-200' : 'cursor-pointer' }}" id="prod-{{ $id }}">
                                         </div>
                                         <div class="ml-3 flex-1">
-                                            <label for="prod-{{ $id }}" class="text-base font-semibold text-gray-800 dark:text-gray-200 cursor-pointer block">
-                                                {{ $prod['name'] }} <span class="text-gray-400 font-normal text-sm">({{ $prod['reference'] }})</span>
+                                            <label for="prod-{{ $id }}" class="text-base font-semibold text-gray-800 dark:text-gray-200 {{ $isPending ? 'cursor-not-allowed text-gray-500' : 'cursor-pointer' }} block flex items-center flex-wrap gap-2">
+                                                <span>{{ $prod['name'] }} <span class="text-gray-400 font-normal text-sm">({{ $prod['reference'] }})</span></span>
+                                                @if($isPending)
+                                                    <span class="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">En proceso</span>
+                                                @endif
                                             </label>
                                         </div>
                                     </div>
