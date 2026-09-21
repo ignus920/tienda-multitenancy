@@ -25,6 +25,7 @@
                         <tr>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-left">Fecha</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-left">Empresa</div></th>
+                            <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Radicado</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Ref / Factura</div></th>
                             <th class="p-2"><div class="font-semibold text-left">Productos</div></th>
                             <th class="p-2 whitespace-nowrap"><div class="font-semibold text-center">Estado</div></th>
@@ -39,6 +40,10 @@
                                 </td>
                                 <td class="p-2 whitespace-nowrap">
                                     <div class="font-medium text-gray-800 dark:text-gray-100">{{ $request->company_name }}</div>
+                                <td class="p-2 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                                        {{ $request->tracking_code ?? 'N/A' }}
+                                    </span>
                                 </td>
                                 <td class="p-2 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">

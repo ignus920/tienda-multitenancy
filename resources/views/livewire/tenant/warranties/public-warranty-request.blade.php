@@ -203,12 +203,12 @@
                         </select>
                     </div>
 
-                    <div class="pt-4 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 -mx-8 -mb-8 p-6 rounded-b-2xl border-t border-gray-100 dark:border-gray-750">
+                    <div class="pt-6 flex justify-between items-center border-t border-gray-200 dark:border-gray-700 mt-6">
                         <button type="button" wire:click="previousStep" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             <svg class="mr-2 -ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                             Volver
                         </button>
-                        <button type="submit" class="group relative inline-flex items-center justify-center py-2.5 px-6 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-200 dark:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed" wire:loading.attr="disabled" wire:target="submit, productMedia">
+                        <button type="submit" class="group relative inline-flex items-center justify-center py-2.5 px-6 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed" wire:loading.attr="disabled" wire:target="submit, productMedia">
                             <span wire:loading.remove wire:target="submit, productMedia">Enviar Solicitud de Garantía</span>
                             <span wire:loading wire:target="submit">Enviando...</span>
                             <span wire:loading wire:target="productMedia">Cargando Archivos...</span>

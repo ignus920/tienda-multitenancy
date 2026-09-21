@@ -29,6 +29,7 @@ class WarrantyCreate extends Component
     public $chatbotRequestId = null;
     public $hasChatbotData = false;
     public $chatbotReferenceNumber = '';
+    public $chatbotTrackingCode = '';
     public $chatbotMediaUrls = [];
     public $manualSearchConsecutive = '';
 
@@ -73,9 +74,10 @@ class WarrantyCreate extends Component
             if ($chatbotRecord) {
                 $this->hasChatbotData = true;
                 $this->chatbotReferenceNumber = $chatbotRecord->reference_number;
+                $this->chatbotTrackingCode = $chatbotRecord->tracking_code;
 
                 // Auto-buscar OP
-                $remission = InvRemissions::where('consecutive', $chatbotRecord->reference_number)->first();
+                $remission = $this->findRemissionByReference($chatbotRecord->reference_number);
                 if ($remission) {
                     $this->remissionId = $remission->id;
                     $this->loadRemission($this->remissionId);
@@ -92,14 +94,32 @@ class WarrantyCreate extends Component
         }
     }
 
+    private function findRemissionByReference($reference)
+    {
+        // 1. Buscar por consecutivo de OP
+        $remission = InvRemissions::where('consecutive', $reference)->first();
+        
+        // 2. Si no encuentra, buscar si es un número de factura y obtener su OP (a través de la cotización)
+        if (!$remission) {
+            $invoice = \App\Models\Tenant\Invoices\VntInvoices::where('consecutive', $reference)
+                ->orWhere('invoiceNumber', $reference)->first();
+                
+            if ($invoice && $invoice->quote_id) {
+                $remission = InvRemissions::where('quote_id', $invoice->quote_id)->first();
+            }
+        }
+        
+        return $remission;
+    }
+
     public function searchManualRemission()
     {
-        $remission = InvRemissions::where('consecutive', $this->manualSearchConsecutive)->first();
+        $remission = $this->findRemissionByReference($this->manualSearchConsecutive);
         if ($remission) {
             $this->remissionId = $remission->id;
             $this->loadRemission($this->remissionId);
         } else {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'OP no encontrada en la base de datos.']);
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'OP no encontrada en la base de datos con esa referencia o factura.']);
         }
     }
 
