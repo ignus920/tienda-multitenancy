@@ -140,6 +140,11 @@ class PublicWarrantyRequest extends Component
         $this->currentStep = 2;
     }
 
+    public function previousStep()
+    {
+        $this->currentStep--;
+    }
+
     public function removeMedia($productId, $index)
     {
         if (isset($this->productMedia[$productId][$index])) {
