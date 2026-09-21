@@ -166,6 +166,8 @@ class WarrantyCreate extends Component
                         $requestText = $chatbotRecord->product_details;
                     }
 
+                    $failureText = $requestText; // Pre-fill the failure with what the customer wrote
+
                     $this->chatbotMediaUrls = $chatbotRecord->media_urls ?? [];
                 }
             }
@@ -179,7 +181,8 @@ class WarrantyCreate extends Component
                 'available_qty' => $availableQty,
                 'qty' => 0,
                 'failure' => $failureText,
-                'request' => $requestText,
+                'request' => '', // Dejamos la solución solicitada vacía para que la llene el asesor
+                'chatbot_report' => $requestText, // Guardamos el texto original intocable
                 'isSelected' => false
             ];
             
@@ -247,10 +250,6 @@ class WarrantyCreate extends Component
                 $this->dispatch('show-toast', ['type' => 'error', 'message' => "Debe ingresar una descripción de la falla para {$item['description']}."]);
                 return;
             }
-            if (empty(trim($item['request']))) {
-                $this->dispatch('show-toast', ['type' => 'error', 'message' => "Debe ingresar qué solicita el cliente para {$item['description']}."]);
-                return;
-            }
         }
 
         try {
@@ -277,7 +276,7 @@ class WarrantyCreate extends Component
                         'item_id' => $item['item_id'],
                         'quantity' => $item['qty'],
                         'failure_description' => $item['failure'],
-                        'client_request' => $item['request'],
+                        'client_request' => $item['request'] ?: 'Unificado con la descripción de falla',
                     ]);
 
                     // Guardar archivos de evidencia manuales

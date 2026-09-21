@@ -107,10 +107,13 @@
                         <!-- Detalles (Falla y Solicitud) -->
                         <td class="px-6 py-4">
                             <div class="space-y-2">
+                                @if(!empty($item['chatbot_report']))
+                                    <div class="text-xs text-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded p-2 italic">
+                                        <span class="font-bold">Mensaje original del cliente:</span><br>
+                                        {{ $item['chatbot_report'] }}
+                                    </div>
+                                @endif
                                 <textarea wire:model.blur="items.{{ $index }}.failure" placeholder="Descripción detallada de la falla física..." 
-                                       class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500 resize-none" rows="2"
-                                       {{ !$item['isSelected'] ? 'disabled' : '' }}></textarea>
-                                <textarea wire:model.blur="items.{{ $index }}.request" placeholder="¿Qué solución está solicitando el cliente?..." 
                                        class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500 resize-none" rows="2"
                                        {{ !$item['isSelected'] ? 'disabled' : '' }}></textarea>
                             </div>

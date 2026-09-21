@@ -85,15 +85,17 @@
                                         </div>
 
                                         <!-- Details grid -->
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-slate-700/20 p-3 rounded-xl">
+                                        <div class="grid grid-cols-1 {{ (empty($item->client_request) || $item->client_request === 'Unificado con la descripción de falla') ? '' : 'md:grid-cols-2' }} gap-3 text-xs bg-slate-50 dark:bg-slate-700/20 p-3 rounded-xl">
                                             <div>
                                                 <span class="text-gray-400 font-bold block mb-0.5">Falla reportada:</span>
                                                 <p class="text-gray-700 dark:text-gray-300 italic">"{{ $item->failure_description }}"</p>
                                             </div>
+                                            @if(!empty($item->client_request) && $item->client_request !== 'Unificado con la descripción de falla')
                                             <div>
                                                 <span class="text-gray-400 font-bold block mb-0.5">Solicitud del cliente:</span>
                                                 <p class="text-gray-700 dark:text-gray-300 italic">"{{ $item->client_request }}"</p>
                                             </div>
+                                            @endif
                                         </div>
 
                                         <!-- Evidences Row (Thumbnails w-12) -->
