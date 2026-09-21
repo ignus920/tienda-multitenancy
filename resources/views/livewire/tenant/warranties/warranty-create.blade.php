@@ -116,9 +116,6 @@
                                 <textarea wire:model.blur="items.{{ $index }}.failure" placeholder="Descripción detallada de la falla física..." 
                                        class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500 resize-none" rows="2"
                                        {{ !$item['isSelected'] ? 'disabled' : '' }}></textarea>
-                                <textarea wire:model.blur="items.{{ $index }}.request" placeholder="¿Qué solución está solicitando el cliente?..." 
-                                       class="w-full border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm focus:ring-indigo-500 resize-none" rows="2"
-                                       {{ !$item['isSelected'] ? 'disabled' : '' }}></textarea>
                             </div>
                         </td>
                         <!-- Evidencias -->
