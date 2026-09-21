@@ -68,7 +68,7 @@
                                 </td>
                                 <td class="p-2 whitespace-nowrap text-center">
                                     @if($request->status === 'pending')
-                                        <button wire:click="processRequest({{ $request->id }})" class="btn-sm bg-indigo-500 hover:bg-indigo-600 text-white">
+                                        <button wire:click="processRequest({{ $request->id }})" class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                             Abrir Caso
                                         </button>
                                     @else
