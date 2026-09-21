@@ -150,8 +150,22 @@ class WarrantyCreate extends Component
             if ($this->hasChatbotData) {
                 $chatbotRecord = \App\Models\Tenant\Sales\VntChatbotWarrantyRequest::find($this->chatbotRequestId);
                 if ($chatbotRecord) {
-                    $failureText = $chatbotRecord->description;
-                    $requestText = "Autogestión Bot: Solicita por " . $chatbotRecord->product_details;
+                    $itemCode = $detail->item->internal_code ?? '';
+                    $failureText = "Autogestión (Radicado: " . ($chatbotRecord->tracking_code ?? 'N/A') . ")";
+                    
+                    $requestText = '';
+                    if ($itemCode) {
+                        // Buscar el bloque de texto correspondiente a este código de producto
+                        $pattern = '/\(' . preg_quote($itemCode, '/') . '\)\nDetalle\/Falla:\s*(.*?)(?=\n\n------------------------\n\n|$)/is';
+                        if (preg_match($pattern, $chatbotRecord->product_details, $matches)) {
+                            $requestText = trim($matches[1]);
+                        }
+                    }
+                    
+                    if (empty($requestText)) {
+                        $requestText = $chatbotRecord->product_details;
+                    }
+
                     $this->chatbotMediaUrls = $chatbotRecord->media_urls ?? [];
                 }
             }
