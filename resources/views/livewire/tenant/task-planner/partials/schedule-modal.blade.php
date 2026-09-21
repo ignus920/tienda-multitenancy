@@ -26,6 +26,7 @@
                 </div>
             </div>
 
+            @if(!$isReschedulingToAnotherDay)
             <div class="grid grid-cols-2 gap-2">
                 <button wire:click="checkScheduleConflicts" type="button"
                     class="px-3 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100">
@@ -40,6 +41,7 @@
                 <span class="font-semibold text-gray-500 dark:text-gray-400">Verificar disponibilidad:</span> ¿el trabajador está libre a la hora que pusiste? Avisa si hay choque, permiso o está fuera de horario (no bloquea).
                 <span class="font-semibold text-gray-500 dark:text-gray-400">Buscar espacio libre:</span> el sistema te propone los primeros huecos disponibles antes de la fecha límite.
             </p>
+            @endif
 
             @if(!empty($suggestedSlots))
             <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-1">
@@ -71,13 +73,18 @@
             @endif
 
             <div>
-                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Motivo de reprogramación (si aplica) <x-help-tip text="Solo si estás moviendo una tarea que YA estaba programada. Queda registrado en el historial para saber por qué no se cumplió el plan original." /></label>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Motivo de reprogramación @if(!$isReschedulingToAnotherDay)(si aplica)@else<span class="text-red-500">*</span>@endif <x-help-tip text="Queda registrado en el historial para saber por qué no se cumplió el plan original." /></label>
                 <select wire:model="rescheduleReason" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                    @if(!$isReschedulingToAnotherDay)
                     <option value="">No aplica</option>
+                    @else
+                    <option value="">Seleccione el motivo de la reprogramación...</option>
+                    @endif
                     @foreach(\App\Models\Tenant\TaskPlanner\TaskSchedule::RESCHEDULE_REASONS as $value => $label)
                     <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
+                @error('rescheduleReason') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
             </div>
         </div>
 
