@@ -21,6 +21,7 @@ class InvDetailRemissions extends Model
         'tax',
         'remissionId',
         'itemId',
+        'description',
         'invoiceId',
         'cant_return',
         'observations_return',
