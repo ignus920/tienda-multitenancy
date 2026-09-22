@@ -193,7 +193,7 @@ class ManageProjects extends Component
     {
         $this->ensureTenantConnection();
 
-        $isSalesperson = (int) Auth::user()?->profile_id === self::SALESPERSON_PROFILE_ID;
+        $isSalesperson = in_array((int) Auth::user()?->profile_id, [self::SALESPERSON_PROFILE_ID, 16]);
 
         if ($this->projectType === 'internal') {
             $rules = [

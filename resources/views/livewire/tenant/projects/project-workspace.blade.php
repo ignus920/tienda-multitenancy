@@ -103,7 +103,7 @@
                     <div>
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-gray-400 block">Información del proyecto:</span>
-                            <span class="text-gray-400 text-[10px]">(Creado: {{ $project->created_at->format('d/m/Y') }})</span>
+                            <span class="text-gray-400 text-[10px]">(Creado: {{ $project->created_at->format('d/m/Y') }} - Por: {{ $project->creator->name ?? 'Sistema' }})</span>
                             @if(auth()->id() === $project->created_by && !in_array($project->status, ['terminado', 'cerrado_entregado']) && !$isEditingDescription)
                                 <button wire:click="editDescription" class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center gap-1">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
