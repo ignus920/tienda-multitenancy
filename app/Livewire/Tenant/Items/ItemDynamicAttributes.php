@@ -16,10 +16,11 @@ class ItemDynamicAttributes extends Component
     public $newLabel = '';
     public $newType = 'single_product';
     
-    // Búsqueda en el creador para 'single_product' (Fijo)
+    // Búsqueda en el creador para 'single_product' (Fijo) y 'multiple_products' (Dinámico)
     public $newFixedSearch = '';
     public $newFixedResults = [];
     public $newFixedSelected = null;
+    public $newMultipleSelected = [];
     
     // Buscadores por cada atributo
     public $searchQueries = [];
@@ -49,8 +50,12 @@ class ItemDynamicAttributes extends Component
         foreach ($dbAttrs as $attr) {
             $value = $attr->value;
             // Parsear JSON si es multiple_products
+            $options = $attr->options;
+            if ($attr->field_type === 'multiple_products' && !empty($options) && is_string($options)) {
+                $options = json_decode($options, true) ?? [];
+            }
             if ($attr->field_type === 'multiple_products' && !empty($value) && is_string($value)) {
-                $value = json_decode($value, true) ?? [];
+                $value = json_decode($value, true) ?? null;
             }
             // Parsear JSON si es single_product
             if ($attr->field_type === 'single_product' && !empty($value) && is_string($value)) {
@@ -61,6 +66,7 @@ class ItemDynamicAttributes extends Component
                 'id' => $attr->id,
                 'label' => $attr->label,
                 'field_type' => $attr->field_type,
+                'options' => $options,
                 'value' => $value,
                 'order_index' => $attr->order_index,
             ];
@@ -110,7 +116,7 @@ class ItemDynamicAttributes extends Component
         $this->ensureTenantDb();
 
         $words = explode(' ', $value);
-        $query = Items::query()->where('status', 'ACTIVO');
+        $query = Items::query()->active();
 
         foreach ($words as $word) {
             if (!empty(trim($word))) {
@@ -133,18 +139,38 @@ class ItemDynamicAttributes extends Component
 
     public function selectNewFixedProduct($id, $name, $code)
     {
-        $this->newFixedSelected = [
-            'id' => $id,
-            'name' => $name,
-            'code' => $code
-        ];
-        $this->newFixedSearch = '';
-        $this->newFixedResults = [];
+        if ($this->newType === 'single_product') {
+            $this->newFixedSelected = [
+                'id' => $id,
+                'name' => $name,
+                'code' => $code
+            ];
+            $this->newFixedSearch = '';
+            $this->newFixedResults = [];
+        } elseif ($this->newType === 'multiple_products') {
+            $exists = collect($this->newMultipleSelected)->contains('id', $id);
+            if (!$exists) {
+                $this->newMultipleSelected[] = [
+                    'id' => $id,
+                    'name' => $name,
+                    'code' => $code
+                ];
+            }
+            $this->newFixedSearch = '';
+            $this->newFixedResults = [];
+        }
     }
 
     public function removeNewFixedProduct()
     {
         $this->newFixedSelected = null;
+    }
+
+    public function removeNewMultipleProduct($id)
+    {
+        $this->newMultipleSelected = array_values(array_filter($this->newMultipleSelected, function($item) use ($id) {
+            return $item['id'] !== $id;
+        }));
     }
 
     public function addField()
@@ -159,25 +185,33 @@ class ItemDynamicAttributes extends Component
             return;
         }
 
+        if ($this->newType === 'multiple_products' && empty($this->newMultipleSelected)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Debe seleccionar al menos un producto para crear este campo dinámico.']);
+            return;
+        }
+
         $this->ensureTenantDb();
         
         $valueToSave = null;
+        $optionsToSave = null;
         if ($this->newType === 'single_product') {
             $valueToSave = json_encode($this->newFixedSelected);
+        } elseif ($this->newType === 'multiple_products') {
+            $optionsToSave = json_encode($this->newMultipleSelected);
         }
 
         DB::connection('tenant')->table('inv_item_dynamic_attributes')->insert([
             'item_id' => $this->itemId,
             'label' => trim($this->newLabel),
             'field_type' => $this->newType,
-            'options' => null,
+            'options' => $optionsToSave,
             'value' => $valueToSave,
             'order_index' => count($this->dynamicFields),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->reset(['newLabel', 'newType', 'newFixedSelected', 'newFixedSearch', 'newFixedResults']);
+        $this->reset(['newLabel', 'newType', 'newFixedSelected', 'newFixedSearch', 'newFixedResults', 'newMultipleSelected']);
         $this->newType = 'single_product';
         $this->loadAttributes();
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Campo agregado exitosamente.']);
@@ -247,7 +281,11 @@ class ItemDynamicAttributes extends Component
                 $valueToSave = $attr['value'];
                 
                 // Si es un producto unico o multiple, guardamos como JSON
-                if (in_array($attr['field_type'], ['single_product', 'multiple_products'])) {
+                if ($attr['field_type'] === 'single_product' || $attr['field_type'] === 'multiple_products') {
+                    if (is_string($valueToSave) && !empty($valueToSave)) {
+                        $decoded = json_decode($valueToSave, true);
+                        $valueToSave = $decoded ?? $valueToSave;
+                    }
                     $valueToSave = empty($valueToSave) ? null : json_encode($valueToSave);
                 }
 
@@ -267,6 +305,8 @@ class ItemDynamicAttributes extends Component
         $this->searchProducts($key);
     }
 
+    // NOTA: Para múltiples productos, el end-user NO usa este buscador ya que selecciona desde el select, 
+    // pero mantenemos los métodos en caso de necesitarlos para otras dinámicas.
     public function searchProducts($attrId)
     {
         $term = $this->searchQueries[$attrId] ?? '';
@@ -279,7 +319,7 @@ class ItemDynamicAttributes extends Component
         $this->ensureTenantDb();
 
         $words = explode(' ', $term);
-        $query = Items::query()->where('status', 'ACTIVO');
+        $query = Items::query()->active();
 
         foreach ($words as $word) {
             if (!empty(trim($word))) {
