@@ -147,6 +147,7 @@ class ManageItems extends Component
     public $showSuggestedProductsSection = false;
     public $showWebB2bSection = false;
     public $showImagesSection = false;
+    public $showDynamicSection = false;
 
     /**
      * Perfiles Analista y Mercadeo: al editar un item, solo pueden ver/usar
@@ -155,6 +156,18 @@ class ManageItems extends Component
      * y bloqueado también del lado servidor, no solo el botón.
      */
     const RESTRICTED_EDIT_PROFILE_IDS = [3, 19];
+
+    public function showDynamicSection($item_id)
+    {
+        $this->item_id = $item_id;
+        $this->showProductionSection = false;
+        $this->showDimensionSection = false;
+        $this->showAccesoriosSection = false;
+        $this->showSuggestedProductsSection = false;
+        $this->showWebB2bSection = false;
+        $this->showImagesSection = false;
+        $this->showDynamicSection = true;
+    }
 
     private function hasFullItemEditAccess(): bool
     {
@@ -404,6 +417,7 @@ class ManageItems extends Component
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
 
         // Analista/Mercadeo no ven Información General — aterrizan directo
         // en la pestaña Fotos, la primera que sí tienen permitida.
@@ -2499,6 +2513,7 @@ class ManageItems extends Component
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
     }
 
     public function activateImagesSection(int $item_id): void
@@ -2526,6 +2541,7 @@ class ManageItems extends Component
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
     }
 
     public function activateSuggestedProductsSection(int $item_id): void
@@ -2537,6 +2553,7 @@ class ManageItems extends Component
         $this->showAccesoriosSection = false;
         $this->showWebB2bSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
     }
 
     public function showImportSection($item_id)
@@ -2553,6 +2570,7 @@ class ManageItems extends Component
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
     }
 
     public function showProductionSection($item_id)
@@ -2573,6 +2591,7 @@ class ManageItems extends Component
         $this->showSuggestedProductsSection = false;
         $this->showWebB2bSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
     }
 
     public function activateDimensionSection($item_id)
@@ -2607,6 +2626,7 @@ class ManageItems extends Component
         $this->showAccesoriosSection = false;
         $this->showSuggestedProductsSection = false;
         $this->showImagesSection = false;
+        $this->showDynamicSection = false;
 
         $storeRecord = InvItemsStore::where('itemId', $item_id)->first();
         if ($storeRecord) {
