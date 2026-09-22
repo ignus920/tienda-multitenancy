@@ -42,40 +42,14 @@
                             <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate"><span class="text-gray-400 mr-1">{{ $attr['value']['code'] ?? '' }}</span> {{ $attr['value']['name'] ?? '' }}</span>
                         </div>
                     @elseif($attr['field_type'] === 'multiple_products')
-                        <!-- Buscador de Productos -->
-                        <div class="w-full relative" x-data="{ open: true }" @click.away="open = false">
-                            <input wire:model.live.debounce.300ms="searchQueries.{{ $attr['id'] }}" @focus="open = true" type="text" placeholder="Buscar producto en ERP por código o nombre..."
-                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            
-                            @if(!empty($searchResults[$attr['id']]) && !empty($searchQueries[$attr['id']]))
-                                <div x-show="open" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-56 overflow-y-auto">
-                                    @foreach($searchResults[$attr['id']] as $result)
-                                        <button type="button" wire:click="selectProduct({{ $attr['id'] }}, {{ $result['id'] }}, '{{ addslashes($result['name']) }}', '{{ addslashes($result['code']) }}')"
-                                            class="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-750 flex items-center justify-between gap-2">
-                                            <span class="truncate max-w-xs">
-                                                <span class="text-gray-400 mr-1">{{ $result['code'] }}</span> - <span class="font-bold ml-1">{{ $result['name'] }}</span>
-                                            </span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-
-                        <!-- Mostrar valores seleccionados -->
-                        @if(!empty($attr['value']) && is_array($attr['value']))
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                @foreach($attr['value'] as $val)
-                                <div class="flex items-center gap-1 bg-purple-50 dark:bg-purple-900/30 px-2 py-1.5 rounded-md border border-purple-200 dark:border-purple-800 max-w-full">
-                                    <span class="text-2xs font-semibold text-purple-700 dark:text-purple-300 truncate" title="{{ $val['code'] ?? '' }} - {{ $val['name'] ?? '' }}">
-                                        {{ $val['name'] ?? '' }}
-                                    </span>
-                                    <button type="button" wire:click="removeProduct({{ $attr['id'] }}, {{ $val['id'] ?? 0 }})" class="text-red-500 hover:text-red-700 ml-1 shrink-0">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </button>
-                                </div>
+                        <select wire:model="dynamicFields.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Seleccione un producto...</option>
+                            @if(!empty($attr['options']) && is_array($attr['options']))
+                                @foreach($attr['options'] as $opt)
+                                    <option value="{{ json_encode($opt) }}">{{ $opt['code'] ?? '' }} - {{ $opt['name'] ?? '' }}</option>
                                 @endforeach
-                            </div>
-                        @endif
+                            @endif
+                        </select>
                     @endif
 
                     <button type="button" wire:click="deleteField({{ $attr['id'] }})" title="Eliminar campo" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-sm">
@@ -113,10 +87,13 @@
                         @error('newType') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
-                    @if($newType === 'single_product')
+                    @if($newType === 'single_product' || $newType === 'multiple_products')
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Seleccionar Producto Fijo *</label>
-                        @if($newFixedSelected)
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            {{ $newType === 'single_product' ? 'Seleccionar Producto Fijo *' : 'Seleccionar Productos Disponibles *' }}
+                        </label>
+                        
+                        @if($newType === 'single_product' && $newFixedSelected)
                             <div class="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800">
                                 <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 truncate"><span class="text-indigo-400">{{ $newFixedSelected['code'] }}</span> {{ $newFixedSelected['name'] }}</span>
                                 <button type="button" wire:click="removeNewFixedProduct" class="text-red-500 hover:text-red-700 ml-2 shrink-0">
@@ -139,6 +116,21 @@
                                         @endforeach
                                     </div>
                                 @endif
+                            </div>
+                        @endif
+
+                        @if($newType === 'multiple_products' && !empty($newMultipleSelected))
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                @foreach($newMultipleSelected as $val)
+                                <div class="flex items-center gap-1 bg-purple-50 dark:bg-purple-900/30 px-2 py-1.5 rounded-md border border-purple-200 dark:border-purple-800 max-w-full">
+                                    <span class="text-2xs font-semibold text-purple-700 dark:text-purple-300 truncate" title="{{ $val['code'] ?? '' }} - {{ $val['name'] ?? '' }}">
+                                        {{ $val['name'] ?? '' }}
+                                    </span>
+                                    <button type="button" wire:click="removeNewMultipleProduct({{ $val['id'] ?? 0 }})" class="text-red-500 hover:text-red-700 ml-1 shrink-0">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+                                @endforeach
                             </div>
                         @endif
                     </div>
