@@ -116,7 +116,7 @@ class ItemDynamicAttributes extends Component
         $this->ensureTenantDb();
 
         $words = explode(' ', $value);
-        $query = Items::query()->active();
+        $query = Items::query()->active()->where('type', '!=', 'ENSAMBLADO');
 
         foreach ($words as $word) {
             if (!empty(trim($word))) {
@@ -339,7 +339,7 @@ class ItemDynamicAttributes extends Component
         $this->ensureTenantDb();
 
         $words = explode(' ', $term);
-        $query = Items::query()->active();
+        $query = Items::query()->active()->where('type', '!=', 'ENSAMBLADO');
 
         foreach ($words as $word) {
             if (!empty(trim($word))) {
