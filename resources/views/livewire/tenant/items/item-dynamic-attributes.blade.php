@@ -23,22 +23,22 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Columna Izquierda: Formulario Dinámico -->
         <div class="space-y-4">
-            @if(count($attributes) === 0)
+            @if(count($dynamicFields) === 0)
             <div class="text-center py-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Este ítem no tiene campos personalizados aún.</p>
                 <p class="text-xs text-gray-400 mt-1">Usa el panel de la derecha para agregar campos o copia la estructura de otro ítem importado.</p>
             </div>
             @else
-                @foreach($attributes as $index => $attr)
+                @foreach($dynamicFields as $index => $attr)
                 <div class="relative group p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:border-indigo-300 transition-colors">
                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">{{ $attr['label'] }}</label>
                     
                     @if($attr['field_type'] === 'text')
-                        <input type="text" wire:model="attributes.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="text" wire:model="dynamicFields.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
                     @elseif($attr['field_type'] === 'textarea')
-                        <textarea wire:model="attributes.{{ $index }}.value" rows="2" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        <textarea wire:model="dynamicFields.{{ $index }}.value" rows="2" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                     @elseif($attr['field_type'] === 'select')
-                        <select wire:model="attributes.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <select wire:model="dynamicFields.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">Seleccione una opción...</option>
                             @foreach($attr['options_array'] as $opt)
                                 <option value="{{ $opt }}">{{ $opt }}</option>

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 class ItemDynamicAttributes extends Component
 {
     public $itemId;
-    public $attributes = [];
+    public $dynamicFields = [];
     
     // Para agregar nuevo campo
     public $newLabel = '';
@@ -38,9 +38,9 @@ class ItemDynamicAttributes extends Component
             ->orderBy('order_index')
             ->get();
 
-        $this->attributes = [];
+        $this->dynamicFields = [];
         foreach ($dbAttrs as $attr) {
-            $this->attributes[] = [
+            $this->dynamicFields[] = [
                 'id' => $attr->id,
                 'label' => $attr->label,
                 'field_type' => $attr->field_type,
@@ -81,7 +81,7 @@ class ItemDynamicAttributes extends Component
             'field_type' => $this->newType,
             'options' => $this->newType === 'select' ? trim($this->newOptions) : null,
             'value' => null,
-            'order_index' => count($this->attributes)
+            'order_index' => count($this->dynamicFields)
         ]);
 
         $this->reset(['newLabel', 'newType', 'newOptions']);
@@ -136,7 +136,7 @@ class ItemDynamicAttributes extends Component
     public function save()
     {
         // Guardar todos los valores de los atributos actuales
-        foreach ($this->attributes as $attr) {
+        foreach ($this->dynamicFields as $attr) {
             if (isset($attr['id'])) {
                 ItemDynamicAttribute::where('id', $attr['id'])->update([
                     'value' => $attr['value'] ?? null
