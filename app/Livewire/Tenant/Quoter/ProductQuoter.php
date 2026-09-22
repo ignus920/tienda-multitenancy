@@ -998,13 +998,19 @@ class ProductQuoter extends Component
             ]);
         }
 
-        InvValues::create([
-            'date'        => now(),
-            'values'      => $this->genericProductPrice,
-            'type'        => 'precio',
-            'itemId'      => $product->id,
-            'label'       => 'Precio Base',
-        ]);
+        // Ya no crearemos un InvValue cada vez que se agregue un genérico
+        // porque eso es lo que daña el cálculo del descuento al acumular precios bases diferentes.
+        // Solo lo creamos si el producto es nuevo (recién creado).
+        $hasValues = InvValues::where('itemId', $product->id)->exists();
+        if (!$hasValues) {
+            InvValues::create([
+                'date'        => now(),
+                'values'      => 0, // Un precio base neutral
+                'type'        => 'precio',
+                'itemId'      => $product->id,
+                'label'       => 'Precio Base',
+            ]);
+        }
 
         $tax = CnfTaxes::find($this->genericProductTaxId);
 
@@ -2460,7 +2466,7 @@ class ProductQuoter extends Component
 
                     $itemData = [
                         'id'             => $product->id,
-                        'name'           => $product->display_name,
+                        'name'           => !empty($detalle->description) ? $detalle->description : $product->display_name,
                         'sku'            => $product->sku,
                         'price'          => $detalle->value,
                         'original_price' => $detalle->value,
@@ -3490,6 +3496,7 @@ class ProductQuoter extends Component
                     'value' => $item['price'],
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],
+                    'description' => $item['name'] ?? null,
                     'invoiceId' => null,
                 ]);
 
@@ -4326,7 +4333,7 @@ class ProductQuoter extends Component
                 if ($detalle->item) {
                     $this->quoterItems[] = [
                         'id'            => $detalle->item->id,
-                        'name'          => $detalle->item->display_name,
+                        'name'          => !empty($detalle->description) ? $detalle->description : $detalle->item->display_name,
                         'sku'           => $detalle->item->sku,
                         'price'         => $detalle->value,
                         'price_label'   => 'Precio remisión',

@@ -421,6 +421,7 @@ class ManageItems extends Component
 
         $query = Items::query()
             ->select('inv_items.*')
+            ->where('inv_items.generic', '!=', 1)
             ->with(['brand', 'principalImage', 'purchasingUnit', 'consumptionUnit', 'tax', 'locations'])
             ->when($this->selectedSupplierId, function ($query) {
                 $query->whereHas('importSetup', function ($q) {
@@ -444,11 +445,10 @@ class ManageItems extends Component
                 }
             });
 
-        // Excluir inactivos, servicios y genéricos para los filtros de sin_imagen y no_en_ecommerce
+        // Excluir inactivos, y servicios para los filtros de sin_imagen y no_en_ecommerce
         if (in_array($this->productFilter, ['sin_imagen', 'no_en_ecommerce'])) {
             $query->where('inv_items.status', '!=', 0)
-                  ->where('inv_items.type', '!=', 'SERVICIO')
-                  ->where('inv_items.generic', '!=', 1);
+                  ->where('inv_items.type', '!=', 'SERVICIO');
         }
 
         // Filtros específicos para sin_imagen y no_en_ecommerce

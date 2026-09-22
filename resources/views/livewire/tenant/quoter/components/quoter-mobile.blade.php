@@ -501,7 +501,7 @@
                                 @endphp
                                 <div class="bg-white dark:bg-slate-700/30 rounded-lg p-3 border border-gray-100 dark:border-slate-700">
                                     <div class="flex justify-between items-start mb-1">
-                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $detalle->item->name ?? $detalle->description }}</span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ !empty($detalle->description) ? $detalle->description : ($detalle->item->name ?? '') }}</span>
                                         <span class="text-xs font-bold text-indigo-500">${{ number_format($subtotal, 2) }}</span>
                                     </div>
                                     <div class="flex justify-between text-xs text-gray-500 dark:text-slate-400">
