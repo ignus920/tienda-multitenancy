@@ -157,7 +157,7 @@ class ManageItems extends Component
      */
     const RESTRICTED_EDIT_PROFILE_IDS = [3, 19];
 
-    public function showDynamicSection($item_id)
+    public function activateDynamicSection($item_id)
     {
         $this->item_id = $item_id;
         $this->showProductionSection = false;

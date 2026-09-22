@@ -521,7 +521,7 @@
                                 </button>
                                 
                                 <!-- Pestaña Ficha Dinámica -->
-                                <button type="button" wire:click="showDynamicSection({{$item_id}})"
+                                <button type="button" wire:click="activateDynamicSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     @mouseenter="showTip($event, 'Formulario dinámico con campos personalizados para el producto.')" @mouseleave="tipVisible = false"
                                     class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
