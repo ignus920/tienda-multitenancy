@@ -75,13 +75,15 @@ class ItemDynamicAttributes extends Component
             return;
         }
 
-        ItemDynamicAttribute::create([
+        DB::connection('tenant')->table('inv_item_dynamic_attributes')->insert([
             'item_id' => $this->itemId,
             'label' => trim($this->newLabel),
             'field_type' => $this->newType,
             'options' => $this->newType === 'select' ? trim($this->newOptions) : null,
             'value' => null,
-            'order_index' => count($this->dynamicFields)
+            'order_index' => count($this->dynamicFields),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->reset(['newLabel', 'newType', 'newOptions']);
@@ -91,7 +93,10 @@ class ItemDynamicAttributes extends Component
 
     public function deleteField($id)
     {
-        ItemDynamicAttribute::where('id', $id)->where('item_id', $this->itemId)->delete();
+        DB::connection('tenant')->table('inv_item_dynamic_attributes')
+            ->where('id', $id)
+            ->where('item_id', $this->itemId)
+            ->delete();
         $this->loadAttributes();
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Campo eliminado.']);
     }
@@ -109,18 +114,24 @@ class ItemDynamicAttributes extends Component
         DB::connection('tenant')->beginTransaction();
         try {
             // Eliminar los actuales
-            ItemDynamicAttribute::where('item_id', $this->itemId)->delete();
+            DB::connection('tenant')->table('inv_item_dynamic_attributes')->where('item_id', $this->itemId)->delete();
 
             // Clonar
+            $inserts = [];
             foreach ($sourceAttrs as $attr) {
-                ItemDynamicAttribute::create([
+                $inserts[] = [
                     'item_id' => $this->itemId,
                     'label' => $attr->label,
                     'field_type' => $attr->field_type,
                     'options' => $attr->options,
-                    'value' => null, // Dejamos el valor vacío
-                    'order_index' => $attr->order_index
-                ]);
+                    'value' => null,
+                    'order_index' => $attr->order_index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            if (count($inserts) > 0) {
+                DB::connection('tenant')->table('inv_item_dynamic_attributes')->insert($inserts);
             }
             DB::connection('tenant')->commit();
 
@@ -138,9 +149,12 @@ class ItemDynamicAttributes extends Component
         // Guardar todos los valores de los atributos actuales
         foreach ($this->dynamicFields as $attr) {
             if (isset($attr['id'])) {
-                ItemDynamicAttribute::where('id', $attr['id'])->update([
-                    'value' => $attr['value'] ?? null
-                ]);
+                DB::connection('tenant')->table('inv_item_dynamic_attributes')
+                    ->where('id', $attr['id'])
+                    ->update([
+                        'value' => $attr['value'] ?? null,
+                        'updated_at' => now(),
+                    ]);
             }
         }
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Valores del formulario guardados.']);

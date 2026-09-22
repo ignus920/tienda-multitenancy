@@ -519,6 +519,16 @@
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showProductionSection)}">
                                     Importado
                                 </button>
+                                
+                                <!-- Pestaña Ficha Dinámica -->
+                                <button type="button" wire:click="showDynamicSection({{$item_id}})"
+                                    wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
+                                    @mouseenter="showTip($event, 'Formulario dinámico con campos personalizados para el producto.')" @mouseleave="tipVisible = false"
+                                    class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-150 focus:outline-none"
+                                    :class="{'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm ring-1 ring-black/5': @js($showDynamicSection),
+                                    'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showDynamicSection)}">
+                                    Ficha Técnica
+                                </button>
                                 @endif
 
                                 <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->
@@ -605,16 +615,16 @@
 
                 <!-- Contenido según la pestaña activa -->
                 @php
-                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection))
+                    $__activeItemTab = (!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection && !$showDynamicSection))
                         ? 'general'
-                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showImagesSection ? 'img' : 'web')))));
+                        : ($showProductionSection ? 'prod' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showDynamicSection ? 'dyn' : ($showImagesSection ? 'img' : 'web'))))));
                 @endphp
                 {{-- Wrapper con key que CAMBIA por pestaña: fuerza a Livewire a reemplazar
                      todo el subarbol al cambiar de pestana, en vez de intentar hacer patch
                      de los bloques condicionales de una pestana sobre los de otra (eso
                      desbalanceaba los marcadores de bloque y reventaba el morph). --}}
                 <div wire:key="items-tabcontent-{{ $item_id ?: 'new' }}-{{ $__activeItemTab }}">
-                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection))
+                @if(!$item_id || (!$showProductionSection && !$showDimensionSection && !$showAccesoriosSection && !$showSuggestedProductsSection && !$showWebB2bSection && !$showImagesSection && !$showDynamicSection))
                 <div wire:key="tab-content-general-{{ $item_id ?: 'new' }}">
                 <!-- Form -->
                 <form wire:submit.prevent="save" class="p-6 space-y-6">
@@ -1101,18 +1111,15 @@
                     </div>
                 </form>
                 </div>
-                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection))
+                @elseif($item_id && ($showProductionSection || $showDimensionSection || $showAccesoriosSection || $showSuggestedProductsSection || $showWebB2bSection || $showDynamicSection))
                     @php
-                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : 'web_b2b')));
+                        $activeNestedTab = $showProductionSection ? 'import' : ($showDimensionSection ? 'dim' : ($showAccesoriosSection ? 'acc' : ($showSuggestedProductsSection ? 'sugg' : ($showDynamicSection ? 'dyn' : 'web_b2b'))));
                     @endphp
                     <div wire:key="tab-content-nested-{{ $item_id }}-{{ $activeNestedTab }}">
                     <!-- PESTAÑA 2: Contenido según el tipo del item o pestaña seleccionada -->
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                             @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
-                            <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
-                                @livewire('tenant.items.item-dynamic-attributes', ['itemId' => $item_id], key('dyn-attr-'.$item_id))
-                            </div>
                         @elseif($type == 'PRODUCIDO')
                             @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
                         @endif
@@ -1122,6 +1129,10 @@
                         @livewire('tenant.items.item-accesorios', ['itemId' => $item_id], key('acc-'.$item_id))
                     @elseif($showSuggestedProductsSection)
                         @livewire('tenant.items.item-suggested-products', ['itemId' => $item_id], key('sugg-'.$item_id))
+                    @elseif($showDynamicSection)
+                        <div class="p-6">
+                            @livewire('tenant.items.item-dynamic-attributes', ['itemId' => $item_id], key('dyn-attr-'.$item_id))
+                        </div>
                     @elseif($showWebB2bSection)
                         <div class="p-6 space-y-6">
                             <!-- SECCIÓN 1: PARÁMETROS DE PÁGINA WEB (WOOCOMMERCE) -->
