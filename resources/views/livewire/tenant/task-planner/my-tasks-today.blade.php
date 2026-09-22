@@ -127,6 +127,15 @@
                 <button wire:click="$set('activeView', 'calendar')"
                     class="px-3 py-1.5 text-xs font-semibold {{ $activeView === 'calendar' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">Mi Calendario</button>
             </div>
+            @if($enableAutoAssign)
+            <button wire:click="openAutoAssignModal" class="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 px-3 py-1.5 flex items-center justify-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors group">
+                <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <div class="text-left">
+                    <p class="text-[10px] uppercase tracking-wide text-indigo-600/70 dark:text-indigo-400/70">Tareas</p>
+                    <p class="text-sm font-bold text-indigo-700 dark:text-indigo-300">Autoasignar</p>
+                </div>
+            </button>
+            @endif
         </div>
     </div>
 
@@ -487,6 +496,43 @@
          que el trabajador ya puede hacer: comentar y bloquear/desbloquear). --}}
     @include('livewire.tenant.task-planner.partials.detail-modal')
     @include('livewire.tenant.task-planner.partials.block-modal')
+
+
+    {{-- Modal: Autoasignar --}}
+    @if($showAutoAssignModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Autoasignarme una tarea</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Elige una tarea y el sistema buscará el primer espacio libre en tu horario para agendarla.</p>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 space-y-3">
+                @forelse($availableTasksToAssign as $t)
+                <div class="flex items-center justify-between gap-4 p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500 bg-gray-50 dark:bg-gray-700/30 transition-colors">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-gray-800 dark:text-gray-100">{{ $t->title }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $t->description ?: 'Sin descripción' }}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full {{ $t->priority === 'p1_urgente' ? 'bg-red-100 text-red-700' : ($t->priority === 'p2_alta' ? 'bg-orange-100 text-orange-700' : 'bg-gray-200 text-gray-700') }}">{{ $t->priority_label }}</span>
+                            <span class="text-xs text-gray-500 font-semibold">⏱ {{ $t->estimated_minutes ?: 60 }} min</span>
+                        </div>
+                    </div>
+                    <button wire:click="confirmAutoAssign({{ $t->id }})" class="shrink-0 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors border border-indigo-100">
+                        Tomar tarea
+                    </button>
+                </div>
+                @empty
+                <div class="text-center py-6">
+                    <p class="text-sm text-gray-500">No hay tareas pendientes para autoasignarte en tu área en este momento.</p>
+                </div>
+                @endforelse
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <button wire:click="$set('showAutoAssignModal', false)" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200">Cerrar</button>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Visor de imagen (lightbox) — se abre aquí mismo, sin ventana nueva --}}
     <div x-show="lightboxImg" x-cloak style="display: none;"
