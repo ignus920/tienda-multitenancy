@@ -14,9 +14,11 @@ class ItemDynamicAttributes extends Component
     
     // Para agregar nuevo campo
     public $newLabel = '';
-    public $newType = 'text';
-    public $newOptions = '';
+    public $newType = 'single_product';
     
+    // Buscadores por cada atributo
+    public $searchQueries = [];
+    public $searchResults = [];
     // Para clonar de otro item
     public $cloneItemId = null;
     public $availableItems = [];
@@ -40,15 +42,26 @@ class ItemDynamicAttributes extends Component
 
         $this->dynamicFields = [];
         foreach ($dbAttrs as $attr) {
+            $value = $attr->value;
+            // Parsear JSON si es multiple_products
+            if ($attr->field_type === 'multiple_products' && !empty($value) && is_string($value)) {
+                $value = json_decode($value, true) ?? [];
+            }
+            // Parsear JSON si es single_product
+            if ($attr->field_type === 'single_product' && !empty($value) && is_string($value)) {
+                $value = json_decode($value, true) ?? null;
+            }
+
             $this->dynamicFields[] = [
                 'id' => $attr->id,
                 'label' => $attr->label,
                 'field_type' => $attr->field_type,
-                'options' => $attr->options,
-                'value' => $attr->value,
-                'options_array' => $attr->options_array,
+                'value' => $value,
                 'order_index' => $attr->order_index,
             ];
+            
+            $this->searchQueries[$attr->id] = '';
+            $this->searchResults[$attr->id] = [];
         }
     }
 
@@ -86,13 +99,8 @@ class ItemDynamicAttributes extends Component
     {
         $this->validate([
             'newLabel' => 'required|string|max:255',
-            'newType' => 'required|in:text,textarea,select',
+            'newType' => 'required|in:single_product,multiple_products,textarea',
         ]);
-
-        if ($this->newType === 'select' && empty(trim($this->newOptions))) {
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Debe ingresar las opciones separadas por coma para el campo select.']);
-            return;
-        }
 
         $this->ensureTenantDb();
         
@@ -100,14 +108,15 @@ class ItemDynamicAttributes extends Component
             'item_id' => $this->itemId,
             'label' => trim($this->newLabel),
             'field_type' => $this->newType,
-            'options' => $this->newType === 'select' ? trim($this->newOptions) : null,
+            'options' => null, // Ya no se usan opciones manuales
             'value' => null,
             'order_index' => count($this->dynamicFields),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->reset(['newLabel', 'newType', 'newOptions']);
+        $this->reset(['newLabel', 'newType']);
+        $this->newType = 'single_product';
         $this->loadAttributes();
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Campo agregado exitosamente.']);
     }
@@ -173,15 +182,106 @@ class ItemDynamicAttributes extends Component
         // Guardar todos los valores de los atributos actuales
         foreach ($this->dynamicFields as $attr) {
             if (isset($attr['id'])) {
+                $valueToSave = $attr['value'];
+                
+                // Si es un producto unico o multiple, guardamos como JSON
+                if (in_array($attr['field_type'], ['single_product', 'multiple_products'])) {
+                    $valueToSave = empty($valueToSave) ? null : json_encode($valueToSave);
+                }
+
                 DB::connection('tenant')->table('inv_item_dynamic_attributes')
                     ->where('id', $attr['id'])
                     ->update([
-                        'value' => $attr['value'] ?? null,
+                        'value' => $valueToSave,
                         'updated_at' => now(),
                     ]);
             }
         }
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Valores del formulario guardados.']);
+    }
+
+    public function updatedSearchQueries($value, $key)
+    {
+        $this->searchProducts($key);
+    }
+
+    public function searchProducts($attrId)
+    {
+        $term = $this->searchQueries[$attrId] ?? '';
+        
+        if (strlen($term) < 2) {
+            $this->searchResults[$attrId] = [];
+            return;
+        }
+
+        $this->ensureTenantDb();
+
+        $words = explode(' ', $term);
+        $query = Items::query()->where('is_active', true);
+
+        foreach ($words as $word) {
+            if (!empty(trim($word))) {
+                $query->where(function ($q) use ($word) {
+                    $q->where('name', 'LIKE', '%' . $word . '%')
+                      ->orWhere('internal_code', 'LIKE', '%' . $word . '%')
+                      ->orWhere('sku', 'LIKE', '%' . $word . '%');
+                });
+            }
+        }
+
+        $this->searchResults[$attrId] = $query->take(20)->get()->map(function($item) {
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'code' => $item->internal_code ?? $item->sku,
+                'price' => $item->price_regular ?? 0,
+            ];
+        })->toArray();
+    }
+
+    public function selectProduct($attrId, $productId, $productName, $productCode)
+    {
+        // Encontrar el índice en dynamicFields
+        $index = collect($this->dynamicFields)->search(fn($item) => $item['id'] == $attrId);
+        
+        if ($index !== false) {
+            $productData = [
+                'id' => $productId,
+                'name' => $productName,
+                'code' => $productCode
+            ];
+
+            if ($this->dynamicFields[$index]['field_type'] === 'single_product') {
+                $this->dynamicFields[$index]['value'] = $productData;
+            } else if ($this->dynamicFields[$index]['field_type'] === 'multiple_products') {
+                $currentValues = is_array($this->dynamicFields[$index]['value']) ? $this->dynamicFields[$index]['value'] : [];
+                
+                // Evitar duplicados
+                $exists = collect($currentValues)->contains('id', $productId);
+                if (!$exists) {
+                    $currentValues[] = $productData;
+                    $this->dynamicFields[$index]['value'] = $currentValues;
+                }
+            }
+        }
+
+        // Limpiar búsqueda
+        $this->searchQueries[$attrId] = '';
+        $this->searchResults[$attrId] = [];
+    }
+
+    public function removeProduct($attrId, $productId)
+    {
+        $index = collect($this->dynamicFields)->search(fn($item) => $item['id'] == $attrId);
+        
+        if ($index !== false) {
+            if ($this->dynamicFields[$index]['field_type'] === 'single_product') {
+                $this->dynamicFields[$index]['value'] = null;
+            } else if ($this->dynamicFields[$index]['field_type'] === 'multiple_products') {
+                $currentValues = is_array($this->dynamicFields[$index]['value']) ? $this->dynamicFields[$index]['value'] : [];
+                $this->dynamicFields[$index]['value'] = array_values(array_filter($currentValues, fn($item) => $item['id'] != $productId));
+            }
+        }
     }
 
     public function render()
