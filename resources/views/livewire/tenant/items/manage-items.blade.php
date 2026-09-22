@@ -1110,6 +1110,9 @@
                     @if($showProductionSection)
                         @if(in_array($type, ['IMPORTADO', 'CZCL', 'DESCONTINUADOS']))
                             @livewire('tenant.imports.import-reg-item', ['itemId' => $item_id], key('import-'.$item_id))
+                            <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                @livewire('tenant.items.item-dynamic-attributes', ['itemId' => $item_id], key('dyn-attr-'.$item_id))
+                            </div>
                         @elseif($type == 'PRODUCIDO')
                             @livewire('tenant.production.process-reg-item', ['itemId' => $item_id], key('prod-'.$item_id))
                         @endif

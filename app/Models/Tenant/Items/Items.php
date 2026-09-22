@@ -59,6 +59,11 @@ class Items extends Model
         });
     }
 
+    public function dynamicAttributes()
+    {
+        return $this->hasMany(ItemDynamicAttribute::class, 'item_id')->orderBy('order_index');
+    }
+
     public function brand()
     {
         return $this->belongsTo(Brand::class, 'brandId', 'id');
