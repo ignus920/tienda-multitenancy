@@ -16,6 +16,11 @@ class ItemDynamicAttributes extends Component
     public $newLabel = '';
     public $newType = 'single_product';
     
+    // Búsqueda en el creador para 'single_product' (Fijo)
+    public $newFixedSearch = '';
+    public $newFixedResults = [];
+    public $newFixedSelected = null;
+    
     // Buscadores por cada atributo
     public $searchQueries = [];
     public $searchResults = [];
@@ -95,6 +100,53 @@ class ItemDynamicAttributes extends Component
             ->toArray();
     }
 
+    public function updatedNewFixedSearch($value)
+    {
+        if (strlen($value) < 2) {
+            $this->newFixedResults = [];
+            return;
+        }
+
+        $this->ensureTenantDb();
+
+        $words = explode(' ', $value);
+        $query = Items::query()->where('status', 'ACTIVO');
+
+        foreach ($words as $word) {
+            if (!empty(trim($word))) {
+                $query->where(function ($q) use ($word) {
+                    $q->where('name', 'LIKE', '%' . $word . '%')
+                      ->orWhere('internal_code', 'LIKE', '%' . $word . '%')
+                      ->orWhere('sku', 'LIKE', '%' . $word . '%');
+                });
+            }
+        }
+
+        $this->newFixedResults = $query->take(10)->get()->map(function($item) {
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'code' => $item->internal_code ?? $item->sku,
+            ];
+        })->toArray();
+    }
+
+    public function selectNewFixedProduct($id, $name, $code)
+    {
+        $this->newFixedSelected = [
+            'id' => $id,
+            'name' => $name,
+            'code' => $code
+        ];
+        $this->newFixedSearch = '';
+        $this->newFixedResults = [];
+    }
+
+    public function removeNewFixedProduct()
+    {
+        $this->newFixedSelected = null;
+    }
+
     public function addField()
     {
         $this->validate([
@@ -102,20 +154,30 @@ class ItemDynamicAttributes extends Component
             'newType' => 'required|in:single_product,multiple_products,textarea',
         ]);
 
+        if ($this->newType === 'single_product' && empty($this->newFixedSelected)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Debe seleccionar un producto del ERP para crear este campo fijo.']);
+            return;
+        }
+
         $this->ensureTenantDb();
         
+        $valueToSave = null;
+        if ($this->newType === 'single_product') {
+            $valueToSave = json_encode($this->newFixedSelected);
+        }
+
         DB::connection('tenant')->table('inv_item_dynamic_attributes')->insert([
             'item_id' => $this->itemId,
             'label' => trim($this->newLabel),
             'field_type' => $this->newType,
-            'options' => null, // Ya no se usan opciones manuales
-            'value' => null,
+            'options' => null,
+            'value' => $valueToSave,
             'order_index' => count($this->dynamicFields),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->reset(['newLabel', 'newType']);
+        $this->reset(['newLabel', 'newType', 'newFixedSelected', 'newFixedSearch', 'newFixedResults']);
         $this->newType = 'single_product';
         $this->loadAttributes();
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Campo agregado exitosamente.']);
@@ -217,7 +279,7 @@ class ItemDynamicAttributes extends Component
         $this->ensureTenantDb();
 
         $words = explode(' ', $term);
-        $query = Items::query()->where('is_active', true);
+        $query = Items::query()->where('status', 'ACTIVO');
 
         foreach ($words as $word) {
             if (!empty(trim($word))) {
