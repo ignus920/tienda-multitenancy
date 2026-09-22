@@ -42,6 +42,11 @@ class MyTasksToday extends Component
     public $attachTaskId = null;
     public $attachFiles = [];
 
+    // Funcionalidad Auto-asignar
+    public $enableAutoAssign = true; // Activo para pruebas
+    public $showAutoAssignModal = false;
+    public $availableTasksToAssign = [];
+
     public $userId;
 
     public function mount()
@@ -250,6 +255,62 @@ class MyTasksToday extends Component
 
         $this->newComment = '';
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Observación agregada.']);
+    }
+
+    public function openAutoAssignModal()
+    {
+        $this->ensureTenantConnection();
+        $userId = Auth::id();
+
+        // Buscamos tareas sin programar que estén explícitamente asignadas al usuario, 
+        // o si es posible, de su departamento (asumiendo asignación general).
+        // Por seguridad, limitamos a las tareas donde él es responsable pero están sin agendar,
+        // o tareas sueltas de sus departamentos activos hoy.
+        
+        $todaySchedules = TaskSchedule::where('user_id', $userId)
+            ->whereDate('scheduled_start', now()->toDateString())
+            ->whereNotIn('schedule_status', ['cancelada'])
+            ->get();
+        $departmentIds = $todaySchedules->pluck('task.department_id')->unique();
+
+        $query = Task::where('status', 'sin_programar');
+
+        if ($departmentIds->isNotEmpty()) {
+            $query->where(function ($q) use ($userId, $departmentIds) {
+                $q->whereHas('assignments', fn($sq) => $sq->where('user_id', $userId))
+                  ->orWhereIn('department_id', $departmentIds);
+            });
+        } else {
+            $query->whereHas('assignments', fn($sq) => $sq->where('user_id', $userId));
+        }
+
+        $this->availableTasksToAssign = $query->orderBy('priority')->get();
+        $this->showAutoAssignModal = true;
+    }
+
+    public function confirmAutoAssign($taskId, \App\Services\TaskPlanner\SchedulingService $scheduleService)
+    {
+        $this->ensureTenantConnection();
+        $task = Task::findOrFail($taskId);
+        
+        $duration = $task->estimated_minutes > 0 ? $task->estimated_minutes : 60; // 1 hora por defecto si no tiene estimación
+        $slots = $scheduleService->findAvailableSlots([Auth::id()], $duration);
+
+        if (empty($slots)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes huecos libres en tu agenda de los próximos días para esta tarea (' . $duration . ' min).']);
+            return;
+        }
+
+        \App\Models\Tenant\TaskPlanner\TaskAssignment::firstOrCreate([
+            'task_id' => $task->id,
+            'user_id' => Auth::id()
+        ]);
+
+        $slot = $slots[0];
+        $scheduleService->scheduleTask($task, [Auth::id()], $slot['start'], $slot['end'], Auth::id(), 'Autoasignada por el usuario');
+
+        $this->showAutoAssignModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea autoasignada correctamente. Revisa tu agenda.']);
     }
 
     public function render()
