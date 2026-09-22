@@ -52,6 +52,14 @@ class ItemDynamicAttributes extends Component
         }
     }
 
+    private function ensureTenantDb()
+    {
+        $dbName = config('database.connections.tenant.database');
+        if ($dbName) {
+            DB::connection('tenant')->statement("USE `{$dbName}`");
+        }
+    }
+
     public function loadAvailableItems()
     {
         // Traer items importados que tengan atributos dinámicos
@@ -75,6 +83,8 @@ class ItemDynamicAttributes extends Component
             return;
         }
 
+        $this->ensureTenantDb();
+        
         DB::connection('tenant')->table('inv_item_dynamic_attributes')->insert([
             'item_id' => $this->itemId,
             'label' => trim($this->newLabel),
@@ -93,6 +103,7 @@ class ItemDynamicAttributes extends Component
 
     public function deleteField($id)
     {
+        $this->ensureTenantDb();
         DB::connection('tenant')->table('inv_item_dynamic_attributes')
             ->where('id', $id)
             ->where('item_id', $this->itemId)
@@ -111,6 +122,7 @@ class ItemDynamicAttributes extends Component
             return;
         }
 
+        $this->ensureTenantDb();
         DB::connection('tenant')->beginTransaction();
         try {
             // Eliminar los actuales
@@ -146,6 +158,7 @@ class ItemDynamicAttributes extends Component
 
     public function save()
     {
+        $this->ensureTenantDb();
         // Guardar todos los valores de los atributos actuales
         foreach ($this->dynamicFields as $attr) {
             if (isset($attr['id'])) {
