@@ -192,23 +192,41 @@
     </div>
 
     @elseif($fillerTasks->isNotEmpty())
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 max-w-xl">
-        <p class="text-base font-semibold text-gray-800 dark:text-gray-100 mb-1">Nada prioritario ahora mismo ✨</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Puedes aprovechar el tiempo con:</p>
-        <ul class="space-y-2">
-            @foreach($fillerTasks as $filler)
-            <li class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3.5 py-2.5 text-sm">
-                <span class="text-gray-700 dark:text-gray-200">{{ $filler->title }}</span>
-                <button wire:click="startTask({{ $filler->id }})" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-colors">Iniciar</button>
-            </li>
-            @endforeach
-        </ul>
+    <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 w-full shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+        <div class="flex flex-col md:flex-row gap-6 items-start md:items-center">
+            <div class="flex-1">
+                <div class="inline-flex items-center gap-2 mb-2">
+                    <span class="text-2xl">✨</span>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Nada prioritario ahora mismo</h2>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Tienes tu agenda libre, pero puedes aprovechar el tiempo adelantando alguna de estas tareas de tu área:</p>
+                <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @foreach($fillerTasks as $filler)
+                    <li class="flex items-center justify-between bg-gray-50 hover:bg-white dark:bg-gray-700/30 dark:hover:bg-gray-700/60 border border-transparent hover:border-indigo-100 dark:hover:border-indigo-800 transition-all rounded-xl p-3 shadow-sm group">
+                        <div class="min-w-0 pr-3">
+                            <span class="block text-sm font-semibold text-gray-700 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ $filler->title }}</span>
+                        </div>
+                        <button wire:click="startTask({{ $filler->id }})" class="shrink-0 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white dark:bg-indigo-900/30 dark:hover:bg-indigo-600 px-3.5 py-2 rounded-lg transition-colors">
+                            Iniciar
+                        </button>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
     </div>
     @else
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-10 border border-gray-100 dark:border-gray-700 text-center max-w-xl">
-        <p class="text-4xl mb-2">🎉</p>
-        <p class="text-base font-semibold text-gray-800 dark:text-gray-100">No tienes tareas programadas por ahora.</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Cuando Gerencia te asigne algo, aparecerá aquí al instante.</p>
+    <div class="bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-3xl p-12 border border-gray-100 dark:border-gray-700 w-full text-center shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+        <div class="flex justify-center mb-6">
+            <div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center shadow-inner">
+                <span class="text-4xl">🎉</span>
+            </div>
+        </div>
+        <h2 class="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">¡Todo al día!</h2>
+        <p class="text-base text-gray-500 dark:text-gray-400 max-w-lg mx-auto">No tienes tareas programadas por ahora ni pendientes prioritarios.</p>
+        <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">Cuando Gerencia te asigne algo o te autoasignes una tarea, aparecerá aquí al instante.</p>
     </div>
     @endif
 
