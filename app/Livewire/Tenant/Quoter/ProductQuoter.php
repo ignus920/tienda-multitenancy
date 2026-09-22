@@ -994,13 +994,19 @@ class ProductQuoter extends Component
             ]);
         }
 
-        InvValues::create([
-            'date'        => now(),
-            'values'      => $this->genericProductPrice,
-            'type'        => 'precio',
-            'itemId'      => $product->id,
-            'label'       => 'Precio Base',
-        ]);
+        // Ya no crearemos un InvValue cada vez que se agregue un genérico
+        // porque eso es lo que daña el cálculo del descuento al acumular precios bases diferentes.
+        // Solo lo creamos si el producto es nuevo (recién creado).
+        $hasValues = InvValues::where('itemId', $product->id)->exists();
+        if (!$hasValues) {
+            InvValues::create([
+                'date'        => now(),
+                'values'      => 0, // Un precio base neutral
+                'type'        => 'precio',
+                'itemId'      => $product->id,
+                'label'       => 'Precio Base',
+            ]);
+        }
 
         $tax = CnfTaxes::find($this->genericProductTaxId);
 
@@ -3452,6 +3458,7 @@ class ProductQuoter extends Component
                     'value' => $item['price'],
                     'remissionId' => $remission->id,
                     'itemId' => $item['id'],
+                    'description' => $item['name'] ?? null,
                     'invoiceId' => null,
                 ]);
 
