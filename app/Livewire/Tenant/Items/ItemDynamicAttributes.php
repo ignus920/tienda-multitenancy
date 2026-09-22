@@ -57,7 +57,7 @@ class ItemDynamicAttributes extends Component
         $tenantId = session('tenant_id');
 
         if ($tenantId) {
-            $tenant = \App\Models\Tenant\Tenant::find($tenantId);
+            $tenant = \App\Models\Auth\Tenant::find($tenantId);
             if ($tenant) {
                 // Establecer conexión tenant
                 $tenantManager = app(\App\Services\Tenant\TenantManager::class);
