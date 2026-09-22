@@ -228,6 +228,26 @@ class ItemDynamicAttributes extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Campo eliminado.']);
     }
 
+    public function updateFieldOrder($oldIndex, $newIndex)
+    {
+        if (!isset($this->dynamicFields[$oldIndex]) || !isset($this->dynamicFields[$newIndex])) {
+            return;
+        }
+
+        $this->ensureTenantDb();
+
+        $item = array_splice($this->dynamicFields, $oldIndex, 1)[0];
+        array_splice($this->dynamicFields, $newIndex, 0, [$item]);
+
+        foreach ($this->dynamicFields as $index => $field) {
+            DB::connection('tenant')->table('inv_item_dynamic_attributes')
+                ->where('id', $field['id'])
+                ->update(['order_index' => $index]);
+            
+            $this->dynamicFields[$index]['order_index'] = $index;
+        }
+    }
+
     public function cloneAttributes()
     {
         if (!$this->cloneItemId) return;

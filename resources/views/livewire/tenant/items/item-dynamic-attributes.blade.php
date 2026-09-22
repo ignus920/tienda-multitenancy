@@ -29,9 +29,21 @@
                 <p class="text-xs text-gray-400 mt-1">Usa el panel de la derecha para agregar campos o copia la estructura de otro ítem importado.</p>
             </div>
             @else
-                @foreach($dynamicFields as $index => $attr)
-                <div class="relative group p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:border-indigo-300 transition-colors">
-                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">{{ $attr['label'] }}</label>
+                <div x-data="{ dragging: null, dropping: null }" class="space-y-4">
+                    @foreach($dynamicFields as $index => $attr)
+                    <div draggable="true"
+                        @dragstart="dragging = {{ $index }}; $event.dataTransfer.effectAllowed='move';"
+                        @dragenter.prevent="dropping = {{ $index }}"
+                        @dragover.prevent
+                        @drop="if(dragging !== null && dragging !== dropping) { $wire.updateFieldOrder(dragging, dropping); } dragging = null; dropping = null;"
+                        :class="{ 'opacity-40': dragging === {{ $index }}, 'border-indigo-500 border-2 border-dashed shadow-md': dropping === {{ $index }} && dragging !== {{ $index }}, 'border-gray-200 dark:border-gray-700': dropping !== {{ $index }} || dragging === {{ $index }} }"
+                        class="relative group p-3 bg-white dark:bg-gray-800 border rounded-xl shadow-sm hover:border-indigo-300 transition-all cursor-move">
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 pointer-events-none select-none flex items-center justify-between">
+                            <span>{{ $attr['label'] }}</span>
+                            <span class="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                            </span>
+                        </label>
                     
                     @if($attr['field_type'] === 'text')
                         <input type="text" wire:model="dynamicFields.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
@@ -57,6 +69,7 @@
                     </button>
                 </div>
                 @endforeach
+                </div>
                 
                 <div class="mt-4 flex justify-end">
                     <button type="button" wire:click="save" class="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">
