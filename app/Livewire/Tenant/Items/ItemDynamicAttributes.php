@@ -54,9 +54,20 @@ class ItemDynamicAttributes extends Component
 
     private function ensureTenantDb()
     {
-        $dbName = config('database.connections.tenant.database');
-        if ($dbName) {
-            DB::connection('tenant')->statement("USE `{$dbName}`");
+        $tenantId = session('tenant_id');
+
+        if ($tenantId) {
+            $tenant = \App\Models\Tenant\Tenant::find($tenantId);
+            if ($tenant) {
+                // Establecer conexión tenant
+                $tenantManager = app(\App\Services\Tenant\TenantManager::class);
+                $tenantManager->setConnection($tenant);
+                
+                // Inicializar tenancy
+                if (function_exists('tenancy')) {
+                    tenancy()->initialize($tenant);
+                }
+            }
         }
     }
 
