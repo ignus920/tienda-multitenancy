@@ -2459,7 +2459,7 @@ class ProductQuoter extends Component
 
                     $itemData = [
                         'id'             => $product->id,
-                        'name'           => $product->display_name,
+                        'name'           => !empty($detalle->description) ? $detalle->description : $product->display_name,
                         'sku'            => $product->sku,
                         'price'          => $detalle->value,
                         'original_price' => $detalle->value,
@@ -4295,7 +4295,7 @@ class ProductQuoter extends Component
                 if ($detalle->item) {
                     $this->quoterItems[] = [
                         'id'            => $detalle->item->id,
-                        'name'          => $detalle->item->display_name,
+                        'name'          => !empty($detalle->description) ? $detalle->description : $detalle->item->display_name,
                         'sku'           => $detalle->item->sku,
                         'price'         => $detalle->value,
                         'price_label'   => 'Precio remisión',
