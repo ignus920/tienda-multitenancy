@@ -32,7 +32,7 @@
                 @if($project->type === 'internal')
                     Dirigido a: {{ $project->assignedUser->name ?? 'N/A' }}
                 @else
-                    Cliente: {{ $project->customer->businessName ?? trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? '')) }}
+                    Cliente: {{ $project->customer ? (!empty($project->customer->businessName) ? $project->customer->businessName : trim(($project->customer->firstName ?? '') . ' ' . ($project->customer->lastName ?? ''))) : 'No asignado' }}
                 @endif
             </p>
         </div>
