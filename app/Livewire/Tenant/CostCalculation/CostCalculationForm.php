@@ -192,7 +192,7 @@ class CostCalculationForm extends Component
         }
 
         $this->searchResults = $query->limit(10)->get()->map(function ($item) {
-            $price = $this->resolvePriceForLabel($item, $this->priceListLabel);
+            $price = ceil($this->resolvePriceForLabel($item, $this->priceListLabel));
             $length = optional($item->dimensions)->long;
             return [
                 'id' => $item->id,
@@ -200,7 +200,7 @@ class CostCalculationForm extends Component
                 'code' => $item->internal_code,
                 'price' => $price,
                 'cuttable' => (bool) $item->is_cuttable,
-                'cmPrice' => ($item->is_cuttable && $length > 0) ? $price / $length : null,
+                'cmPrice' => ($item->is_cuttable && $length > 0) ? ceil($price / $length) : null,
                 'hasLength' => $length > 0,
             ];
         })->toArray();
@@ -334,11 +334,11 @@ class CostCalculationForm extends Component
         return array_values(array_map(function ($line) use ($items) {
             if ($line['origin'] === 'externo') {
                 $qty = (float) ($line['quantity'] ?? 0);
-                $unit = (float) ($line['ext_unit_value'] ?? 0);
+                $unit = ceil((float) ($line['ext_unit_value'] ?? 0));
                 return array_merge($line, [
                     'unit_display' => $unit,
                     'qty_display' => $qty,
-                    'subtotal' => $unit * $qty,
+                    'subtotal' => ceil($unit * $qty),
                     'missing' => false,
                     'mode' => 'unit',
                 ]);
@@ -355,16 +355,16 @@ class CostCalculationForm extends Component
                 ]);
             }
 
-            $unitPrice = $this->resolvePriceForLabel($item, $this->priceListLabel);
+            $unitPrice = ceil($this->resolvePriceForLabel($item, $this->priceListLabel));
 
             if ($line['mode'] === 'cm') {
                 $length = optional($item->dimensions)->long;
-                $cmPrice = ($length > 0) ? $unitPrice / $length : 0;
+                $cmPrice = ($length > 0) ? ceil($unitPrice / $length) : 0;
                 $qty = (float) ($line['cm_quantity'] ?? 0);
                 return array_merge($line, [
                     'unit_display' => $cmPrice,
                     'qty_display' => $qty,
-                    'subtotal' => $cmPrice * $qty,
+                    'subtotal' => ceil($cmPrice * $qty),
                     'missing' => false,
                     'no_length' => !($length > 0),
                 ]);
@@ -374,7 +374,7 @@ class CostCalculationForm extends Component
             return array_merge($line, [
                 'unit_display' => $unitPrice,
                 'qty_display' => $qty,
-                'subtotal' => $unitPrice * $qty,
+                'subtotal' => ceil($unitPrice * $qty),
                 'missing' => false,
             ]);
         }, $this->lines));

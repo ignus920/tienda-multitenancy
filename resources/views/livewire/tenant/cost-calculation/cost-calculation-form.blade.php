@@ -79,10 +79,10 @@
                                 <span class="text-gray-400 mr-1">{{ $r['code'] }}</span> - <span class="font-bold">{{ $r['name'] }}</span>
                                 <br>
                                 <span class="text-gray-400">
-                                    ${{ number_format($r['price'], 2) }}
+                                    ${{ number_format($r['price'], 0) }}
                                     @if($r['cuttable'])
                                         @if($r['cmPrice'] !== null)
-                                            · ${{ number_format($r['cmPrice'], 2) }}/cm
+                                            · ${{ number_format($r['cmPrice'], 0) }}/cm
                                         @else
                                             · <span class="text-amber-500">sin longitud registrada</span>
                                         @endif
@@ -179,10 +179,10 @@
                                 @endif
                             </td>
                             <td class="py-2.5 px-3 text-right tabular-nums">
-                                ${{ number_format($line['unit_display'], 2) }}
+                                ${{ number_format($line['unit_display'], 0) }}
                                 @if($line['mode'] === 'cm')<span class="block text-3xs text-gray-400">por cm</span>@endif
                             </td>
-                            <td class="py-2.5 px-3 text-right font-bold tabular-nums">${{ number_format($line['subtotal'], 2) }}</td>
+                            <td class="py-2.5 px-3 text-right font-bold tabular-nums">${{ number_format($line['subtotal'], 0) }}</td>
                             @if($canEdit)
                             <td class="py-2.5 px-3 text-right">
                                 <button type="button" wire:click="removeLine({{ $i }})" class="text-gray-400 hover:text-red-500">
@@ -205,14 +205,14 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 py-1.5 border-b border-gray-50 dark:border-gray-750">
-                    <span>Líneas del ERP</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['erp'], 2) }}</b>
+                    <span>Líneas del ERP</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['erp'], 0) }}</b>
                 </div>
                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 py-1.5">
-                    <span>Líneas externas</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['ext'], 2) }}</b>
+                    <span>Líneas externas</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['ext'], 0) }}</b>
                 </div>
                 <div class="flex justify-between items-baseline pt-3 mt-2 border-t-2 border-gray-100 dark:border-gray-700">
                     <span class="text-sm font-bold text-gray-900 dark:text-white">Total costo</span>
-                    <span class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">${{ number_format($totals['total'], 2) }}</span>
+                    <span class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">${{ number_format($totals['total'], 0) }}</span>
                 </div>
 
                 <!-- Tiempos de ensamble -->
@@ -221,14 +221,14 @@
                     <div class="grid grid-cols-3 gap-2 text-center pb-2">
                         <!-- 1 Unidad -->
                         <div>
-                            <div class="flex justify-center gap-1 mb-1">
+                            <div class="flex justify-center gap-2 mb-1">
                                 <div class="flex flex-col items-center">
                                     <span class="text-3xs text-gray-400">Horas</span>
-                                    <input type="number" wire:model="time_1_hours" min="0" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" wire:model="time_1_hours" min="0" @if(!$canEdit) disabled @endif class="w-16 h-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm text-center focus:ring-1 focus:ring-indigo-500">
                                 </div>
                                 <div class="flex flex-col items-center">
                                     <span class="text-3xs text-gray-400">Minutos</span>
-                                    <input type="number" wire:model="time_1_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" wire:model="time_1_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-16 h-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm text-center focus:ring-1 focus:ring-indigo-500">
                                 </div>
                             </div>
                             <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold border-b-2 border-indigo-100 dark:border-indigo-900/50 pb-1">1 Unidad</span>
@@ -236,14 +236,14 @@
                         
                         <!-- 3 Unidades -->
                         <div>
-                            <div class="flex justify-center gap-1 mb-1">
+                            <div class="flex justify-center gap-2 mb-1">
                                 <div class="flex flex-col items-center">
                                     <span class="text-3xs text-gray-400">Horas</span>
-                                    <input type="number" wire:model="time_3_hours" min="0" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" wire:model="time_3_hours" min="0" @if(!$canEdit) disabled @endif class="w-16 h-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm text-center focus:ring-1 focus:ring-indigo-500">
                                 </div>
                                 <div class="flex flex-col items-center">
                                     <span class="text-3xs text-gray-400">Minutos</span>
-                                    <input type="number" wire:model="time_3_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" wire:model="time_3_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-16 h-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm text-center focus:ring-1 focus:ring-indigo-500">
                                 </div>
                             </div>
                             <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold border-b-2 border-indigo-100 dark:border-indigo-900/50 pb-1">3 Unidades</span>
@@ -251,14 +251,14 @@
 
                         <!-- 5 Unidades -->
                         <div>
-                            <div class="flex justify-center gap-1 mb-1">
+                            <div class="flex justify-center gap-2 mb-1">
                                 <div class="flex flex-col items-center">
                                     <span class="text-3xs text-gray-400">Horas</span>
-                                    <input type="number" wire:model="time_5_hours" min="0" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" wire:model="time_5_hours" min="0" @if(!$canEdit) disabled @endif class="w-16 h-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm text-center focus:ring-1 focus:ring-indigo-500">
                                 </div>
                                 <div class="flex flex-col items-center">
                                     <span class="text-3xs text-gray-400">Minutos</span>
-                                    <input type="number" wire:model="time_5_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-10 h-8 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" wire:model="time_5_minutes" min="0" max="59" @if(!$canEdit) disabled @endif class="w-16 h-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded text-sm text-center focus:ring-1 focus:ring-indigo-500">
                                 </div>
                             </div>
                             <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold border-b-2 border-indigo-100 dark:border-indigo-900/50 pb-1">5 Unidades</span>
@@ -292,12 +292,12 @@
                 <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-xs font-semibold
                     {{ $sale === null ? 'bg-gray-50 dark:bg-gray-750 text-gray-400' : ($saleOver < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400') }}">
                     <span>Precio de venta vs. costo</span>
-                    <span class="font-extrabold">{{ $sale === null ? '—' : '$'.number_format($sale, 2) }}</span>
+                    <span class="font-extrabold">{{ $sale === null ? '—' : '$'.number_format($sale, 0) }}</span>
                 </div>
                 <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-xs font-semibold
                     {{ $saleWithDiscount === null ? 'bg-gray-50 dark:bg-gray-750 text-gray-400' : ($discOver < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400') }}">
                     <span>Con descuento máximo</span>
-                    <span class="font-extrabold">{{ $saleWithDiscount === null ? '—' : '$'.number_format($saleWithDiscount, 2) }}</span>
+                    <span class="font-extrabold">{{ $saleWithDiscount === null ? '—' : '$'.number_format($saleWithDiscount, 0) }}</span>
                 </div>
                 <p class="text-3xs text-gray-400">Rojo: por debajo del costo · Azul: por encima del costo</p>
             </div>
