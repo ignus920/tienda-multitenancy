@@ -881,7 +881,7 @@
                             <label class="inline-flex items-center gap-2 select-none cursor-pointer">
                                 <input type="checkbox" wire:model="is_cuttable"
                                     class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Se vende por centímetro (Perfiles, Cintas LED, Cables...)</span>
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Se usa en Cm para proyectos (Perfiles, Cintas LED, Cables)</span>
                                 <div x-data="{ show: false }" class="relative inline-block">
                                     <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

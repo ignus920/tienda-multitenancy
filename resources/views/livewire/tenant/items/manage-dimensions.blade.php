@@ -64,6 +64,7 @@
                     placeholder="Alto">
                 <span class="text-xs text-gray-500 dark:text-gray-400">Diligencie los valores en centimetros</span>
             </div>
+            @if($is_cuttable)
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
                     Largo
@@ -84,6 +85,7 @@
                     placeholder="Largo">
                 <span class="text-xs text-gray-500 dark:text-gray-400">Diligencie los valores en centimetros</span>
             </div>
+            @endif
         </div>
 
         <!-- Row 3: Ancho - Peso -->

@@ -78,7 +78,7 @@ class ManageItems extends Component
     public $disabled = false;
     public $handles_serial;
     public $inventoriable;
-    public $is_cuttable = 0;
+    public $is_cuttable = false;
     public $wpStockPercentage = 100;
     public $wpMinStock = 0;
     public $b2bStockPercentage = 0;
@@ -385,7 +385,7 @@ class ManageItems extends Component
         $this->tax = $item->taxId;
         $this->handles_serial = $item->handles_serial;
         $this->inventoriable = $item->inventoriable;
-        $this->is_cuttable = $item->is_cuttable ?? 0;
+        $this->is_cuttable = (bool) ($item->is_cuttable ?? 0);
 
         $storeRecord = InvItemsStore::where('itemId', $item->id)->orderByDesc('id')->first();
         $this->wpStockPercentage = $storeRecord?->wp_stock_percentage ?? 100;

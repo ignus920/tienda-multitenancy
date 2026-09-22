@@ -46,13 +46,13 @@
                 <td><span class="badge {{ $line['origin'] === 'erp' ? 'badge-erp' : 'badge-ext' }}">{{ $line['origin'] === 'erp' ? 'ERP' : 'EXT' }}</span></td>
                 <td>{{ $line['description'] }}</td>
                 <td class="text-right">{{ rtrim(rtrim(number_format($line['qty_display'], 2), '0'), '.') }}{{ $line['mode'] === 'cm' ? ' cm' : '' }}</td>
-                <td class="text-right">${{ number_format($line['unit_display'], 2) }}{{ $line['mode'] === 'cm' ? '/cm' : '' }}</td>
-                <td class="text-right">${{ number_format($line['subtotal'], 2) }}</td>
+                <td class="text-right">${{ number_format($line['unit_display'], 0) }}{{ $line['mode'] === 'cm' ? '/cm' : '' }}</td>
+                <td class="text-right">${{ number_format($line['subtotal'], 0) }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="4" class="text-right">Total costo</td>
-                <td class="text-right">${{ number_format($totals['total'], 2) }}</td>
+                <td class="text-right">${{ number_format($totals['total'], 0) }}</td>
             </tr>
         </tbody>
     </table>
@@ -61,13 +61,13 @@
     <table class="venta-box">
         <tr>
             <td>Precio de venta</td>
-            <td class="text-right {{ $calc->sale_price >= $totals['total'] ? 'venta-good' : 'venta-bad' }}">${{ number_format($calc->sale_price, 2) }}</td>
+            <td class="text-right {{ $calc->sale_price >= $totals['total'] ? 'venta-good' : 'venta-bad' }}">${{ number_format($calc->sale_price, 0) }}</td>
         </tr>
         @if($calc->max_discount_percent)
         @php $withDisc = $calc->sale_price * (1 - $calc->max_discount_percent / 100); @endphp
         <tr>
             <td>Con descuento máximo ({{ $calc->max_discount_percent }}%)</td>
-            <td class="text-right {{ $withDisc >= $totals['total'] ? 'venta-good' : 'venta-bad' }}">${{ number_format($withDisc, 2) }}</td>
+            <td class="text-right {{ $withDisc >= $totals['total'] ? 'venta-good' : 'venta-bad' }}">${{ number_format($withDisc, 0) }}</td>
         </tr>
         @endif
     </table>
