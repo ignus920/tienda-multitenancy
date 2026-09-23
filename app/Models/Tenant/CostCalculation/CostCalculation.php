@@ -16,6 +16,7 @@ class CostCalculation extends Model
 
     protected $fillable = [
         'name',
+        'type',
         'price_list_label',
         'sale_price',
         'max_discount_percent',
