@@ -23,6 +23,7 @@ class CostCalculationForm extends Component
     public $priceListOptions = [];
     public $salePrice = null;
     public $maxDiscountPercent = null;
+    public $type = 'project';
 
     // Tiempos de ensamble (opcionales)
     public $time_1_hours = null;
@@ -117,6 +118,7 @@ class CostCalculationForm extends Component
     {
         if (!$this->calculationId) return true;
         if ($this->isGerencia()) return true;
+        if ($this->type === 'finished_product') return false;
         return (int) $this->creatorId === (int) Auth::id();
     }
 
@@ -137,6 +139,7 @@ class CostCalculationForm extends Component
         $this->priceListLabel = $calc->price_list_label;
         $this->salePrice = $calc->sale_price;
         $this->maxDiscountPercent = $calc->max_discount_percent;
+        $this->type = $calc->type ?? 'project';
 
         $this->time_1_hours = $calc->time_1_hours;
         $this->time_1_minutes = $calc->time_1_minutes;

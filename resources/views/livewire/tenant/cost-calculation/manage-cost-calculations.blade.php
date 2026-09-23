@@ -21,6 +21,14 @@
             </div>
 
             <div class="mt-4">
+                <div class="flex items-center gap-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+                    <button wire:click="$set('filterType', 'project')" class="pb-2 text-sm font-medium border-b-2 transition-colors {{ $filterType === 'project' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300' }}">
+                        Cálculos Proyectos
+                    </button>
+                    <button wire:click="$set('filterType', 'finished_product')" class="pb-2 text-sm font-medium border-b-2 transition-colors {{ $filterType === 'finished_product' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300' }}">
+                        Productos Terminados
+                    </button>
+                </div>
                 <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por nombre..."
                     class="w-full max-w-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
@@ -35,7 +43,7 @@
                             <th class="text-left py-3 px-4">Creado por</th>
                             <th class="text-left py-3 px-4">Última edición</th>
                             <th class="text-right py-3 px-4">Total (al guardar)</th>
-                            <th class="text-right py-3 px-4 w-28">Acciones</th>
+                            <th class="text-right py-3 px-4 w-40">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -45,9 +53,31 @@
                             <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ $calc->creator->name ?? 'Usuario' }}</td>
                             <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ ($calc->updated_at ?? $calc->created_at)?->format('d/m/Y h:i A') }}</td>
                             <td class="py-3 px-4 text-right font-semibold text-gray-800 dark:text-gray-200">${{ number_format($calc->items->sum('line_cost'), 2) }}</td>
-                            <td class="py-3 px-4 text-right">
+                            <td class="py-3 px-4 text-right flex items-center justify-end gap-3">
+                                @if($filterType === 'project' && $this->isGerencia())
+                                <button type="button" x-on:click="
+                                    Swal.fire({
+                                        title: '¿Marcar como Terminado?',
+                                        text: 'Este cálculo se moverá a Productos Terminados y solo Gerencia podrá editarlo.',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#4f46e5',
+                                        cancelButtonColor: '#9ca3af',
+                                        confirmButtonText: 'Sí, marcar terminado',
+                                        cancelButtonText: 'Cancelar',
+                                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                        color: document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            $wire.markAsFinishedProduct({{ $calc->id }})
+                                        }
+                                    })
+                                " class="text-green-600 hover:text-green-700 font-semibold text-2xs transition-colors" title="Convertir a Producto Terminado">
+                                    Finalizar
+                                </button>
+                                @endif
                                 <a href="{{ route('tenant.cost-calculations.edit', ['calculationId' => $calc->id]) }}" wire:navigate
-                                    class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs">
+                                    class="text-indigo-600 hover:text-indigo-700 font-semibold text-2xs transition-colors">
                                     {{ $this->canEditCalc($calc) ? 'Editar' : 'Ver' }}
                                 </a>
                             </td>

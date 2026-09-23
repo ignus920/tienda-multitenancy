@@ -16,6 +16,7 @@ class ManageCostCalculations extends Component
     const FULL_ACCESS_PROFILES = [1, 2];
 
     public $search = '';
+    public $filterType = 'project';
 
     public function boot()
     {
@@ -51,12 +52,33 @@ class ManageCostCalculations extends Component
     public function canEditCalc($calc): bool
     {
         if ($this->isGerencia()) return true;
+        if ($calc->type === 'finished_product') return false;
         return (int) $calc->created_by === (int) Auth::id();
     }
 
     public function updatedSearch()
     {
         $this->resetPage();
+    }
+
+    public function updatedFilterType()
+    {
+        $this->resetPage();
+    }
+
+    public function markAsFinishedProduct($id)
+    {
+        if (!$this->isGerencia()) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No tienes permisos para realizar esta acción.']);
+            return;
+        }
+
+        $this->ensureTenantConnection();
+        $calc = CostCalculation::find($id);
+        if ($calc) {
+            $calc->update(['type' => 'finished_product']);
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Marcado como producto terminado.']);
+        }
     }
 
     public function openInstructivo()
@@ -90,6 +112,7 @@ class ManageCostCalculations extends Component
         $this->ensureTenantConnection();
 
         $calculations = CostCalculation::with(['creator', 'items'])
+            ->where('type', $this->filterType)
             ->when($this->search, function ($q) {
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
