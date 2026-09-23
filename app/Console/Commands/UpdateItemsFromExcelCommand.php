@@ -37,9 +37,15 @@ class UpdateItemsFromExcelCommand extends Command
             return;
         }
 
-        // Obtener de forma segura el nombre de la BD del cliente actual (ej. company_131_...)
-        $currentDb = $tenant->tenancy_db_name ?? config('database.connections.tenant.database');
+        // Obtener de forma segura el nombre de la BD del cliente actual
+        // Según la estructura de la base de datos, la columna se llama 'db_name'
+        $currentDb = $tenant->db_name;
         
+        if (empty($currentDb)) {
+            $this->error("No se pudo obtener el nombre de la base de datos (db_name) para este tenant.");
+            return;
+        }
+
         config(['database.connections.tenant.database' => $currentDb]);
         \DB::purge('tenant');
         $this->info("Usando base de datos del cliente: " . $currentDb);
