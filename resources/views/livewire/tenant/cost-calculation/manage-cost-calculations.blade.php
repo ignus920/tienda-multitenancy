@@ -3,9 +3,16 @@
 
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 mb-4">
             <div class="flex justify-between items-center flex-wrap gap-3">
-                <div>
-                    <h1 class="text-lg font-bold text-gray-900 dark:text-white">Cálculo de Costos</h1>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cotizaciones armadas con inventario del ERP (por unidad o por centímetro) y productos externos.</p>
+                <div class="flex items-center gap-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg font-bold text-gray-900 dark:text-white">Cálculo de Costos</h1>
+                            <button wire:click="openInstructivo" class="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 transition-colors">
+                                Int-
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cotizaciones armadas con inventario del ERP (por unidad o por centímetro) y productos externos.</p>
+                    </div>
                 </div>
                 <a href="{{ route('tenant.cost-calculations.create') }}" wire:navigate
                     class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition-colors">
