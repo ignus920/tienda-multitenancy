@@ -117,6 +117,17 @@ class UpdateItemsFromExcelCommand extends Command
 
                         // Actualizar o crear dimensiones
                         $dimensions = InvItemsDimensions::firstOrNew(['item_id' => $item->id]);
+                        
+                        // Si la fila no existía previamente, llenar campos obligatorios con 0 para evitar errores SQL
+                        if (!$dimensions->exists) {
+                            $dimensions->quntityxbox = 0;
+                            $dimensions->high = 0;
+                            $dimensions->width = 0;
+                            $dimensions->voltage = 0;
+                            $dimensions->power = 0;
+                            $dimensions->weight = 0;
+                        }
+
                         if ($largo !== null && $largo !== '') {
                             $dimensions->long = $largo;
                         }
