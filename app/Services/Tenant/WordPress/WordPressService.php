@@ -916,6 +916,113 @@ class WordPressService
     /**
      * Actualiza únicamente el precio de un producto en WooCommerce vía REST API.
      */
+    /**
+     * Obtiene el producto (o variación) completo desde WooCommerce, incluyendo meta_data
+     * y los campos del plugin Tiered Pricing (tiered_pricing_*). Solo lectura.
+     */
+    public function getProductById($wpProductId, $parentId = null): ?array
+    {
+        if (!$this->isConfigured()) return null;
+
+        $endpoint = $parentId
+            ? "products/{$parentId}/variations/{$wpProductId}"
+            : "products/{$wpProductId}";
+
+        try {
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->timeout(60)
+                ->get($this->baseUrl . $endpoint);
+
+            if (!$response->successful()) {
+                Log::error('❌ [WP-Tiered] Error consultando producto', [
+                    'endpoint'    => $endpoint,
+                    'http_status' => $response->status(),
+                    'body'        => $response->body(),
+                ]);
+                return null;
+            }
+
+            return $response->json();
+        } catch (Exception $e) {
+            Log::error('❌ [WP-Tiered] Excepción consultando producto', [
+                'endpoint' => $endpoint,
+                'error'    => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Configura precios por escala (plugin Tiered Price Table) en porcentaje,
+     * cantidad mínima y múltiplo de compra (Quantity step) de un producto o variación.
+     *
+     * @param array $percentageRules [cantidad => porcentaje], ej: [20 => 7, 100 => 15]
+     */
+    public function updateTieredPricing($wpProductId, array $percentageRules, int $minQty, int $qtyStep, $parentId = null): array
+    {
+        $result = ['success' => false, 'http_status' => null, 'body' => null];
+
+        if (!$this->isConfigured()) {
+            $result['body'] = 'WordPress no configurado';
+            return $result;
+        }
+
+        $endpoint = $parentId
+            ? "products/{$parentId}/variations/{$wpProductId}"
+            : "products/{$wpProductId}";
+
+        // Claves como string para que viaje como objeto JSON {"20": 7, ...}
+        $rules = [];
+        foreach ($percentageRules as $qty => $percent) {
+            $rules[(string) $qty] = $percent;
+        }
+
+        $data = [
+            'tiered_pricing_type'             => 'percentage',
+            'tiered_pricing_percentage_rules' => (object) $rules,
+            'tiered_pricing_minimum_quantity' => $minQty,
+            'meta_data' => [
+                ['key' => '_tiered_pricing_group_of_quantity', 'value' => (string) $qtyStep],
+            ],
+        ];
+
+        Log::info('🔄 [WP-Tiered] updateTieredPricing', [
+            'endpoint' => $endpoint,
+            'payload'  => $data,
+        ]);
+
+        try {
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->timeout(60)
+                ->put($this->baseUrl . $endpoint, $data);
+
+            $result['success']     = $response->successful();
+            $result['http_status'] = $response->status();
+
+            Log::info('📡 [WP-Tiered] Respuesta WC', [
+                'endpoint'    => $endpoint,
+                'http_status' => $response->status(),
+                'exitoso'     => $response->successful(),
+            ]);
+
+            if (!$response->successful()) {
+                $result['body'] = $response->body();
+                Log::error('❌ [WP-Tiered] Error en WC', [
+                    'endpoint' => $endpoint,
+                    'body'     => $response->body(),
+                ]);
+            }
+        } catch (Exception $e) {
+            $result['body'] = $e->getMessage();
+            Log::error('❌ [WP-Tiered] Excepción', [
+                'endpoint' => $endpoint,
+                'error'    => $e->getMessage(),
+            ]);
+        }
+
+        return $result;
+    }
+
     public function updateProductPrice($wpProductId, $price): bool
     {
         if (!$this->isConfigured()) return false;
