@@ -971,16 +971,17 @@ class WordPressService
             ? "products/{$parentId}/variations/{$wpProductId}"
             : "products/{$wpProductId}";
 
-        // Claves como string para que viaje como objeto JSON {"20": 7, ...}
+        // Claves y valores como string: el plugin valida el esquema REST como string
+        // (ej. {"20": "7"}; con enteros responde 400 "no es del tipo string")
         $rules = [];
         foreach ($percentageRules as $qty => $percent) {
-            $rules[(string) $qty] = $percent;
+            $rules[(string) $qty] = (string) $percent;
         }
 
         $data = [
             'tiered_pricing_type'             => 'percentage',
             'tiered_pricing_percentage_rules' => (object) $rules,
-            'tiered_pricing_minimum_quantity' => $minQty,
+            'tiered_pricing_minimum_quantity' => (string) $minQty,
             'meta_data' => [
                 ['key' => '_tiered_pricing_group_of_quantity', 'value' => (string) $qtyStep],
             ],
