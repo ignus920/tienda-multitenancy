@@ -79,6 +79,14 @@ class ManageCostCalculations extends Component
         $this->resetPage();
     }
 
+    public function clearFilters()
+    {
+        $this->search = '';
+        $this->dateFrom = now()->subMonth()->format('Y-m-d');
+        $this->dateTo = now()->format('Y-m-d');
+        $this->resetPage();
+    }
+
     public function updatedFilterType()
     {
         $this->resetPage();
