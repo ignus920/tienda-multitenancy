@@ -8,7 +8,7 @@
                         <div class="flex items-center gap-2">
                             <h1 class="text-lg font-bold text-gray-900 dark:text-white">Cálculo de Costos</h1>
                             <button wire:click="openInstructivo" class="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 transition-colors">
-                                Int-
+                                Instructivo
                             </button>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cotizaciones armadas con inventario del ERP (por unidad o por centímetro) y productos externos.</p>
