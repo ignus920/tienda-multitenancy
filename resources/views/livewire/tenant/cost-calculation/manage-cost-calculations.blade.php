@@ -29,8 +29,31 @@
                         Productos Terminados
                     </button>
                 </div>
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por nombre..."
-                    class="w-full max-w-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative w-full max-w-sm">
+                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por nombre o producto..."
+                            class="w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        @if($search)
+                            <button wire:click="$set('search', '')" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        @endif
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-gray-500 dark:text-gray-400">Desde</label>
+                        <input wire:model.live="dateFrom" type="date"
+                            class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                            title="Fecha Inicial">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-gray-500 dark:text-gray-400">Hasta</label>
+                        <input wire:model.live="dateTo" type="date"
+                            class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                            title="Fecha Final">
+                    </div>
+                </div>
             </div>
         </div>
 

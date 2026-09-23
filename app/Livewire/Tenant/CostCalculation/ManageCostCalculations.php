@@ -17,6 +17,14 @@ class ManageCostCalculations extends Component
 
     public $search = '';
     public $filterType = 'project';
+    public $dateFrom;
+    public $dateTo;
+
+    public function mount()
+    {
+        $this->dateFrom = now()->subMonth()->format('Y-m-d');
+        $this->dateTo = now()->format('Y-m-d');
+    }
 
     public function boot()
     {
@@ -57,6 +65,16 @@ class ManageCostCalculations extends Component
     }
 
     public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateTo()
     {
         $this->resetPage();
     }
@@ -116,7 +134,16 @@ class ManageCostCalculations extends Component
             ->when($this->search, function ($q) {
                 $words = array_filter(explode(' ', trim($this->search)));
                 foreach ($words as $word) {
-                    $q->where('name', 'like', '%' . $word . '%');
+                    $q->where(function ($sub) use ($word) {
+                        $sub->where('name', 'like', '%' . $word . '%')
+                            ->orWhereHas('items', function ($itemQ) use ($word) {
+                                $itemQ->where('description', 'like', '%' . $word . '%');
+                            });
+                    });
+                }
+            }, function ($q) {
+                if ($this->dateFrom && $this->dateTo) {
+                    $q->whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59']);
                 }
             })
             ->orderBy('created_at', 'desc')
