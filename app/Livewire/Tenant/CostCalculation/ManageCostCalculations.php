@@ -59,6 +59,32 @@ class ManageCostCalculations extends Component
         $this->resetPage();
     }
 
+    public function openInstructivo()
+    {
+        $this->ensureTenantConnection();
+
+        $dept = \App\Models\Tenant\Instructivos\InstructivoDepartment::firstOrCreate(
+            ['name' => 'Módulos del Sistema'],
+            [
+                'status' => 1,
+                'is_private' => 1,
+                'order' => 99,
+                'color' => '#4F46E5',
+                'icon' => 'cog'
+            ]
+        );
+
+        $instructivo = \App\Models\Tenant\Instructivos\Instructivo::firstOrCreate(
+            ['department_id' => $dept->id, 'title' => 'Cálculo de Costos'],
+            [
+                'status' => 1,
+                'created_by' => \Illuminate\Support\Facades\Auth::id()
+            ]
+        );
+
+        return redirect()->route('tenant.instructivos.show', $instructivo->id);
+    }
+
     public function render()
     {
         $this->ensureTenantConnection();
