@@ -2308,6 +2308,102 @@
         </div>
     </div>
 
+    <!-- Modal para Producto Ensamblado -->
+    <div x-data="{ show: @entangle('showAssembledModal') }"
+         x-show="show"
+         style="display: none;"
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+             @click.away="$wire.cancelAssembledProduct()">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">
+                    Configurar Producto Ensamblado
+                </h3>
+                <button type="button" wire:click="cancelAssembledProduct" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 overflow-y-auto space-y-5 flex-1">
+                @if($assembledProduct)
+                    <div class="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ $assembledProduct->display_name }}</p>
+                            <p class="text-xs text-indigo-600/80 dark:text-indigo-400 mt-0.5">Precio base: ${{ number_format($assembledPrice, 2) }} {{ $assembledPriceLabel ? "($assembledPriceLabel)" : '' }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Cantidad:</label>
+                            <input type="number" wire:model.live.debounce.300ms="assembledQty" min="1" class="w-24 text-center border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm py-1.5 font-bold">
+                        </div>
+                    </div>
+
+                    @if($assembledStockError)
+                        <div class="bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 p-3 rounded-lg border border-red-200 dark:border-red-800 text-sm flex items-start gap-2">
+                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <p>{{ $assembledStockError }}</p>
+                        </div>
+                    @endif
+
+                    <div class="space-y-4">
+                        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">Especificaciones</h4>
+                        
+                        @foreach($assembledFields as $index => $field)
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">{{ $field['label'] }}</label>
+                                
+                                @if($field['field_type'] === 'single_product' && !empty($field['value']))
+                                    <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-2 rounded text-xs border border-gray-100 dark:border-gray-600">
+                                        <span class="text-gray-700 dark:text-gray-300 font-medium">{{ $field['value']['code'] ?? '' }} - {{ $field['value']['name'] ?? '' }}</span>
+                                        <span class="text-gray-500 font-bold bg-white dark:bg-gray-600 px-2 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-500">
+                                            Req: {{ ($field['value']['qty'] ?? 1) * $assembledQty }} und
+                                        </span>
+                                    </div>
+                                @elseif($field['field_type'] === 'multiple_products' && !empty($field['options']))
+                                    <select wire:model.live="assembledFields.{{ $index }}.user_value" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">Seleccione una opción...</option>
+                                        @foreach($field['options'] as $opt)
+                                            <option value="{{ $opt['id'] }}" {{ !($opt['has_stock'] ?? true) ? 'disabled' : '' }}>
+                                                {{ $opt['code'] ?? '' }} - {{ $opt['name'] ?? '' }} 
+                                                ({{ ($opt['qty'] ?? 1) * $assembledQty }} req / {{ $opt['available_stock'] ?? 0 }} stock) 
+                                                {{ !($opt['has_stock'] ?? true) ? '⚠️ Sin stock' : '' }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                @elseif($field['field_type'] === 'text')
+                                    <input type="text" wire:model.live.debounce.300ms="assembledFields.{{ $index }}.user_value" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                @elseif($field['field_type'] === 'textarea')
+                                    <textarea wire:model.live.debounce.300ms="assembledFields.{{ $index }}.user_value" rows="2" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-b-xl">
+                <button type="button" wire:click="cancelAssembledProduct" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" wire:click="confirmAssembledProduct" 
+                        {{ !$assembledIsReady ? 'disabled' : '' }}
+                        class="px-5 py-2 text-sm font-bold text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">
+                    Confirmar e Insertar al Cotizador
+                </button>
+            </div>
+        </div>
+    </div>
+
 <script>
     document.addEventListener('livewire:init', () => {
         Livewire.on('open-box-justification-modal', (event) => {

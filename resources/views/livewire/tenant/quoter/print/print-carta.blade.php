@@ -661,6 +661,11 @@
                         @endif
                     <td class="col-desc">
                         {{ $detalle->description ?? $detalle->item->name ?? $detalle->item->display_name }}
+                        @if(!empty($detalle->assembled_config))
+                            <div style="font-size: 9pt; color: #555; margin-top: 3px; white-space: pre-wrap; font-style: italic;">
+                                {{ $detalle->assembled_config }}
+                            </div>
+                        @endif
                         @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->dimensions)
                             @php
                                 $maxQty = (int) ($detalle->item->dimensions->max_packing_qty ?? 0);

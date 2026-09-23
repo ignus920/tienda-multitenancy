@@ -50,19 +50,27 @@
                     @elseif($attr['field_type'] === 'textarea')
                         <textarea wire:model="dynamicFields.{{ $index }}.value" rows="2" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                     @elseif($attr['field_type'] === 'single_product' && !empty($attr['value']))
-                        <div class="flex items-center bg-gray-50 dark:bg-gray-700/50 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <div class="flex flex-col gap-2 bg-gray-50 dark:bg-gray-700/50 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600">
                             <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate"><span class="text-gray-400 mr-1">{{ $attr['value']['code'] ?? '' }}</span> {{ $attr['value']['name'] ?? '' }}</span>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 dark:text-gray-400">Cant. Base:</label>
+                                <input type="number" wire:model="dynamicFields.{{ $index }}.value.qty" class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded text-xs py-1 px-2" min="0.01" step="0.01">
+                            </div>
                         </div>
                     @elseif($attr['field_type'] === 'multiple_products')
-                        <select wire:model="dynamicFields.{{ $index }}.value" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Seleccione un producto...</option>
+                        <div class="space-y-2">
                             @if(!empty($attr['options']) && is_array($attr['options']))
-                                @foreach($attr['options'] as $opt)
-                                    <option value="{{ json_encode($opt) }}">{{ $opt['code'] ?? '' }} - {{ $opt['name'] ?? '' }}</option>
+                                @foreach($attr['options'] as $optIndex => $opt)
+                                    <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 px-2 py-1.5 rounded border border-gray-200 dark:border-gray-600">
+                                        <span class="text-xs text-gray-700 dark:text-gray-300 truncate">{{ $opt['code'] ?? '' }} - {{ $opt['name'] ?? '' }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <label class="text-2xs text-gray-500">Cant:</label>
+                                            <input type="number" wire:model="dynamicFields.{{ $index }}.options.{{ $optIndex }}.qty" class="w-16 border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded text-xs py-0.5 px-1" min="0.01" step="0.01">
+                                        </div>
+                                    </div>
                                 @endforeach
                             @endif
-                        </select>
-                    @endif
+                        </div>
 
                     <button type="button" wire:click="deleteField({{ $attr['id'] }})" title="Eliminar campo" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-sm">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -107,11 +115,17 @@
                         </label>
                         
                         @if($newType === 'single_product' && $newFixedSelected)
-                            <div class="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                                <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 truncate"><span class="text-indigo-400">{{ $newFixedSelected['code'] }}</span> {{ $newFixedSelected['name'] }}</span>
-                                <button type="button" wire:click="removeNewFixedProduct" class="text-red-500 hover:text-red-700 ml-2 shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </button>
+                            <div class="flex flex-col gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 truncate"><span class="text-indigo-400">{{ $newFixedSelected['code'] }}</span> {{ $newFixedSelected['name'] }}</span>
+                                    <button type="button" wire:click="removeNewFixedProduct" class="text-red-500 hover:text-red-700 ml-2 shrink-0">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-xs text-indigo-700 dark:text-indigo-300">Cant. Base:</label>
+                                    <input type="number" wire:model="newFixedSelected.qty" class="w-20 border-indigo-200 dark:border-indigo-700 dark:bg-indigo-800 rounded text-xs py-1 px-2" min="0.01" step="0.01">
+                                </div>
                             </div>
                         @else
                             <div class="relative" x-data="{ open: true }" @click.away="open = false">
@@ -133,15 +147,18 @@
                         @endif
 
                         @if($newType === 'multiple_products' && !empty($newMultipleSelected))
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                @foreach($newMultipleSelected as $val)
-                                <div class="flex items-center gap-1 bg-purple-50 dark:bg-purple-900/30 px-2 py-1.5 rounded-md border border-purple-200 dark:border-purple-800 max-w-full">
-                                    <span class="text-2xs font-semibold text-purple-700 dark:text-purple-300 truncate" title="{{ $val['code'] ?? '' }} - {{ $val['name'] ?? '' }}">
+                            <div class="flex flex-col gap-2 mt-2">
+                                @foreach($newMultipleSelected as $key => $val)
+                                <div class="flex items-center justify-between bg-purple-50 dark:bg-purple-900/30 px-2 py-1.5 rounded-md border border-purple-200 dark:border-purple-800">
+                                    <span class="text-xs font-semibold text-purple-700 dark:text-purple-300 truncate flex-1" title="{{ $val['code'] ?? '' }} - {{ $val['name'] ?? '' }}">
                                         {{ $val['name'] ?? '' }}
                                     </span>
-                                    <button type="button" wire:click="removeNewMultipleProduct({{ $val['id'] ?? 0 }})" class="text-red-500 hover:text-red-700 ml-1 shrink-0">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </button>
+                                    <div class="flex items-center gap-2 shrink-0 ml-2">
+                                        <input type="number" wire:model="newMultipleSelected.{{ $key }}.qty" class="w-16 border-purple-200 dark:border-purple-700 dark:bg-purple-800 rounded text-xs py-1 px-1" min="0.01" step="0.01" title="Cantidad">
+                                        <button type="button" wire:click="removeNewMultipleProduct({{ $val['id'] ?? 0 }})" class="text-red-500 hover:text-red-700">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 @endforeach
                             </div>
