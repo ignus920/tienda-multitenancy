@@ -31,11 +31,18 @@ class UpdateItemsFromExcelCommand extends Command
     {
         $this->info("Iniciando actualización de items desde archivos Excel...");
 
-        // Forzar la conexión tenant a usar la base de datos que stancl/tenancy acaba de setear
-        $currentDb = \DB::connection()->getDatabaseName();
+        $tenant = tenant();
+        if (!$tenant) {
+            $this->error("No se detectó un entorno de cliente (tenant). Ejecuta este comando a través de tenants:run.");
+            return;
+        }
+
+        // Obtener de forma segura el nombre de la BD del cliente actual (ej. company_131_...)
+        $currentDb = $tenant->tenancy_db_name ?? config('database.connections.tenant.database');
+        
         config(['database.connections.tenant.database' => $currentDb]);
         \DB::purge('tenant');
-        $this->info("Usando base de datos: " . $currentDb);
+        $this->info("Usando base de datos del cliente: " . $currentDb);
 
         // Archivos a procesar
         $files = [
