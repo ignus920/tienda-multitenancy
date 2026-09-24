@@ -128,9 +128,9 @@
         <!-- Tabla de líneas -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-xs min-w-[820px]">
+                <table class="w-full text-sm min-w-[820px]">
                     <thead>
-                        <tr class="text-2xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-850">
+                        <tr class="text-xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-850">
                             <th class="text-left py-2.5 px-3">Origen</th>
                             <th class="text-left py-2.5 px-3 w-[38%]">Descripción</th>
                             <th class="text-right py-2.5 px-3">Cantidad</th>
@@ -143,16 +143,16 @@
                         @forelse($computedLines as $i => $line)
                         <tr class="border-b border-gray-50 dark:border-gray-750 {{ !empty($line['missing']) ? 'bg-red-50/50 dark:bg-red-900/10' : '' }}">
                             <td class="py-2.5 px-3">
-                                <span class="text-3xs font-bold px-2 py-0.5 rounded {{ $line['origin'] === 'erp' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' }}">
+                                <span class="text-2xs font-bold px-2 py-0.5 rounded {{ $line['origin'] === 'erp' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' }}">
                                     {{ $line['origin'] === 'erp' ? 'ERP' : 'EXT' }}
                                 </span>
                             </td>
                             <td class="py-2.5 px-3 text-gray-800 dark:text-gray-200">
                                 {{ $line['description'] }}
                                 @if(!empty($line['missing']))
-                                    <span class="block text-3xs text-red-500">Este producto ya no existe en el ERP</span>
+                                    <span class="block text-2xs text-red-500">Este producto ya no existe en el ERP</span>
                                 @elseif($line['mode'] === 'cm')
-                                    <span class="block text-3xs text-gray-400">Se cotiza por centímetro
+                                    <span class="block text-2xs text-gray-400">Se cotiza por centímetro
                                         @if(!empty($line['no_length'])) — <span class="text-amber-500">falta longitud en el ERP</span> @endif
                                     </span>
                                 @endif
@@ -162,17 +162,17 @@
                                     @if($line['origin'] === 'externo')
                                         <input type="number" step="0.01" min="0.01" value="{{ $line['quantity'] }}"
                                             wire:change="$set('lines.{{ $i }}.quantity', $event.target.value)"
-                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
+                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right">
                                     @elseif($line['mode'] === 'cm')
                                         <input type="number" step="1" min="1" value="{{ $line['cm_quantity'] }}"
                                             wire:change="$set('lines.{{ $i }}.cm_quantity', $event.target.value)"
-                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
-                                        <span class="text-3xs text-gray-400">cm</span>
+                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right">
+                                        <span class="text-2xs text-gray-400">cm</span>
                                     @else
                                         <input type="number" step="1" min="1" value="{{ $line['quantity'] }}"
                                             onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                                             wire:change="$set('lines.{{ $i }}.quantity', $event.target.value)"
-                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs text-right">
+                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right">
                                     @endif
                                 @else
                                     {{ rtrim(rtrim(number_format($line['qty_display'], 2), '0'), '.') }}{{ $line['mode'] === 'cm' ? ' cm' : '' }}
@@ -180,7 +180,7 @@
                             </td>
                             <td class="py-2.5 px-3 text-right tabular-nums">
                                 ${{ number_format($line['unit_display'], 0) }}
-                                @if($line['mode'] === 'cm')<span class="block text-3xs text-gray-400">por cm</span>@endif
+                                @if($line['mode'] === 'cm')<span class="block text-2xs text-gray-400">por cm</span>@endif
                             </td>
                             <td class="py-2.5 px-3 text-right font-bold tabular-nums">${{ number_format($line['subtotal'], 0) }}</td>
                             @if($canEdit)
@@ -193,7 +193,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center py-10 text-gray-400 text-xs">Todavía no hay productos en este cálculo de costos.</td>
+                            <td colspan="6" class="text-center py-10 text-gray-400 text-sm">Todavía no hay productos en este cálculo de costos.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -204,14 +204,14 @@
         <!-- Totales + Venta -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 py-1.5 border-b border-gray-50 dark:border-gray-750">
+                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 py-1.5 border-b border-gray-50 dark:border-gray-750">
                     <span>Líneas del ERP</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['erp'], 0) }}</b>
                 </div>
-                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 py-1.5">
+                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 py-1.5">
                     <span>Líneas externas</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['ext'], 0) }}</b>
                 </div>
                 <div class="flex justify-between items-baseline pt-3 mt-2 border-t-2 border-gray-100 dark:border-gray-700">
-                    <span class="text-sm font-bold text-gray-900 dark:text-white">Total costo</span>
+                    <span class="text-base font-bold text-gray-900 dark:text-white">Total costo</span>
                     <span class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">${{ number_format($totals['total'], 0) }}</span>
                 </div>
 
@@ -289,12 +289,12 @@
                     $discOver = $saleWithDiscount !== null ? $saleWithDiscount - $totals['total'] : null;
                 @endphp
 
-                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-xs font-semibold
+                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-sm font-semibold
                     {{ $sale === null ? 'bg-gray-50 dark:bg-gray-750 text-gray-400' : ($saleOver < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400') }}">
                     <span>Precio de venta vs. costo</span>
                     <span class="font-extrabold">{{ $sale === null ? '—' : '$'.number_format($sale, 0) }}</span>
                 </div>
-                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-xs font-semibold
+                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-sm font-semibold
                     {{ $saleWithDiscount === null ? 'bg-gray-50 dark:bg-gray-750 text-gray-400' : ($discOver < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400') }}">
                     <span>Con descuento máximo</span>
                     <span class="font-extrabold">{{ $saleWithDiscount === null ? '—' : '$'.number_format($saleWithDiscount, 0) }}</span>
