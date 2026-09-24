@@ -30,6 +30,10 @@ class SetTenantConnection
         $tenantId = session('tenant_id');
 
         if (!$tenantId) {
+            // Si es una peticion de Livewire desde el dominio central, simplemente continuar sin inicializar tenant
+            if ($request->routeIs('livewire.update') || $request->is('livewire/update')) {
+                return $next($request);
+            }
             // Si no hay tenant en sesión, redirigir a selección de tenant
             return redirect()->route('tenant.select');
         }

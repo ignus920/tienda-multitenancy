@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
 
         Livewire::setUpdateRoute(function ($handle) {
             return \Illuminate\Support\Facades\Route::post('/livewire/update', $handle)
-                ->middleware(['web', 'tenant']);
+                ->middleware(['web', \App\Auth\Middleware\SetTenantConnection::class]);
         });
 
         // Register Livewire components
