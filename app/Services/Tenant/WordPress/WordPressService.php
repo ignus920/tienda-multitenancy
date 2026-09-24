@@ -1030,6 +1030,91 @@ class WordPressService
         return $result;
     }
 
+    /**
+     * SKUs de todas las variaciones de un producto variable (id => sku). Null si falla la consulta.
+     */
+    public function getVariationSkus($parentId): ?array
+    {
+        if (!$this->isConfigured()) return null;
+
+        $skus = [];
+        $page = 1;
+
+        try {
+            do {
+                $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                    ->timeout(60)
+                    ->get($this->baseUrl . "products/{$parentId}/variations", [
+                        'per_page' => 100,
+                        'page'     => $page,
+                        '_fields'  => 'id,sku',
+                    ]);
+
+                if (!$response->successful()) {
+                    Log::error('❌ [WP-Tiered] Error consultando variaciones', [
+                        'parent_id'   => $parentId,
+                        'http_status' => $response->status(),
+                    ]);
+                    return null;
+                }
+
+                $variations = $response->json();
+                foreach ($variations as $variation) {
+                    $skus[$variation['id']] = trim((string) ($variation['sku'] ?? ''));
+                }
+                $page++;
+            } while (count($variations) === 100);
+        } catch (Exception $e) {
+            Log::error('❌ [WP-Tiered] Excepción consultando variaciones', [
+                'parent_id' => $parentId,
+                'error'     => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        return $skus;
+    }
+
+    /**
+     * Actualiza solo la descripción corta de un producto (simple o padre de variables).
+     */
+    public function updateShortDescription($wpProductId, string $shortDescription): array
+    {
+        $result = ['success' => false, 'http_status' => null, 'body' => null];
+
+        if (!$this->isConfigured()) {
+            $result['body'] = 'WordPress no configurado';
+            return $result;
+        }
+
+        Log::info('🔄 [WP-Tiered] updateShortDescription', ['wp_product_id' => $wpProductId]);
+
+        try {
+            $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
+                ->timeout(60)
+                ->put($this->baseUrl . "products/{$wpProductId}", ['short_description' => $shortDescription]);
+
+            $result['success']     = $response->successful();
+            $result['http_status'] = $response->status();
+
+            if (!$response->successful()) {
+                $result['body'] = $response->body();
+                Log::error('❌ [WP-Tiered] Error actualizando descripción corta', [
+                    'wp_product_id' => $wpProductId,
+                    'body'          => $response->body(),
+                ]);
+            }
+        } catch (Exception $e) {
+            $result['body'] = $e->getMessage();
+            Log::error('❌ [WP-Tiered] Excepción actualizando descripción corta', [
+                'wp_product_id' => $wpProductId,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+
+        return $result;
+    }
+
     public function updateProductPrice($wpProductId, $price): bool
     {
         if (!$this->isConfigured()) return false;
