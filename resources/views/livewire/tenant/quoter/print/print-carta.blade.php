@@ -732,9 +732,12 @@
         <div class="notes-container">
             <div class="section-header">OBSERVACIONES</div>
             <div class="notes-box">
-                @if($quote->observations)
+                @php
+                    $finalObservations = $quote->observations ?? ($quote->quote ? $quote->quote->observations : null);
+                @endphp
+                @if($finalObservations)
                     <div class="notes-section">
-                        {!! nl2br(e($quote->observations)) !!}
+                        {!! nl2br(e($finalObservations)) !!}
                     </div>
                 @endif
                 
@@ -765,7 +768,10 @@
                     {{ $delivery_type ?? '' }}
                 </div>
                 <div class="notes-section">
-                    <span class="notes-label">Obs. Pedido:</span> {{ $quote->obs ?? 'na' }}
+                    @php
+                        $finalObs = $quote->obs ?? ($obs ?? ($quote->quote ? $quote->quote->obs : 'na'));
+                    @endphp
+                    <span class="notes-label">Obs. Pedido:</span> {{ $finalObs }}
                 </div>
 
             </div>
