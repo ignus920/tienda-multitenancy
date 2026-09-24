@@ -59,7 +59,7 @@ class MyTasksToday extends Component
     public $createTitle = '';
     public $createDescription = '';
     public $createDepartmentId = '';
-    public $createEstimatedMinutes = 30;
+    public $createEstimatedTime = '00:30';
     public $createPriority = 'p3_normal';
     public $departments = [];
 
@@ -122,8 +122,8 @@ class MyTasksToday extends Component
     public function openCreateTaskModal()
     {
         $this->ensureTenantConnection();
-        $this->reset(['createTitle', 'createDescription', 'createDepartmentId', 'createEstimatedMinutes', 'createPriority']);
-        $this->createEstimatedMinutes = 30;
+        $this->reset(['createTitle', 'createDescription', 'createDepartmentId', 'createEstimatedTime', 'createPriority']);
+        $this->createEstimatedTime = '00:30';
         $this->createPriority = 'p3_normal';
         $this->showCreateTaskModal = true;
     }
@@ -135,15 +135,25 @@ class MyTasksToday extends Component
         $this->validate([
             'createTitle' => 'required|string|max:255',
             'createDepartmentId' => 'required|exists:tenant.tsk_departments,id',
-            'createEstimatedMinutes' => 'required|integer|min:1',
+            'createEstimatedTime' => 'required|date_format:H:i',
             'createPriority' => 'required|in:p1_urgente,p2_alta,p3_normal,p4_baja',
+        ], [
+            'createEstimatedTime.date_format' => 'El formato del tiempo debe ser HH:MM.'
         ]);
+
+        $parts = explode(':', $this->createEstimatedTime);
+        $minutes = ((int) $parts[0] * 60) + (int) $parts[1];
+
+        if ($minutes < 1) {
+            $this->addError('createEstimatedTime', 'El tiempo estimado debe ser mayor a 0 minutos.');
+            return;
+        }
 
         $data = [
             'title' => $this->createTitle,
             'description' => $this->createDescription,
             'department_id' => $this->createDepartmentId,
-            'estimated_minutes' => (int) $this->createEstimatedMinutes,
+            'estimated_minutes' => $minutes,
             'priority' => $this->createPriority,
             'location_type' => 'empresa', // Por defecto interno
         ];

@@ -530,8 +530,9 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tiempo Estimado (minutos)</label>
-                    <input wire:model="createEstimatedMinutes" type="number" min="1" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tiempo Estimado</label>
+                    <input wire:model="createEstimatedTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                    @error('createEstimatedTime') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
