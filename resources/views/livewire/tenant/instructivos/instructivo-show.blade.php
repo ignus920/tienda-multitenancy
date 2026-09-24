@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-slate-700 transition-colors">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3">
-                @if($instructivo->department->name === 'Módulos del Sistema' && str_contains($instructivo->title, 'Cálculo de Costos'))
+                @if(request()->query('source') === 'costos')
                     <a href="{{ route('tenant.cost-calculations') }}" wire:navigate class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400">
                         <x-heroicon-o-arrow-left class="w-5 h-5" />
                     </a>
