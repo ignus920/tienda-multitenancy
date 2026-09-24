@@ -401,6 +401,11 @@
                 <div class="product-name">
                     {{ Str::limit($detalle->description ?? $detalle->item?->name ?? $detalle->item?->display_name ?? 'Producto no encontrado', 35) }}
                 </div>
+                @if(!empty($detalle->assembled_config))
+                    <div style="font-size: 7pt; color: #555; margin-top: 1mm; white-space: pre-wrap; font-style: italic;">
+                        {{ $detalle->assembled_config }}
+                    </div>
+                @endif
                 @if($documentTitle === 'REMISIÓN' && $detalle->item && $detalle->item->accessories && $detalle->item->accessories->count() > 0)
                     <div style="color: red; font-size: 7pt; margin-top: 1mm;">
                         @foreach($detalle->item->accessories as $accessory)

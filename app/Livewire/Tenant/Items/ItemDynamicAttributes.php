@@ -143,7 +143,8 @@ class ItemDynamicAttributes extends Component
             $this->newFixedSelected = [
                 'id' => $id,
                 'name' => $name,
-                'code' => $code
+                'code' => $code,
+                'qty' => 1
             ];
             $this->newFixedSearch = '';
             $this->newFixedResults = [];
@@ -153,7 +154,8 @@ class ItemDynamicAttributes extends Component
                 $this->newMultipleSelected[] = [
                     'id' => $id,
                     'name' => $name,
-                    'code' => $code
+                    'code' => $code,
+                    'qty' => 1
                 ];
             }
             $this->newFixedSearch = '';

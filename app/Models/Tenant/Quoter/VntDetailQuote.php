@@ -21,6 +21,8 @@ class VntDetailQuote extends Model
         'priceList',
         'price_label',
         'justification',
+        'assembled_config',
+        'assembled_recipe',
     ];
 
     protected $casts = [

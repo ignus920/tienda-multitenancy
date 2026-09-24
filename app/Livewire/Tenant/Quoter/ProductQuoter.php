@@ -98,6 +98,16 @@ class ProductQuoter extends Component
     public $showCompleteCustomerModal = false;
     public $showMissingFieldsModal = false;
     public $missingFieldsMessage = '';
+
+    // Modal para Configurar Producto Ensamblado
+    public $showAssembledModal = false;
+    public $assembledProduct = null;
+    public $assembledPrice = 0;
+    public $assembledPriceLabel = '';
+    public $assembledQty = 1;
+    public $assembledFields = [];
+    public $assembledStockError = '';
+    public $assembledIsReady = false;
     public $pendingInvoiceAfterCustomerCompletion = false; // Reanudar facturación tras completar cliente
 
     // Propiedades para modal de pagos
@@ -187,7 +197,8 @@ class ProductQuoter extends Component
         'customer-form-cancelled' => 'cancelCreateCustomer',
         'refreshProductList' => '$refresh',
         'warehouse-selected' => 'selectBranch',
-        'openTransitDetailsModal' => 'loadTransitDetails'
+        'openTransitDetailsModal' => 'loadTransitDetails',
+        'open-assembled-product-modal' => 'openAssembledModal'
     ];
 
     public function updatedObservaciones()
@@ -196,6 +207,176 @@ class ProductQuoter extends Component
         if ($this->isEditing) {
             $this->hasChanges = true;
         }
+    }
+
+    public function openAssembledModal($payload)
+    {
+        $this->ensureTenantConnection();
+        $this->assembledProduct = Items::with(['dynamicAttributes'])->find($payload['productId']);
+        if (!$this->assembledProduct) return;
+
+        $this->assembledPrice = $payload['selectedPrice'];
+        $this->assembledPriceLabel = $payload['priceLabel'];
+        $this->assembledQty = 1;
+        $this->assembledStockError = '';
+        $this->assembledIsReady = false;
+        
+        $this->assembledFields = [];
+        foreach ($this->assembledProduct->dynamicAttributes as $attr) {
+            $value = $attr->value;
+            $options = $attr->options;
+            
+            if ($attr->field_type === 'multiple_products' && !empty($options) && is_string($options)) {
+                $options = json_decode($options, true) ?? [];
+            }
+            if ($attr->field_type === 'multiple_products' && !empty($value) && is_string($value)) {
+                $value = json_decode($value, true) ?? null;
+            }
+            if ($attr->field_type === 'single_product' && !empty($value) && is_string($value)) {
+                $value = json_decode($value, true) ?? null;
+            }
+
+            $this->assembledFields[] = [
+                'id' => $attr->id,
+                'label' => $attr->label,
+                'field_type' => $attr->field_type,
+                'options' => $options,
+                'value' => $value,
+                'user_value' => '', // Valor escogido/escrito por el usuario
+                'order_index' => $attr->order_index,
+            ];
+        }
+
+        $this->calculateAssembledStock();
+        $this->showAssembledModal = true;
+    }
+
+    public function updatedAssembledQty()
+    {
+        if ($this->assembledQty < 1) $this->assembledQty = 1;
+        $this->calculateAssembledStock();
+    }
+
+    public function calculateAssembledStock()
+    {
+        $this->ensureTenantConnection();
+        $this->assembledStockError = '';
+        $this->assembledIsReady = true;
+
+        $storeId = $this->selectedWarehouseId ?? session('selected_warehouse_id') ?? VntWarehouse::first()->id ?? null;
+
+        foreach ($this->assembledFields as $key => &$field) {
+            if ($field['field_type'] === 'single_product' && !empty($field['value'])) {
+                $fixedItemId = $field['value']['id'] ?? null;
+                if (!$fixedItemId) continue;
+                $baseQty = (float)($field['value']['qty'] ?? 1);
+                $requiredQty = $baseQty * $this->assembledQty;
+                
+                $stock = $storeId ? (InvItemsStore::where('item_id', $fixedItemId)->where('store_id', $storeId)->value('stock_items_store') ?? 0) : 0;
+                
+                if ($stock < $requiredQty) {
+                    $this->assembledStockError = "Materiales insuficientes: ({$field['value']['code']} - {$field['value']['name']}) requiere {$requiredQty} pero solo hay {$stock} en stock.";
+                    $this->assembledIsReady = false;
+                    break;
+                }
+            }
+            
+            if ($field['field_type'] === 'multiple_products' && !empty($field['options'])) {
+                foreach ($field['options'] as $optKey => &$opt) {
+                    $optItemId = $opt['id'] ?? null;
+                    if (!$optItemId) continue;
+                    $baseQty = (float)($opt['qty'] ?? 1);
+                    $requiredQty = $baseQty * $this->assembledQty;
+                    
+                    $stock = $storeId ? (InvItemsStore::where('item_id', $optItemId)->where('store_id', $storeId)->value('stock_items_store') ?? 0) : 0;
+                    
+                    $opt['available_stock'] = $stock;
+                    $opt['required_qty'] = $requiredQty;
+                    $opt['has_stock'] = ($stock >= $requiredQty);
+                    
+                    if ($field['user_value'] == $optItemId && !$opt['has_stock']) {
+                        $field['user_value'] = '';
+                    }
+                }
+            }
+        }
+    }
+
+    public function confirmAssembledProduct()
+    {
+        if (!$this->assembledIsReady) return;
+
+        // Validar que se hayan completado todos los campos dinámicos
+        foreach ($this->assembledFields as $field) {
+            if (in_array($field['field_type'], ['multiple_products', 'text', 'textarea'])) {
+                if (empty(trim($field['user_value'] ?? ''))) {
+                    $this->assembledStockError = "Por favor complete la especificación: " . $field['label'];
+                    return;
+                }
+            }
+        }
+        
+        $notes = [];
+        $recipe = [];
+        
+        foreach ($this->assembledFields as $field) {
+            if ($field['field_type'] === 'text' || $field['field_type'] === 'textarea') {
+                if (!empty($field['user_value'])) {
+                    $notes[] = $field['label'] . ': ' . $field['user_value'];
+                }
+            } elseif ($field['field_type'] === 'single_product' && !empty($field['value'])) {
+                $baseQty = (float)($field['value']['qty'] ?? 1);
+                $requiredQty = $baseQty * $this->assembledQty;
+                $recipe[] = [
+                    'id' => $field['value']['id'],
+                    'qty' => $requiredQty
+                ];
+            } elseif ($field['field_type'] === 'multiple_products') {
+                if (!empty($field['user_value'])) {
+                    $selectedOpt = collect($field['options'])->firstWhere('id', $field['user_value']);
+                    if ($selectedOpt) {
+                        $notes[] = $field['label'] . ': ' . ($selectedOpt['code'] ?? '') . ' ' . ($selectedOpt['name'] ?? '');
+                        $baseQty = (float)($selectedOpt['qty'] ?? 1);
+                        $requiredQty = $baseQty * $this->assembledQty;
+                        $recipe[] = [
+                            'id' => $selectedOpt['id'],
+                            'qty' => $requiredQty
+                        ];
+                    }
+                }
+            }
+        }
+        
+        $configNotes = !empty($notes) ? "Configuración:\n" . implode("\n", $notes) : '';
+        $recipeJson = !empty($recipe) ? json_encode($recipe) : null;
+        
+        // Agregar al cotizador bypassing the check
+        $this->addToQuoter($this->assembledProduct->id, $this->assembledPrice, $this->assembledPriceLabel, true);
+        
+        // Aplicar la cantidad y las notas a la línea recién agregada o actualizada
+        $index = $this->findProductInQuoter($this->assembledProduct->id);
+        if ($index !== false) {
+            $this->quoterItems[$index]['quantity'] = $this->assembledQty;
+            $this->quoterItems[$index]['assembled_config'] = $configNotes;
+            $this->quoterItems[$index]['assembled_recipe'] = $recipeJson;
+            
+            // Si hay justificación/notas, anexar al nombre o justificación para que salga en el cotizador?
+            // La cotización muestra justificación, o podemos usar "assembled_config" en la vista.
+            
+            session(['quoter_items' => $this->quoterItems]);
+            $this->calculateTotal();
+        }
+
+        $this->showAssembledModal = false;
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Producto Ensamblado configurado y agregado correctamente.'
+        ]);
+    }
+
+    public function cancelAssembledProduct()
+    {
+        $this->showAssembledModal = false;
     }
 
     /**
@@ -776,8 +957,21 @@ class ProductQuoter extends Component
         return Category::where('status', 1)->get();
     }
 
-    public function addToQuoter($productId, $selectedPrice, $priceLabel)
+    public function addToQuoter($productId, $selectedPrice, $priceLabel, $bypassAssembledCheck = false)
     {
+        $this->ensureTenantConnection();
+        $product = Items::select('id', 'type')->find($productId);
+        
+        // Si el producto es ENSAMBLADO, abrir el modal de configuración en lugar de agregarlo directamente
+        if (!$bypassAssembledCheck && $product && $product->type === 'ENSAMBLADO') {
+            $this->dispatch('open-assembled-product-modal', [
+                'productId' => $productId,
+                'selectedPrice' => $selectedPrice,
+                'priceLabel' => $priceLabel
+            ]);
+            return;
+        }
+
         // Verificar si el producto ya está en el cotizador (sin consulta DB)
         $existingIndex = $this->findProductInQuoter($productId);
 
@@ -1210,6 +1404,8 @@ class ProductQuoter extends Component
                     'priceList' => $item['price'],
                     'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
                     'justification' => $item['justification'] ?? null,
+                    'assembled_config' => $item['assembled_config'] ?? null,
+                    'assembled_recipe' => $item['assembled_recipe'] ?? null,
                 ]);
             }
 
@@ -2713,6 +2909,8 @@ class ProductQuoter extends Component
                     'priceList' => $item['price'],
                     'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
                     'justification' => $item['justification'] ?? null,
+                    'assembled_config' => $item['assembled_config'] ?? null,
+                    'assembled_recipe' => $item['assembled_recipe'] ?? null,
                 ];
 
                 Log::info("📦 Creando detalle #{$index}", [
@@ -3341,9 +3539,33 @@ class ProductQuoter extends Component
                     continue;
                 }
 
-                // Omitir validación de stock para productos ensamblados al crear remisión (OP)
+                // Validar receta para productos ensamblados
                 $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
                 if ($productModel && $productModel->type === 'ENSAMBLADO') {
+                    if (!empty($item['assembled_recipe'])) {
+                        $recipe = is_string($item['assembled_recipe']) ? json_decode($item['assembled_recipe'], true) : $item['assembled_recipe'];
+                        if (is_array($recipe)) {
+                            foreach ($recipe as $mat) {
+                                $matId = $mat['id'] ?? null;
+                                $matQty = (float)($mat['qty'] ?? 0);
+                                if (!$matId || $matQty <= 0) continue;
+                                
+                                $matStore = InvItemsStore::where('itemId', $matId)
+                                    ->where('storeId', $quote->warehouseId)
+                                    ->first();
+                                    
+                                if (!$matStore || $matStore->stock_items_store < $matQty) {
+                                    DB::connection('tenant')->rollBack();
+                                    $this->dispatch('show-toast', [
+                                        'type' => 'error',
+                                        'message' => "Stock insuficiente de material (ID: {$matId}) para producto Ensamblado '{$item['name']}'"
+                                    ]);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    // Después de validar la receta, pasamos al siguiente item (el ensamblado en sí no descuenta stock directo)
                     continue;
                 }
 
@@ -3503,6 +3725,31 @@ class ProductQuoter extends Component
                 // Solo actualizar stock para items inventariables
                 if (($item['inventoriable'] ?? 1) == 0) {
                     continue;
+                }
+
+                $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
+                if ($productModel && $productModel->type === 'ENSAMBLADO') {
+                    if (!empty($item['assembled_recipe'])) {
+                        $recipe = is_string($item['assembled_recipe']) ? json_decode($item['assembled_recipe'], true) : $item['assembled_recipe'];
+                        if (is_array($recipe)) {
+                            foreach ($recipe as $mat) {
+                                $matId = $mat['id'] ?? null;
+                                $matQty = (float)($mat['qty'] ?? 0);
+                                if (!$matId || $matQty <= 0) continue;
+                                
+                                $matStore = InvItemsStore::where('itemId', $matId)
+                                    ->where('storeId', $quote->warehouseId)
+                                    ->first();
+                                    
+                                if ($matStore) {
+                                    $matStore->update([
+                                        'stock_items_store' => $matStore->stock_items_store - $matQty
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                    continue; // El ensamblado no descuenta su propio stock
                 }
 
                 // Actualizar el stock del producto en la bodega específica
