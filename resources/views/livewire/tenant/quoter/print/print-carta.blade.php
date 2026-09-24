@@ -732,12 +732,6 @@
         <div class="notes-container">
             <div class="section-header">OBSERVACIONES</div>
             <div class="notes-box">
-                @if($quote->observations)
-                    <div class="notes-section">
-                        {!! nl2br(e($quote->observations)) !!}
-                    </div>
-                @endif
-                
                 <div class="notes-section">
                     <span class="notes-label">Peso:</span> {{ $totalWeight ? number_format($totalWeight / 1000, 2) . ' kg' : 'N/A' }}
                 </div>
@@ -764,10 +758,17 @@
                     <span class="notes-label">Entrega:</span>
                     {{ $delivery_type ?? '' }}
                 </div>
-                <div class="notes-section">
-                    <span class="notes-label">Obs. Pedido:</span> {{ $quote->obs ?? 'na' }}
+                <div class="notes-section" style="border-bottom: none;">
+                    @php
+                        $finalObs = $quote->obs ?? ($obs ?? ($quote->quote ? $quote->quote->obs : 'na'));
+                        $finalObservations = $quote->observations ?? ($quote->quote ? $quote->quote->observations : null);
+                    @endphp
+                    <span class="notes-label">Obs. Pedido:</span> {{ $finalObs }}
+                    
+                    @if($finalObservations)
+                        <div style="margin-top: 6px; word-wrap: break-word; white-space: pre-wrap; line-height: 1.4;">{!! nl2br(e($finalObservations)) !!}</div>
+                    @endif
                 </div>
-
             </div>
 
             @if($documentTitle === 'REMISIÓN')
