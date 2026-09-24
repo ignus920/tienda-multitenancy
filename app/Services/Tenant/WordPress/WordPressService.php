@@ -920,7 +920,7 @@ class WordPressService
      * Obtiene el producto (o variación) completo desde WooCommerce, incluyendo meta_data
      * y los campos del plugin Tiered Pricing (tiered_pricing_*). Solo lectura.
      */
-    public function getProductById($wpProductId, $parentId = null): ?array
+    public function getProductById($wpProductId, $parentId = null, string $context = 'view'): ?array
     {
         if (!$this->isConfigured()) return null;
 
@@ -929,9 +929,10 @@ class WordPressService
             : "products/{$wpProductId}";
 
         try {
+            // context=edit devuelve textos en crudo (sin filtros/formato), necesario para reescribirlos
             $response = Http::withBasicAuth($this->auth[0], $this->auth[1])
                 ->timeout(60)
-                ->get($this->baseUrl . $endpoint);
+                ->get($this->baseUrl . $endpoint, ['context' => $context]);
 
             if (!$response->successful()) {
                 Log::error('❌ [WP-Tiered] Error consultando producto', [
@@ -958,7 +959,7 @@ class WordPressService
      *
      * @param array $percentageRules [cantidad => porcentaje], ej: [20 => 7, 100 => 15]
      */
-    public function updateTieredPricing($wpProductId, array $percentageRules, int $minQty, int $qtyStep, $parentId = null): array
+    public function updateTieredPricing($wpProductId, array $percentageRules, int $minQty, int $qtyStep, $parentId = null, ?string $shortDescription = null): array
     {
         $result = ['success' => false, 'http_status' => null, 'body' => null];
 
@@ -986,6 +987,11 @@ class WordPressService
                 ['key' => '_tiered_pricing_group_of_quantity', 'value' => (string) $qtyStep],
             ],
         ];
+
+        // Solo se envía si cambió (null = no tocar la descripción corta)
+        if ($shortDescription !== null) {
+            $data['short_description'] = $shortDescription;
+        }
 
         Log::info('🔄 [WP-Tiered] updateTieredPricing', [
             'endpoint' => $endpoint,

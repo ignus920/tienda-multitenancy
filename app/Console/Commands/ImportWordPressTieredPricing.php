@@ -155,12 +155,28 @@ class ImportWordPressTieredPricing extends Command
             $this->showState('ESTADO ACTUAL', $before);
             $this->showPlanned($row, (float) ($before['regular_price'] ?? 0));
 
+            // Texto de venta mínima en la descripción corta (las variaciones no tienen descripción corta)
+            $newShort    = null;
+            $textAction  = 'SIN_CAMBIO';
+            if ($parentId) {
+                $textAction = 'VARIACION_SIN_TEXTO';
+            } else {
+                $raw = $wpService->getProductById($wpProduct['id'], null, 'edit');
+                if (!$raw || !array_key_exists('short_description', $raw)) {
+                    $this->error('  ❌ No se pudo leer la descripción corta en crudo — omitido');
+                    $report[] = [$row['sku'], $row['row'], 'ERROR_CONSULTA', 'short_description'];
+                    continue;
+                }
+                [$newShort, $textAction] = $this->buildShortDescription((string) $raw['short_description'], $row['min']);
+            }
+            $this->showTextPlan($textAction, $row['min']);
+
             if ($dryRun) {
-                $report[] = [$row['sku'], $row['row'], 'DRY_RUN', ''];
+                $report[] = [$row['sku'], $row['row'], 'DRY_RUN', $textAction];
                 continue;
             }
 
-            $result = $wpService->updateTieredPricing($wpProduct['id'], $row['rules'], $row['min'], $row['step'], $parentId);
+            $result = $wpService->updateTieredPricing($wpProduct['id'], $row['rules'], $row['min'], $row['step'], $parentId, $newShort);
             if (!$result['success']) {
                 $this->error("  ❌ Error HTTP {$result['http_status']}: " . mb_substr((string) $result['body'], 0, 300));
                 $report[] = [$row['sku'], $row['row'], 'ERROR_ACTUALIZANDO', 'HTTP ' . $result['http_status']];
@@ -171,8 +187,12 @@ class ImportWordPressTieredPricing extends Command
             if ($after) {
                 $this->showState('ESTADO DESPUÉS', $after);
             }
+            if ($newShort !== null) {
+                $afterRaw = $wpService->getProductById($wpProduct['id'], null, 'edit');
+                $this->line('    Descripción corta (final): ' . mb_substr(trim((string) ($afterRaw['short_description'] ?? '')), -160));
+            }
             $this->info('  ✅ Actualizado');
-            $report[] = [$row['sku'], $row['row'], 'ACTUALIZADO', ''];
+            $report[] = [$row['sku'], $row['row'], 'ACTUALIZADO', $textAction];
         }
 
         // 4. Reporte
@@ -288,6 +308,60 @@ class ImportWordPressTieredPricing extends Command
     protected function isPositiveInt($value): bool
     {
         return is_numeric($value) && (float) $value >= 1 && floor((float) $value) == (float) $value;
+    }
+
+    /**
+     * Calcula la descripción corta con la línea "⚠️ Venta mínima es de N Unidades".
+     * Reemplaza el texto viejo ("Este producto se vende en cantidades mínimas de N unidades"),
+     * no duplica si ya está y no pone texto cuando el mínimo es 1.
+     *
+     * @return array [nueva descripción o null si no cambia, acción]
+     */
+    protected function buildShortDescription(string $raw, int $min): array
+    {
+        if ($min <= 1) {
+            return [null, 'MINIMO_1_SIN_TEXTO'];
+        }
+
+        $icon       = '(?:&#x26a0;(?:&#xfe0f;)?|&#9888;(?:&#65039;)?|\x{26A0}\x{FE0F}?)?';
+        $newPattern = '/' . $icon . '[ \t]*Venta m(?:í|&iacute;|i)nima es de (\d+) Unidades/iu';
+        $oldPattern = '/' . $icon . '[ \t]*Este producto se vende en cantidades m(?:í|&iacute;|i)nimas de \d+ unidades\.?/iu';
+        $line       = '&#x26a0;&#xfe0f; Venta mínima es de ' . $min . ' Unidades';
+
+        $hasNew = preg_match($newPattern, $raw, $m) === 1;
+        $hasOld = preg_match($oldPattern, $raw) === 1;
+
+        if ($hasNew && (int) $m[1] === $min && !$hasOld) {
+            return [null, 'YA_TIENE_TEXTO'];
+        }
+
+        if ($hasNew) {
+            $desc   = preg_replace($oldPattern, '', $raw);
+            $desc   = preg_replace($newPattern, $line, $desc, 1);
+            $action = 'ACTUALIZA_TEXTO';
+        } elseif ($hasOld) {
+            $desc   = preg_replace($oldPattern, $line, $raw, 1);
+            $action = 'REEMPLAZA_TEXTO_VIEJO';
+        } else {
+            $trimmed = rtrim($raw);
+            $desc    = $trimmed === '' ? $line : $trimmed . "\n" . $line;
+            $action  = 'AGREGA_TEXTO';
+        }
+
+        return [$desc, $action];
+    }
+
+    protected function showTextPlan(string $action, int $min): void
+    {
+        $messages = [
+            'AGREGA_TEXTO'          => "Se AGREGA al final: ⚠️ Venta mínima es de {$min} Unidades",
+            'REEMPLAZA_TEXTO_VIEJO' => "Se REEMPLAZA el texto viejo por: ⚠️ Venta mínima es de {$min} Unidades",
+            'ACTUALIZA_TEXTO'       => "Se ACTUALIZA el texto a: ⚠️ Venta mínima es de {$min} Unidades",
+            'YA_TIENE_TEXTO'        => 'Ya tiene el texto correcto — no se toca',
+            'MINIMO_1_SIN_TEXTO'    => 'Mínimo 1 — no se agrega texto',
+            'VARIACION_SIN_TEXTO'   => 'Es variación (sin descripción corta) — no se agrega texto',
+        ];
+        $this->line('    Descripción corta: ' . ($messages[$action] ?? $action));
     }
 
     protected function showState(string $title, array $product): void
