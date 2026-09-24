@@ -130,7 +130,7 @@ class ManageCostCalculations extends Component
             ]
         );
 
-        return redirect()->route('tenant.instructivos.show', $instructivo->id);
+        return redirect()->route('tenant.instructivos.show', ['instructivo' => $instructivo->id, 'source' => 'costos']);
     }
 
     public function render()
