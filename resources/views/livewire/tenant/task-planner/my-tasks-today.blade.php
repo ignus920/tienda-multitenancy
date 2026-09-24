@@ -1,4 +1,4 @@
-<div class="py-5 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto" x-data="{ lightboxImg: null }">
+<div class="py-5 px-4 sm:px-6 lg:px-8 w-full mx-auto" x-data="{ lightboxImg: null }">
 <style>
     /* Premium FullCalendar Styling */
     :root {
