@@ -411,15 +411,16 @@ class ManageProjects extends Component
             $query->where('type', $this->projectTypeFilter);
         }
 
-        // Aplicar filtros por tipo de pestaña
-        if ($this->selectedTab === 'archivados') {
-            $query->where('status', 'cerrado_entregado');
-        } else {
-            $query->where('status', '!=', 'cerrado_entregado');
-        }
-
+        // Aplicar filtros de estado
         if ($this->selectedStatus) {
             $query->where('status', $this->selectedStatus);
+        } else {
+            // Si no hay estado específico en el dropdown, aplicamos la regla de las pestañas
+            if ($this->selectedTab === 'archivados') {
+                $query->where('status', 'cerrado_entregado');
+            } else {
+                $query->where('status', '!=', 'cerrado_entregado');
+            }
         }
 
         // Filtro rápido de vencimiento (solo proyectos internos activos)
