@@ -305,6 +305,16 @@ class ProductQuoter extends Component
     public function confirmAssembledProduct()
     {
         if (!$this->assembledIsReady) return;
+
+        // Validar que se hayan completado todos los campos dinámicos
+        foreach ($this->assembledFields as $field) {
+            if (in_array($field['field_type'], ['multiple_products', 'text', 'textarea'])) {
+                if (empty(trim($field['user_value'] ?? ''))) {
+                    $this->assembledStockError = "Por favor complete la especificación: " . $field['label'];
+                    return;
+                }
+            }
+        }
         
         $notes = [];
         $recipe = [];
