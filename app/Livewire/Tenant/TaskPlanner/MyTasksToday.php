@@ -207,6 +207,22 @@ class MyTasksToday extends Component
         $start = \Carbon\Carbon::parse("{$this->selfScheduleDate} {$this->selfScheduleStartTime}");
         $end = \Carbon\Carbon::parse("{$this->selfScheduleDate} {$this->selfScheduleEndTime}");
 
+        if ($start->isPast() && !$start->isToday()) {
+            // Permitimos agendar para hoy mismo (incluso si la hora ya pasó por unos minutos por error), pero no días anteriores estrictos
+            // O podemos ser más estrictos: no permitir horas pasadas hoy. 
+            // Para tareas, mejor permitir hoy aunque sea hora pasada, o requerir que sea a futuro.
+            // Restrinjamos al menos que no sea antes de hoy:
+            if ($start->startOfDay()->isPast() && !$start->isToday()) {
+                $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No puedes agendar una tarea para un día pasado.']);
+                return;
+            }
+        }
+        
+        if ($start->isBefore(now()->subMinutes(15))) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No puedes agendar una tarea en el pasado.']);
+            return;
+        }
+
         if ($end->lte($start)) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La hora de fin debe ser posterior a la de inicio.']);
             return;
@@ -239,6 +255,12 @@ class MyTasksToday extends Component
 
         $start = \Carbon\Carbon::parse($startIso);
         
+        if ($start->isBefore(now()->subMinutes(15))) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No puedes mover una tarea a una fecha/hora en el pasado.']);
+            $this->dispatch('calendar-refresh');
+            return;
+        }
+
         if ($endIso) {
             $end = \Carbon\Carbon::parse($endIso);
         } else {
