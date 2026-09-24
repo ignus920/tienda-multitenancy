@@ -204,14 +204,14 @@
         <!-- Totales + Venta -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 py-1.5 border-b border-gray-50 dark:border-gray-750">
+                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 py-1.5 border-b border-gray-50 dark:border-gray-750">
                     <span>Líneas del ERP</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['erp'], 0) }}</b>
                 </div>
-                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 py-1.5">
+                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 py-1.5">
                     <span>Líneas externas</span><b class="text-gray-800 dark:text-gray-200">${{ number_format($totals['ext'], 0) }}</b>
                 </div>
                 <div class="flex justify-between items-baseline pt-3 mt-2 border-t-2 border-gray-100 dark:border-gray-700">
-                    <span class="text-sm font-bold text-gray-900 dark:text-white">Total costo</span>
+                    <span class="text-base font-bold text-gray-900 dark:text-white">Total costo</span>
                     <span class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">${{ number_format($totals['total'], 0) }}</span>
                 </div>
 
@@ -289,12 +289,12 @@
                     $discOver = $saleWithDiscount !== null ? $saleWithDiscount - $totals['total'] : null;
                 @endphp
 
-                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-xs font-semibold
+                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-sm font-semibold
                     {{ $sale === null ? 'bg-gray-50 dark:bg-gray-750 text-gray-400' : ($saleOver < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400') }}">
                     <span>Precio de venta vs. costo</span>
                     <span class="font-extrabold">{{ $sale === null ? '—' : '$'.number_format($sale, 0) }}</span>
                 </div>
-                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-xs font-semibold
+                <div class="flex justify-between items-center px-3 py-2.5 rounded-lg text-sm font-semibold
                     {{ $saleWithDiscount === null ? 'bg-gray-50 dark:bg-gray-750 text-gray-400' : ($discOver < 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400') }}">
                     <span>Con descuento máximo</span>
                     <span class="font-extrabold">{{ $saleWithDiscount === null ? '—' : '$'.number_format($saleWithDiscount, 0) }}</span>
