@@ -104,24 +104,29 @@
         <div class="flex flex-wrap items-center gap-2">
             @if($activeView === 'today')
                 @if($daySchedule)
-                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
+                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5 hidden sm:block">
                     <p class="text-[10px] uppercase tracking-wide text-gray-400">Horario</p>
                     <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ substr($daySchedule->start_time, 0, 5) }}–{{ substr($daySchedule->end_time, 0, 5) }}</p>
                 </div>
                 @endif
                 @if($availableMinutes > 0)
-                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
+                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5 hidden sm:block">
                     <p class="text-[10px] uppercase tracking-wide text-gray-400">Disponible</p>
                     <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ intdiv($availableMinutes, 60) }}h {{ $availableMinutes % 60 }}m</p>
                 </div>
                 @endif
-                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5">
+                <div class="rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-1.5 hidden sm:block">
                     <p class="text-[10px] uppercase tracking-wide text-gray-400">Programado</p>
                     <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ intdiv($scheduledMinutes, 60) }}h {{ $scheduledMinutes % 60 }}m</p>
                 </div>
             @endif
 
-            <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button wire:click="openCreateTaskModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Nueva Tarea
+            </button>
+
+            <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ml-1">
                 <button wire:click="$set('activeView', 'today')"
                     class="px-3 py-1.5 text-xs font-semibold {{ $activeView === 'today' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">Hoy</button>
                 <button wire:click="$set('activeView', 'calendar')"
@@ -300,9 +305,12 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Puedes aprovechar el tiempo con:</p>
         <ul class="space-y-2">
             @foreach($fillerTasks as $filler)
-            <li class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3.5 py-2.5 text-sm">
-                <span class="text-gray-700 dark:text-gray-200">{{ $filler->title }}</span>
-                <button wire:click="startTask({{ $filler->id }})" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-colors">Iniciar</button>
+            <li class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3.5 py-2.5 text-sm gap-2">
+                <span class="text-gray-700 dark:text-gray-200 truncate">{{ $filler->title }}</span>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button wire:click="openSelfScheduleModal({{ $filler->id }})" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline px-1 py-1">Agendar</button>
+                    <button wire:click="startTask({{ $filler->id }})" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-colors shadow-sm">Iniciar</button>
+                </div>
             </li>
             @endforeach
         </ul>
@@ -482,6 +490,92 @@
     </div>
     @endif
 
+    {{-- Modal: Crear Tarea --}}
+    @if($showCreateTaskModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nueva Tarea (Autoasignada)</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Agrega una tarea a tu bandeja para poder agendarla o iniciarla hoy.</p>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Título</label>
+                    <input wire:model="createTitle" type="text" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                    @error('createTitle') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Descripción (Opcional)</label>
+                    <textarea wire:model="createDescription" rows="2" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Departamento</label>
+                        <select wire:model="createDepartmentId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            <option value="">Selecciona...</option>
+                            @foreach($departments as $dept)
+                            <option value="{{ $dept['id'] }}">{{ $dept['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('createDepartmentId') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Prioridad</label>
+                        <select wire:model="createPriority" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            <option value="p1_urgente">Urgente</option>
+                            <option value="p2_alta">Alta</option>
+                            <option value="p3_normal">Normal</option>
+                            <option value="p4_baja">Baja</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tiempo Estimado (minutos)</label>
+                    <input wire:model="createEstimatedMinutes" type="number" min="1" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button wire:click="$set('showCreateTaskModal', false)" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg">Cancelar</button>
+                <button wire:click="saveNewTask" class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">Crear Tarea</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal: Auto-agendar Tarea --}}
+    @if($showSelfScheduleModal)
+    <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Agendar Tarea</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
+                    <input wire:model="selfScheduleDate" type="date" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                    @error('selfScheduleDate') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Hora Inicio</label>
+                        <input wire:model.live="selfScheduleStartTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                        @error('selfScheduleStartTime') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Hora Fin</label>
+                        <input wire:model="selfScheduleEndTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                        @error('selfScheduleEndTime') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button wire:click="$set('showSelfScheduleModal', false)" class="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg">Cancelar</button>
+                <button wire:click="confirmSelfSchedule" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Guardar</button>
+            </div>
+        </div>
+    </div>
+    @endif
+    
     {{-- Detalle completo de la tarea (solo lectura de datos de creación: no hay
          edición de título/descripción/fechas ni reprogramación, solo lo operativo
          que el trabajador ya puede hacer: comentar y bloquear/desbloquear). --}}
@@ -547,8 +641,14 @@
                     slotMinTime: '06:00:00',
                     slotMaxTime: '20:00:00',
                     nowIndicator: true,
-                    editable: false,
-                    droppable: false,
+                    editable: true,
+                    droppable: true,
+                    eventDrop: function(info) {
+                        $wire.updateScheduleFromCalendar(info.event.id, info.event.startStr, info.event.endStr || null);
+                    },
+                    eventResize: function(info) {
+                        $wire.updateScheduleFromCalendar(info.event.id, info.event.startStr, info.event.endStr || null);
+                    },
                     eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                     events: (fetchInfo, successCallback, failureCallback) => {
                         $wire.getMyCalendarEvents(fetchInfo.startStr, fetchInfo.endStr)

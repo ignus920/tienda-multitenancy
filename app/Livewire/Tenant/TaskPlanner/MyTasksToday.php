@@ -54,9 +54,28 @@ class MyTasksToday extends Component
 
     public $userId;
 
+    // --- NUEVAS PROPIEDADES PARA CREACIÓN DE TAREAS ---
+    public $showCreateTaskModal = false;
+    public $createTitle = '';
+    public $createDescription = '';
+    public $createDepartmentId = '';
+    public $createEstimatedMinutes = 30;
+    public $createPriority = 'p3_normal';
+    public $departments = [];
+
+    // --- NUEVAS PROPIEDADES PARA AUTO-AGENDAMIENTO ---
+    public $showSelfScheduleModal = false;
+    public $selfScheduleTaskId = null;
+    public $selfScheduleDate = '';
+    public $selfScheduleStartTime = '';
+    public $selfScheduleEndTime = '';
+
     public function mount()
     {
         $this->userId = Auth::id();
+        // Obtener departamentos una sola vez para el select
+        $this->ensureTenantConnection();
+        $this->departments = \App\Models\Tenant\TaskPlanner\TaskDepartment::orderBy('name')->get()->toArray();
     }
 
     public function boot()
@@ -98,6 +117,138 @@ class MyTasksToday extends Component
 
         config(['database.connections.tenant.database' => $tenant->tenancy_db_name]);
     }
+
+    // --- MÉTODOS DE CREACIÓN DE TAREAS (EMPLEADO) ---
+    public function openCreateTaskModal()
+    {
+        $this->ensureTenantConnection();
+        $this->reset(['createTitle', 'createDescription', 'createDepartmentId', 'createEstimatedMinutes', 'createPriority']);
+        $this->createEstimatedMinutes = 30;
+        $this->createPriority = 'p3_normal';
+        $this->showCreateTaskModal = true;
+    }
+
+    public function saveNewTask(\App\Services\TaskPlanner\TaskService $taskService)
+    {
+        $this->ensureTenantConnection();
+
+        $this->validate([
+            'createTitle' => 'required|string|max:255',
+            'createDepartmentId' => 'required|exists:tenant.tsk_departments,id',
+            'createEstimatedMinutes' => 'required|integer|min:1',
+            'createPriority' => 'required|in:p1_urgente,p2_alta,p3_normal,p4_baja',
+        ]);
+
+        $data = [
+            'title' => $this->createTitle,
+            'description' => $this->createDescription,
+            'department_id' => $this->createDepartmentId,
+            'estimated_minutes' => (int) $this->createEstimatedMinutes,
+            'priority' => $this->createPriority,
+            'location_type' => 'empresa', // Por defecto interno
+        ];
+
+        // El usuario se autoasigna la tarea que él mismo crea
+        $task = $taskService->createTask($data, [$this->userId], $this->userId);
+
+        $this->showCreateTaskModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea creada y asignada a ti.']);
+    }
+
+    // --- MÉTODOS DE AUTO-AGENDAMIENTO (EMPLEADO) ---
+    public function openSelfScheduleModal($taskId)
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->userOwnsTask($taskId), 403);
+
+        $this->selfScheduleTaskId = $taskId;
+        $this->selfScheduleDate = now()->toDateString();
+        
+        $now = now();
+        $this->selfScheduleStartTime = $now->copy()->addMinutes(30 - ($now->minute % 30))->format('H:i');
+        
+        $task = Task::findOrFail($taskId);
+        $this->selfScheduleEndTime = \Carbon\Carbon::parse($this->selfScheduleStartTime)
+            ->addMinutes($task->estimated_minutes)
+            ->format('H:i');
+
+        $this->showSelfScheduleModal = true;
+    }
+
+    public function updatedSelfScheduleStartTime($val)
+    {
+        if ($this->selfScheduleTaskId && $val) {
+            $this->ensureTenantConnection();
+            $task = Task::find($this->selfScheduleTaskId);
+            if ($task) {
+                $this->selfScheduleEndTime = \Carbon\Carbon::parse($val)
+                    ->addMinutes($task->estimated_minutes)
+                    ->format('H:i');
+            }
+        }
+    }
+
+    public function confirmSelfSchedule(\App\Services\TaskPlanner\SchedulingService $schedulingService)
+    {
+        $this->ensureTenantConnection();
+        abort_unless($this->userOwnsTask($this->selfScheduleTaskId), 403);
+
+        $this->validate([
+            'selfScheduleDate' => 'required|date',
+            'selfScheduleStartTime' => 'required',
+            'selfScheduleEndTime' => 'required',
+        ]);
+
+        $start = \Carbon\Carbon::parse("{$this->selfScheduleDate} {$this->selfScheduleStartTime}");
+        $end = \Carbon\Carbon::parse("{$this->selfScheduleDate} {$this->selfScheduleEndTime}");
+
+        if ($end->lte($start)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'La hora de fin debe ser posterior a la de inicio.']);
+            return;
+        }
+
+        $task = Task::findOrFail($this->selfScheduleTaskId);
+
+        // Agendar la tarea directamente para el usuario
+        $schedulingService->scheduleTask($task, [$this->userId], $start, $end, $this->userId, 'Auto-agendada por trabajador');
+
+        $this->showSelfScheduleModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea agendada exitosamente.']);
+        $this->dispatch('calendar-refresh');
+    }
+
+    public function updateScheduleFromCalendar($scheduleId, $startIso, $endIso = null)
+    {
+        $this->ensureTenantConnection();
+        
+        $schedule = TaskSchedule::with('task')->find($scheduleId);
+        if (!$schedule || $schedule->user_id !== $this->userId) {
+            return;
+        }
+
+        // Si ya está iniciada, no debería dejarse arrastrar, pero por si acaso validamos
+        if (in_array($schedule->task->status, ['en_proceso', 'terminada', 'cancelada'])) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'No puedes cambiar la hora de una tarea iniciada o terminada.']);
+            return;
+        }
+
+        $start = \Carbon\Carbon::parse($startIso);
+        
+        if ($endIso) {
+            $end = \Carbon\Carbon::parse($endIso);
+        } else {
+            // Si el calendario no envía endIso (sólo soltó, no redimensionó), mantener la duración
+            $duration = $schedule->scheduled_start->diffInMinutes($schedule->scheduled_end);
+            $end = $start->copy()->addMinutes($duration);
+        }
+
+        $schedulingService = app(\App\Services\TaskPlanner\SchedulingService::class);
+        $schedulingService->scheduleTask($schedule->task, [$this->userId], $start, $end, $this->userId, 'Movida en el calendario personal');
+        
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Horario actualizado.']);
+        $this->dispatch('calendar-refresh');
+    }
+
 
     public function startTask($taskId, TimeTrackingService $service)
     {
