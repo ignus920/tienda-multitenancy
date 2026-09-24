@@ -26,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
             ]);
         }
 
+        Livewire::setUpdateRoute(function ($handle) {
+            return \Illuminate\Support\Facades\Route::post('/livewire/update', $handle)
+                ->middleware(['web', 'tenant']);
+        });
+
         // Register Livewire components
         Livewire::component('auth.enable2-f-a', \App\Auth\Livewire\Enable2FA::class);
         Livewire::component('auth.verify2-f-a', \App\Auth\Livewire\Verify2FA::class);
