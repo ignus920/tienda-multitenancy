@@ -331,7 +331,7 @@
                 $digits2B = $getDigits2($b);
 
                 if ($digits2A !== $digits2B) {
-                    return $digits2A <=> $digits2B;
+                    return $digits2B <=> $digits2A;
                 }
 
                 // 4. Letra del medio del picking
