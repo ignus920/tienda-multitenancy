@@ -246,28 +246,54 @@
                     </div>
                     @endif
 
-                    <div x-data="{ isDropping: false }"
+                    <div x-data="{ 
+                            isDropping: false,
+                            isFocused: false,
+                            handlePaste(e) {
+                                const items = (e.clipboardData || window.clipboardData).items;
+                                let foundFile = false;
+                                for (let index in items) {
+                                    const item = items[index];
+                                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                                        foundFile = true;
+                                        e.preventDefault();
+                                        const file = item.getAsFile();
+                                        if (file) {
+                                            const extension = file.type.split('/')[1] || 'png';
+                                            const timestamp = new Date().getTime();
+                                            const newFile = new File([file], 'imagen_pegada_' + timestamp + '.' + extension, { type: file.type });
+                                            @this.uploadMultiple('tempFiles', [newFile]);
+                                        }
+                                    }
+                                }
+                                if (!foundFile && e.clipboardData && e.clipboardData.files.length > 0) {
+                                    e.preventDefault();
+                                    @this.uploadMultiple('tempFiles', e.clipboardData.files);
+                                }
+                            }
+                         }"
+                         x-on:paste="handlePaste($event)"
                          x-on:dragover.prevent="isDropping = true"
                          x-on:dragleave.prevent="isDropping = false"
                          x-on:drop.prevent="isDropping = false; if($event.dataTransfer.files.length) { @this.uploadMultiple('tempFiles', $event.dataTransfer.files) }"
-                         x-on:paste.window="
-                            if ($event.clipboardData && $event.clipboardData.files.length > 0) {
-                                let active = document.activeElement;
-                                let isTextInput = (active.tagName === 'INPUT' && active.type !== 'file') || active.tagName === 'TEXTAREA' || active.isContentEditable;
-                                if (!isTextInput) {
-                                    $event.preventDefault();
-                                    @this.uploadMultiple('tempFiles', $event.clipboardData.files);
-                                }
-                            }
-                         "
-                         :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30': isDropping, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900': !isDropping }"
+                         :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30': isDropping || isFocused, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900': !isDropping && !isFocused }"
                          class="flex flex-col items-center justify-center w-full h-24 px-4 py-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 relative">
 
                         <div class="flex flex-col items-center justify-center pointer-events-none">
-                            <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold text-indigo-600">Haz clic</span> o arrastra archivos aquí</p>
-                            <p class="text-[11px] text-gray-400 dark:text-gray-500">También puedes pegar (Ctrl+V) una imagen copiada</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400" x-show="!isFocused"><span class="font-semibold text-indigo-600">Haz clic</span> o arrastra archivos aquí</p>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500" x-show="!isFocused">Para pegar, haz clic aquí y presiona (Ctrl+V)</p>
+                            <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400" x-show="isFocused" style="display: none;">¡Listo! Presiona Ctrl+V ahora 📋</p>
                         </div>
-                        <input type="file" wire:model="tempFiles" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        
+                        <!-- Input de texto invisible para capturar el foco y el pegado limpiamente sin dobles ejecuciones -->
+                        <input type="text" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                               x-on:focus="isFocused = true" 
+                               x-on:blur="isFocused = false"
+                               x-on:click="$refs.realFileInput.click()"
+                               title="Haz clic aquí y presiona Ctrl+V para pegar" />
+                               
+                        <!-- Input de archivo real (oculto) solo para selección manual -->
+                        <input type="file" x-ref="realFileInput" wire:model="tempFiles" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="hidden" />
                     </div>
 
                     <div wire:loading wire:target="tempFiles" class="mt-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
