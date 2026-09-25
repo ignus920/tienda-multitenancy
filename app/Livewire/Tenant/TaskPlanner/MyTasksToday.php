@@ -68,10 +68,6 @@ class MyTasksToday extends Component
     public $createPriority = 'p3_normal';
     public $departments = [];
 
-    // --- NUEVAS PROPIEDADES PARA AUTOASIGNACION (MODAL) ---
-    public $enableAutoAssign = true;
-    public $showAutoAssignModal = false;
-    public $availableTasksToAssign = [];
 
     // --- NUEVAS PROPIEDADES PARA AUTO-AGENDAMIENTO ---
     public $showSelfScheduleModal = false;
