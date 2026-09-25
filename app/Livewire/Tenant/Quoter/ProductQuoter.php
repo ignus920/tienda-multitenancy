@@ -211,9 +211,6 @@ class ProductQuoter extends Component
 
     public function openAssembledModal($payload)
     {
-        // FUNCIONALIDAD DESACTIVADA TEMPORALMENTE (RAMA 144)
-        return;
-
         $this->ensureTenantConnection();
         $this->assembledProduct = Items::with(['dynamicAttributes'])->find($payload['productId']);
         if (!$this->assembledProduct) return;
