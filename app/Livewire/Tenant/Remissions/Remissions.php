@@ -1466,14 +1466,16 @@ class Remissions extends Component
             $retentions = [];     // Sin retenciones
             $termDays = 0;        // Sin términos
 
-            // Obtener seller desde el userId de la remisión (BD RAP → users.api_data_id)
+            // Obtener seller desde el userId de la COTIZACIÓN (BD RAP → users.api_data_id)
+            // NO se usa el autor de la remisión/OP según directriz.
             $sellerApiId = null;
-            $remissionUser = $remission->getUser();
-            if ($remissionUser && !empty($remissionUser->api_data_id)) {
-                $sellerApiId = (string) $remissionUser->api_data_id;
-                Log::info('👨‍💼 Seller obtenido desde remisión', [
-                    'remission_id'  => $remission->id,
-                    'user_id'       => $remissionUser->id,
+            $quoteUser = $remission->quote ? $remission->quote->getUser() : null;
+            
+            if ($quoteUser && !empty($quoteUser->api_data_id)) {
+                $sellerApiId = (string) $quoteUser->api_data_id;
+                Log::info('👨‍💼 Seller obtenido desde cotización original', [
+                    'quote_id'      => $remission->quote->id,
+                    'user_id'       => $quoteUser->id,
                     'seller_alegra' => $sellerApiId,
                 ]);
             }
@@ -1863,14 +1865,15 @@ class Remissions extends Component
             ]
         ];
 
-        // Obtener seller desde el userId de la primera remisión (BD RAP → users.api_data_id)
+        // Obtener seller desde el userId de la COTIZACIÓN original (BD RAP → users.api_data_id)
+        // NO se usa el autor de la remisión/OP según directriz.
         $sellerApiId = null;
-        $remissionUser = $firstRemission->getUser();
-        if ($remissionUser && !empty($remissionUser->api_data_id)) {
-            $sellerApiId = (string) $remissionUser->api_data_id;
-            Log::info('👨‍💼 Seller obtenido desde remisión agrupada', [
-                'remission_id'  => $firstRemission->id,
-                'user_id'       => $remissionUser->id,
+        $quoteUser = $firstRemission->quote ? $firstRemission->quote->getUser() : null;
+        if ($quoteUser && !empty($quoteUser->api_data_id)) {
+            $sellerApiId = (string) $quoteUser->api_data_id;
+            Log::info('👨‍💼 Seller obtenido desde cotización agrupada', [
+                'quote_id'      => $firstRemission->quote->id,
+                'user_id'       => $quoteUser->id,
                 'seller_alegra' => $sellerApiId,
             ]);
         }

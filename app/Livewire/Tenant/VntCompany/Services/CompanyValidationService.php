@@ -151,6 +151,7 @@ class CompanyValidationService
             'typeIdentificationId' => 'required|integer|exists:central.cnf_type_identifications,id',
             'status' => 'nullable|integer|in:0,1',
             'type' => 'required|string',
+            'seller_id' => 'required',
             'billingEmail' => $emailRule,
             'checkDigit' => 'nullable|integer|max:99',
             'integrationDataId' => 'nullable|integer',
@@ -284,6 +285,7 @@ class CompanyValidationService
 
         $baseRules = [
             'typeIdentificationId' => 'required|integer',
+            'seller_id' => 'required',
             'identification' => $identificationRule,
             'regimeId' => 'nullable|integer',
             'fiscalResponsabilityId' => 'nullable|integer',
