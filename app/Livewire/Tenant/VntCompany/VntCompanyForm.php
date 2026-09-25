@@ -274,7 +274,9 @@ class VntCompanyForm extends Component
         $tenantId = session('tenant_id');
         $sellers = User::whereHas('tenants', function ($query) use ($tenantId) {
             $query->where('tenants.id', $tenantId);
-        })->orderBy('name')->get();
+        })
+        ->whereIn('profile_id', [4, 16]) // Solo Vendedor POS (4) y Asesor Comercial (16)
+        ->orderBy('name')->get();
 
         return view('livewire.tenant.vnt-company.components.vnt-company-form', [
             'items' => $this->items, // Se cachea automáticamente entre renders
