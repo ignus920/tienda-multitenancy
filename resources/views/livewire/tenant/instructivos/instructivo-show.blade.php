@@ -250,7 +250,11 @@
                                 let isTextInput = (active.tagName === 'INPUT' && active.type !== 'file') || active.tagName === 'TEXTAREA' || active.isContentEditable;
                                 if (!isTextInput) {
                                     $event.preventDefault();
-                                    @this.uploadMultiple('tempFiles', $event.clipboardData.files);
+                                    if (!window._isPastingFiles) {
+                                        window._isPastingFiles = true;
+                                        @this.uploadMultiple('tempFiles', $event.clipboardData.files);
+                                        setTimeout(() => window._isPastingFiles = false, 500);
+                                    }
                                 }
                             }
                          "
