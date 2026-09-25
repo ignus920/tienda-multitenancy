@@ -28,3 +28,9 @@ Schedule::call(function () {
   ->name('tsk-generate-recurring-tasks')
   ->withoutOverlapping();
 
+// Revisa diariamente a las 2:00 AM qué clientes llevan 3 meses sin comprar para quitarles el vendedor fijo
+Schedule::command('sellers:unassign-inactive')
+    ->dailyAt('02:00')
+    ->name('unassign-inactive-sellers')
+    ->withoutOverlapping();
+

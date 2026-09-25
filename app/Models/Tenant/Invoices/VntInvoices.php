@@ -48,6 +48,46 @@ class VntInvoices extends Model
         'deleted_at' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($invoice) {
+            // Lógica de asignación automática de vendedor (2 ventas en 30 días)
+            try {
+                $quote = $invoice->quote;
+                if (!$quote || !$quote->userId) return;
+
+                $sellerId = $quote->userId; // Asesor que hizo la cotización/venta
+                $companyId = $quote->branch?->companyId;
+                
+                if (!$companyId) return;
+
+                $companyData = \App\Models\Tenant\Customer\VntCompany::find($companyId);
+                
+                // Si el cliente ya tiene vendedor fijo, respetarlo y no hacer nada
+                if (!$companyData || $companyData->seller_id) return;
+
+                $thirtyDaysAgo = now()->subDays(30);
+
+                // Contar cuántas facturas se han hecho a este cliente, por este asesor, en los últimos 30 días
+                $count = self::where('created_at', '>=', $thirtyDaysAgo)
+                    ->whereHas('quote', function($q) use ($sellerId, $companyId) {
+                        $q->where('userId', $sellerId)
+                          ->whereHas('branch', function($b) use ($companyId) {
+                              $b->where('companyId', $companyId);
+                          });
+                    })->count();
+
+                if ($count >= 2) {
+                    $companyData->seller_id = $sellerId;
+                    $companyData->save();
+                    \Illuminate\Support\Facades\Log::info("✅ Asignación automática de vendedor ID {$sellerId} al cliente ID {$companyId} (2 compras en 30 días).");
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("❌ Error en auto-asignación de vendedor: " . $e->getMessage());
+            }
+        });
+    }
+
     // Relaciones
     public function quote(): BelongsTo
     {
