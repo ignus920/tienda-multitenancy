@@ -167,69 +167,6 @@ class MyTasksToday extends Component
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Tarea creada y asignada a ti.']);
     }
 
-    // ==========================================
-    // AUTOASIGNAR TAREAS EXISTENTES
-    // ==========================================
-
-    public function openAutoAssignModal()
-    {
-        $this->ensureTenantConnection();
-        
-        $departmentIds = collect($this->departments)->pluck('id')->toArray();
-        
-        // Traer tareas sin programar de los departamentos del usuario
-        // donde el usuario NO este asignado actualmente
-        $this->availableTasksToAssign = \App\Models\Tenant\TaskPlanner\Task::where('status', 'sin_programar')
-            ->whereIn('department_id', $departmentIds)
-            ->whereDoesntHave('assignments', fn($q) => $q->where('user_id', $this->userId))
-            ->orderBy('priority')
-            ->orderBy('created_at')
-            ->get();
-
-        $this->showAutoAssignModal = true;
-    }
-
-    public function confirmAutoAssign($taskId, \App\Services\TaskPlanner\SchedulingService $schedulingService)
-    {
-        $this->ensureTenantConnection();
-        
-        $task = \App\Models\Tenant\TaskPlanner\Task::findOrFail($taskId);
-        
-        // 1. Asignar al usuario
-        \App\Models\Tenant\TaskPlanner\TaskAssignment::firstOrCreate([
-            'task_id' => $task->id,
-            'user_id' => $this->userId
-        ]);
-        
-        // 2. Buscar hueco libre (despues de la ultima tarea de hoy, o ahora mismo)
-        $lastSchedule = \App\Models\Tenant\TaskPlanner\TaskSchedule::where('user_id', $this->userId)
-            ->whereDate('scheduled_start', now()->toDateString())
-            ->orderBy('scheduled_end', 'desc')
-            ->first();
-            
-        $start = $lastSchedule ? \Carbon\Carbon::parse($lastSchedule->scheduled_end) : now();
-        
-        // Si la ultima termino en el pasado, usamos la hora actual
-        if ($start->isPast()) {
-            $start = now();
-        }
-        
-        // Redondear a los proximos 15 min (ej 14:12 -> 14:15)
-        $remainder = 15 - ($start->minute % 15);
-        if ($remainder !== 15) {
-            $start->addMinutes($remainder);
-        }
-        $start->second(0);
-        
-        $minutes = $task->estimated_minutes > 0 ? $task->estimated_minutes : 30;
-        $end = $start->copy()->addMinutes($minutes);
-        
-        // 3. Agendar
-        $schedulingService->scheduleTask($task, [$this->userId], $start, $end, $this->userId, 'Autoasignada');
-        
-        $this->showAutoAssignModal = false;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => "Tarea tomada y agendada a las {$start->format('H:i')}"]);
-    }
 
     // --- MÉTODOS DE AUTO-AGENDAMIENTO (EMPLEADO) ---
     public function openSelfScheduleModal($taskId)
@@ -648,6 +585,7 @@ class MyTasksToday extends Component
         $this->availableTasksToAssign = $query->orderBy('priority')->get();
         $this->showAutoAssignModal = true;
     }
+
 
     public function confirmAutoAssign($taskId, \App\Services\TaskPlanner\SchedulingService $scheduleService)
     {
