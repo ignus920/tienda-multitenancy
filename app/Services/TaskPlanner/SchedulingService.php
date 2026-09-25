@@ -109,7 +109,9 @@ class SchedulingService
         $day = Carbon::now()->startOfDay();
 
         for ($i = 0; $i < $maxDays && count($results) < $maxResults; $i++) {
-            $day = $day->copy()->addDay();
+            if ($i > 0) {
+                $day = $day->copy()->addDay();
+            }
 
             if ($deadline && $day->gt($deadline)) {
                 break;
