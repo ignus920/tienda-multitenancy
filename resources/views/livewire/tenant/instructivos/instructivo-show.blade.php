@@ -250,6 +250,16 @@
                          x-on:dragover.prevent="isDropping = true"
                          x-on:dragleave.prevent="isDropping = false"
                          x-on:drop.prevent="isDropping = false; if($event.dataTransfer.files.length) { @this.uploadMultiple('tempFiles', $event.dataTransfer.files) }"
+                         x-on:paste.window="
+                            if ($event.clipboardData && $event.clipboardData.files.length > 0) {
+                                let active = document.activeElement;
+                                let isTextInput = (active.tagName === 'INPUT' && active.type !== 'file') || active.tagName === 'TEXTAREA' || active.isContentEditable;
+                                if (!isTextInput) {
+                                    $event.preventDefault();
+                                    @this.uploadMultiple('tempFiles', $event.clipboardData.files);
+                                }
+                            }
+                         "
                          :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30': isDropping, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900': !isDropping }"
                          class="flex flex-col items-center justify-center w-full h-24 px-4 py-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 relative">
 
