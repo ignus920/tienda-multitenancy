@@ -68,9 +68,23 @@ class InvoiceDataBuilder
         // Obtener datos del cliente (equivalente a getGlobalProduct en JS)
         $customerData = self::getCustomerDataForInvoice($quote);
 
-        // Obtener ID del vendedor: usar el override si se proporcionó (ej. desde remisión),
-        // o el usuario autenticado como fallback
-        $sellerIdAlegra = $sellerApiId ?? self::getSellerIdFromCurrentUser();
+        // Prioridad del Vendedor (seller):
+        // 1. El seller_id fijo del cliente en BD (vnt_companies)
+        // 2. El override de quien hizo la cotización/remisión ($sellerApiId)
+        // 3. VACÍO: Si no hay ninguno de los dos, viaja vacío para que Alegra asigne el que tiene el tercero,
+        //    (NUNCA se asigna al usuario autenticado que está facturando).
+        
+        $company = clone $quote;
+        $companyData = $company->branch->company ?? \App\Models\Tenant\Customer\VntCompany::find($company->branch?->companyId);
+        $customerSellerId = $companyData ? $companyData->seller_id : null;
+        $customerSellerAlegra = null;
+        
+        if ($customerSellerId) {
+            $customerSeller = \App\Models\Auth\User::find($customerSellerId);
+            $customerSellerAlegra = $customerSeller->api_data_id ?? null;
+        }
+
+        $sellerIdAlegra = $customerSellerAlegra ?? $sellerApiId ?? null;
 
         // Procesar métodos de pago (traducir lógica del for loop de JS)
         $paymentData = self::processPaymentMethods($paymentMethods);
@@ -122,8 +136,10 @@ class InvoiceDataBuilder
             $dataAlegra['paymentMethod'] = $paymentData['paymentMethod'];
         }
 
-        // El campo seller fue removido según la directriz:
-        // "cuando se dispare la factura desde el ERP, el campo de vendedor viaje vacío o en ceros. Esto para que cuando se esté creando el documento de factura, en ese campo se llame el vendedor asignado que tiene el tercero dentro del ALEGRA."
+        // Añadir el vendedor a la factura (priorizando el vendedor fijo del cliente)
+        if (!empty($sellerIdAlegra)) {
+            $dataAlegra['seller'] = (string)$sellerIdAlegra;
+        }
 
         // Retenciones deshabilitadas: no se envían a Alegra
 

@@ -52,6 +52,7 @@ class VntCompany extends Model
         'code_ciiu',
         'fiscalResponsabilityId',
         'api_data_id', // Para sincronización con API
+        'seller_id', // Vendedor asignado
     ];
 
     /**

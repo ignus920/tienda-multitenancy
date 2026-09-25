@@ -118,6 +118,7 @@ class VntCompanyForm extends Component
     public $fiscalResponsabilityId = '';
     public $verification_digit = '';
     public $type = '';
+    public $seller_id = null;
 
     // Real-time validation properties
     public $identificationExists = false;
@@ -269,12 +270,18 @@ class VntCompanyForm extends Component
     {
         $this->ensureTenantConnection();
         $pricelists = \App\Models\Tenant\Parameters\PriceList::active()->get();
+        
+        $tenantId = session('tenant_id');
+        $sellers = User::whereHas('tenants', function ($query) use ($tenantId) {
+            $query->where('tenants.id', $tenantId);
+        })->orderBy('name')->get();
 
         return view('livewire.tenant.vnt-company.components.vnt-company-form', [
             'items' => $this->items, // Se cachea automáticamente entre renders
             'sortField' => $this->sortField,
             'sortDirection' => $this->sortDirection,
-            'pricelists' => $pricelists
+            'pricelists' => $pricelists,
+            'sellers' => $sellers
         ]);
     }
 
@@ -316,6 +323,7 @@ class VntCompanyForm extends Component
         $this->verification_digit = (string)$company->checkDigit; // Cargar el DV desde checkDigit
         $this->status = $company->status ?? 1;
         $this->type = $company->type;
+        $this->seller_id = $company->seller_id;
         // Cargar ruta asignada si existe
         $route = VntCompanyRoute::where('company_id', $id)->first();
         $this->routeId = $route ? $route->route_id : '';
@@ -1694,6 +1702,7 @@ class VntCompanyForm extends Component
             'positionId' => $this->positionId,
             'routeId' => $this->routeId === '' ? null : $this->routeId,
             'type' => $this->type ?: 'CLIENTE',
+            'seller_id' => $this->seller_id === '' ? null : $this->seller_id,
             'cash_pricelist_id' => $this->cash_pricelist_id === '' ? null : $this->cash_pricelist_id,
             'credit_pricelist_id' => $this->credit_pricelist_id === '' ? null : $this->credit_pricelist_id,
         ];

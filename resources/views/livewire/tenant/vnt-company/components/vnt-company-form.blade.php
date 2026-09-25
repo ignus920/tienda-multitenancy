@@ -644,6 +644,19 @@
                             @endif
                         </div>
 
+                        <!-- Vendedor Asignado -->
+                        <div>
+                            <label for="seller_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vendedor Asignado</label>
+                            <select wire:model="seller_id" id="seller_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">-- Sin Vendedor Fijo --</option>
+                                @foreach($sellers as $seller)
+                                    <option value="{{ $seller->id }}">{{ $seller->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('seller_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Si está vacío, la venta pertenecerá al creador de la cotización.</p>
+                        </div>
+
                         @if($this->canUploadsEnable())
                             @if ($type)
                                 @if ($type == 'CLIENTE')
