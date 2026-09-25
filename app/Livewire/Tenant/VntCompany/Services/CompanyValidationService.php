@@ -50,6 +50,7 @@ class CompanyValidationService
             'verification_digit.required' => 'El dígito de verificación es obligatorio.',
             'verification_digit.max' => 'El dígito de verificación debe ser de 1 carácter.',
             'type.required' => 'El tipo de contacto es obligatorio.',
+            'seller_id.required' => 'El vendedor asignado es obligatorio.',
 
             // Persona jurídica
             'businessName.required' => 'La razón social es obligatoria para personas jurídicas.',
@@ -90,6 +91,7 @@ class CompanyValidationService
             'code_ciiu' => 'código CIIU',
             'status' => 'estado',
             'type' => 'tipo',
+            'seller_id' => 'vendedor asignado',
 
             // Persona jurídica
             'businessName' => 'razón social',

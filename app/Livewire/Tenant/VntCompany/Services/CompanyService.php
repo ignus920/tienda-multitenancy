@@ -206,7 +206,7 @@ class CompanyService
             'personal_phone' => $data['business_phone'] ?? null,
             'status' => $data['status'] ?? 1,
             'type' => $data['type'] ?? null,
-            // 'vntUserId' => $data['vntUserId'] ?? null, // Campo no existe en la tabla
+            'seller_id' => $data['seller_id'] ?? null,
             'routeId' => $data['routeId'] ?? null,
             'cash_pricelist_id' => $data['cash_pricelist_id'] ?? null,
             'credit_pricelist_id' => $data['credit_pricelist_id'] ?? null,
