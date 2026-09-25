@@ -481,9 +481,10 @@
                     class="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                     Cancelar
                 </button>
-                <button wire:click="createProject" type="button"
-                    class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg shadow transition-colors">
-                    Iniciar Proyecto
+                <button wire:click="createProject" type="button" wire:loading.attr="disabled" wire:target="createProject"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="createProject">Iniciar Proyecto</span>
+                    <span wire:loading wire:target="createProject">Iniciando...</span>
                 </button>
             </div>
         </div>
