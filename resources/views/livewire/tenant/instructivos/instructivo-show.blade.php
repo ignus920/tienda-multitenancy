@@ -265,7 +265,7 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold text-indigo-600">Haz clic</span> o arrastra archivos aquí</p>
                             <p class="text-[11px] text-gray-400 dark:text-gray-500">También puedes pegar (Ctrl+V) una imagen copiada</p>
                         </div>
-                        <input type="file" wire:model="tempFiles" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        <input type="file" wire:model="tempFiles" x-on:paste.prevent multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                     </div>
 
                     <div wire:loading wire:target="tempFiles" class="mt-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
