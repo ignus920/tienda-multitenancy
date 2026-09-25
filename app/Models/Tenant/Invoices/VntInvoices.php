@@ -57,6 +57,13 @@ class VntInvoices extends Model
                 if (!$quote || !$quote->userId) return;
 
                 $sellerId = $quote->userId; // Asesor que hizo la cotización/venta
+                
+                // Verificar que el usuario sea realmente un Asesor o Vendedor (Perfiles 4 y 16)
+                $sellerUser = \App\Models\Auth\User::find($sellerId);
+                if (!$sellerUser || !in_array($sellerUser->profile_id, [4, 16])) {
+                    return; // Ignorar si fue una OP creada por un Administrador, Bodega, etc.
+                }
+
                 $companyId = $quote->branch?->companyId;
                 
                 if (!$companyId) return;
