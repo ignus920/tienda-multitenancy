@@ -71,6 +71,7 @@
                                 @endforeach
                             @endif
                         </div>
+                    @endif
 
                     <button type="button" wire:click="deleteField({{ $attr['id'] }})" title="Eliminar campo" class="absolute -top-2 -right-2 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-sm">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
