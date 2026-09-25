@@ -2168,10 +2168,6 @@ class VntCompanyForm extends Component
                 'department' => $cityInfo['departmentName'] ?? 'Cundinamarca',
                 'country' => 'Colombia',
                 'zipCode' => $this->warehousePostcode ?: ''
-            ],
-            'accounting' => [
-                'debtToPay'         => 6641,
-                'accountReceivable' => 6344,
             ]
         ];
     }

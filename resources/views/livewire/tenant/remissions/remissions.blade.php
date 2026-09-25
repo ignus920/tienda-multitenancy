@@ -979,7 +979,11 @@
                         @endif
                     </div>
 
-                    @php $clienteIncompleto = is_null($selectedCustomer) || empty($selectedCustomer['api_data_id']); @endphp
+                    @php 
+                        $clienteIncompleto = is_null($selectedCustomer) || 
+                            empty($selectedCustomer['regimeId']) || 
+                            empty($selectedCustomer['fiscalResponsabilityId']); 
+                    @endphp
 
                     {{-- BLOQUEO: cliente sin datos completos en Alegra --}}
                     @if($clienteIncompleto)
