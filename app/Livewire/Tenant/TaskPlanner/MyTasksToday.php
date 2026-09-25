@@ -64,7 +64,7 @@ class MyTasksToday extends Component
     public $createTitle = '';
     public $createDescription = '';
     public $createDepartmentId = '';
-    public $createEstimatedTime = '00:30';
+    public $createEstimatedTime = 30;
     public $createPriority = 'p3_normal';
     public $departments = [];
 
@@ -128,7 +128,7 @@ class MyTasksToday extends Component
     {
         $this->ensureTenantConnection();
         $this->reset(['createTitle', 'createDescription', 'createDepartmentId', 'createEstimatedTime', 'createPriority']);
-        $this->createEstimatedTime = '00:30';
+        $this->createEstimatedTime = 30;
         $this->createPriority = 'p3_normal';
         $this->showCreateTaskModal = true;
     }
@@ -139,15 +139,11 @@ class MyTasksToday extends Component
 
         $this->validate([
             'createTitle' => 'required|string|max:255',
-            'createDepartmentId' => 'required|exists:tenant.tsk_departments,id',
-            'createEstimatedTime' => 'required|date_format:H:i',
+            'createEstimatedTime' => 'required|integer|min:1',
             'createPriority' => 'required|in:p1_urgente,p2_alta,p3_normal,p4_baja',
-        ], [
-            'createEstimatedTime.date_format' => 'El formato del tiempo debe ser HH:MM.'
         ]);
 
-        $parts = explode(':', $this->createEstimatedTime);
-        $minutes = ((int) $parts[0] * 60) + (int) $parts[1];
+        $minutes = (int) $this->createEstimatedTime;
 
         if ($minutes < 1) {
             $this->addError('createEstimatedTime', 'El tiempo estimado debe ser mayor a 0 minutos.');
@@ -157,7 +153,7 @@ class MyTasksToday extends Component
         $data = [
             'title' => $this->createTitle,
             'description' => $this->createDescription,
-            'department_id' => $this->createDepartmentId,
+            'department_id' => $this->departments[0]['id'] ?? null,
             'estimated_minutes' => $minutes,
             'priority' => $this->createPriority,
             'location_type' => 'empresa', // Por defecto interno
