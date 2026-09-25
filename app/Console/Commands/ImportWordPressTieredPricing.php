@@ -26,6 +26,8 @@ class ImportWordPressTieredPricing extends Command
         {file : Ruta del Excel (relativa a la raíz del proyecto o absoluta)}
         {--tenant= : ID del tenant con la configuración de WordPress (obligatorio)}
         {--sku= : Procesar un único SKU (Código Interno)}
+        {--parent-text : Solo poner el texto de venta mínima en los productos padre de las variaciones}
+        {--parent= : Con --parent-text, procesar un único producto padre (ID de WordPress)}
         {--dry-run : Solo mostrar estado actual y lo que se enviaría, sin modificar nada}';
 
     protected $description = 'Importa precios por escala (%), cantidad mínima y múltiplo de compra a WooCommerce desde Excel';
@@ -47,6 +49,11 @@ class ImportWordPressTieredPricing extends Command
 
         if (!$tenantId) {
             $this->error('Debe indicar --tenant=');
+            return self::FAILURE;
+        }
+
+        if ($this->option('parent-text') && $skuFiltro !== null) {
+            $this->error('--parent-text necesita todas las filas del Excel; use --parent=ID en lugar de --sku.');
             return self::FAILURE;
         }
 
@@ -100,6 +107,11 @@ class ImportWordPressTieredPricing extends Command
         if (!$wpService->isConfigured()) {
             $this->error('WordPress no está configurado para este tenant.');
             return self::FAILURE;
+        }
+
+        if ($this->option('parent-text')) {
+            $parentFiltro = $this->option('parent') !== null ? (int) $this->option('parent') : null;
+            return $this->handleParentText($rows, $wpService, $dryRun, $parentFiltro);
         }
 
         if (!$dryRun && $skuFiltro === null) {
@@ -210,6 +222,140 @@ class ImportWordPressTieredPricing extends Command
         $this->line("📝 Reporte: <info>{$reportPath}</info>");
 
         Log::info('✅ [WP-Tiered] Importación finalizada', ['dry_run' => $dryRun, 'resultados' => $counts]);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Pone el texto de venta mínima en la descripción corta de los productos padre
+     * (las variaciones no tienen descripción corta propia; la del padre la ven todos los colores).
+     * Solo toca un padre si todos sus colores están en el Excel y tienen el mismo mínimo.
+     */
+    protected function handleParentText(array $rows, WordPressService $wpService, bool $dryRun, ?int $parentFiltro): int
+    {
+        $this->line('🧩 Modo: texto de venta mínima en productos padre');
+        $minBySku = array_column($rows, 'min', 'sku');
+
+        // 1. Agrupar las filas del Excel por producto padre
+        $groups       = [];
+        $variationMap = [];
+
+        if ($parentFiltro) {
+            $this->line("🎯 Solo padre: <info>{$parentFiltro}</info>");
+            $variationSkus = $wpService->getVariationSkus($parentFiltro);
+            if ($variationSkus === null) {
+                $this->error('No se pudieron consultar las variaciones de ese padre.');
+                return self::FAILURE;
+            }
+            $variationMap[$parentFiltro] = $variationSkus;
+            foreach ($variationSkus as $sku) {
+                if ($sku !== '' && isset($minBySku[$sku])) {
+                    $groups[$parentFiltro][$sku] = $minBySku[$sku];
+                }
+            }
+        } else {
+            $this->line('🔍 Buscando a qué producto padre pertenece cada SKU (puede tardar unos minutos)...');
+            foreach ($rows as $row) {
+                $wpProduct = $wpService->findProductBySku($row['sku']);
+                if ($wpProduct && $wpProduct['is_variation']) {
+                    $groups[(int) $wpProduct['parent_id']][$row['sku']] = $row['min'];
+                }
+            }
+        }
+
+        if (empty($groups)) {
+            $this->warn('No se encontraron variaciones del Excel para procesar.');
+            return self::SUCCESS;
+        }
+
+        $this->line('Productos padre encontrados: <info>' . count($groups) . '</info>');
+
+        if (!$dryRun && !$parentFiltro) {
+            if (!$this->confirm('¿Poner el texto en ' . count($groups) . ' productos padre?', false)) {
+                $this->warn('Cancelado. No se modificó nada.');
+                return self::SUCCESS;
+            }
+        }
+
+        // 2. Procesar cada padre
+        $report = [];
+        foreach ($groups as $parentId => $skuMins) {
+            $this->newLine();
+            $this->line("━━━ Padre <info>{$parentId}</info> — colores en Excel: " . count($skuMins) . ' ━━━');
+
+            $mins = array_values(array_unique($skuMins));
+            if (count($mins) > 1) {
+                $detail = collect($skuMins)->map(fn ($min, $sku) => "{$sku}={$min}")->implode(' ');
+                $this->warn("  ⚠️  Sus colores tienen mínimos distintos ({$detail}) — no se toca");
+                $report[] = [$parentId, count($skuMins), 'MINIMOS_DISTINTOS', $detail];
+                continue;
+            }
+            $min = (int) $mins[0];
+
+            $variationSkus = $variationMap[$parentId] ?? $wpService->getVariationSkus($parentId);
+            if ($variationSkus === null) {
+                $this->error('  ❌ No se pudieron consultar sus variaciones — omitido');
+                $report[] = [$parentId, count($skuMins), 'ERROR_CONSULTA', 'variaciones'];
+                continue;
+            }
+
+            $outside = [];
+            foreach ($variationSkus as $variationId => $sku) {
+                if ($sku === '' || !isset($skuMins[$sku])) {
+                    $outside[] = $sku === '' ? "(sin SKU, id {$variationId})" : $sku;
+                }
+            }
+            if (!empty($outside)) {
+                $detail = implode(' ', $outside);
+                $this->warn("  ⚠️  Tiene colores que no están en el Excel ({$detail}) — no se toca");
+                $report[] = [$parentId, count($skuMins), 'VARIACIONES_FUERA_EXCEL', $detail];
+                continue;
+            }
+
+            $raw = $wpService->getProductById($parentId, null, 'edit');
+            if (!$raw || !array_key_exists('short_description', $raw)) {
+                $this->error('  ❌ No se pudo leer la descripción corta — omitido');
+                $report[] = [$parentId, count($skuMins), 'ERROR_CONSULTA', 'short_description'];
+                continue;
+            }
+
+            $this->line("  Producto: {$raw['name']} — mínimo {$min} en todos sus colores");
+            [$newShort, $textAction] = $this->buildShortDescription((string) $raw['short_description'], $min);
+            $this->showTextPlan($textAction, $min);
+
+            if ($newShort === null || $dryRun) {
+                $report[] = [$parentId, count($skuMins), $dryRun ? 'DRY_RUN' : 'SIN_CAMBIO', $textAction];
+                continue;
+            }
+
+            $result = $wpService->updateShortDescription($parentId, $newShort);
+            if (!$result['success']) {
+                $this->error("  ❌ Error HTTP {$result['http_status']}: " . mb_substr((string) $result['body'], 0, 300));
+                $report[] = [$parentId, count($skuMins), 'ERROR_ACTUALIZANDO', 'HTTP ' . $result['http_status']];
+                continue;
+            }
+
+            $afterRaw = $wpService->getProductById($parentId, null, 'edit');
+            $this->line('    Descripción corta (final): ' . mb_substr(trim((string) ($afterRaw['short_description'] ?? '')), -160));
+            $this->info('  ✅ Actualizado');
+            $report[] = [$parentId, count($skuMins), 'ACTUALIZADO', $textAction];
+        }
+
+        // 3. Reporte
+        $reportPath = storage_path('app/wp_parent_text_' . ($dryRun ? 'dryrun_' : '') . now()->format('Ymd_His') . '.csv');
+        $fh = fopen($reportPath, 'w');
+        fputcsv($fh, ['padre_id', 'colores_excel', 'resultado', 'detalle']);
+        foreach ($report as $line) {
+            fputcsv($fh, $line);
+        }
+        fclose($fh);
+
+        $counts = array_count_values(array_column($report, 2));
+        $this->newLine();
+        $this->table(['Resultado', 'Cantidad'], collect($counts)->map(fn ($n, $k) => [$k, $n])->values()->all());
+        $this->line("📝 Reporte: <info>{$reportPath}</info>");
+
+        Log::info('✅ [WP-Tiered] Texto en padres finalizado', ['dry_run' => $dryRun, 'resultados' => $counts]);
 
         return self::SUCCESS;
     }
