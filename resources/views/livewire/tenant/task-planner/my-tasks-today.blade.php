@@ -510,16 +510,6 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Departamento</label>
-                        <select wire:model="createDepartmentId" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                            <option value="">Selecciona...</option>
-                            @foreach($departments as $dept)
-                            <option value="{{ $dept['id'] }}">{{ $dept['name'] }}</option>
-                            @endforeach
-                        </select>
-                        @error('createDepartmentId') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
                         <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Prioridad</label>
                         <select wire:model="createPriority" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
                             <option value="p1_urgente">Urgente</option>
@@ -528,11 +518,11 @@
                             <option value="p4_baja">Baja</option>
                         </select>
                     </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tiempo Estimado</label>
-                    <input wire:model="createEstimatedTime" type="time" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
-                    @error('createEstimatedTime') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Tiempo Estimado (minutos)</label>
+                        <input wire:model="createEstimatedTime" type="number" min="1" step="1" placeholder="Ej. 30" class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm">
+                        @error('createEstimatedTime') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
