@@ -270,7 +270,8 @@ class ManageTasks extends Component
     private function assignableUsersQuery()
     {
         return User::whereHas('tenants', function ($q) {
-                $q->where('tenants.id', session('tenant_id'));
+                $q->where('tenants.id', session('tenant_id'))
+                  ->where('user_tenants.is_active', 1);
             })
             ->whereNotIn('profile_id', [17, 18])
             ->orderBy('name');
