@@ -240,32 +240,18 @@
                     </div>
                     @endif
 
-                    <div x-data="{ isDropping: false }"
+                    <div id="instructivo-dropzone" x-data="{ isDropping: false }"
                          x-on:dragover.prevent="isDropping = true"
                          x-on:dragleave.prevent="isDropping = false"
                          x-on:drop.prevent="isDropping = false; if($event.dataTransfer.files.length) { @this.uploadMultiple('tempFiles', $event.dataTransfer.files) }"
-                         x-on:paste.window="
-                            if ($event.clipboardData && $event.clipboardData.files.length > 0) {
-                                let active = document.activeElement;
-                                let isTextInput = (active.tagName === 'INPUT' && active.type !== 'file') || active.tagName === 'TEXTAREA' || active.isContentEditable;
-                                if (!isTextInput) {
-                                    $event.preventDefault();
-                                    if (!window._isPastingFiles) {
-                                        window._isPastingFiles = true;
-                                        @this.uploadMultiple('tempFiles', $event.clipboardData.files);
-                                        setTimeout(() => window._isPastingFiles = false, 500);
-                                    }
-                                }
-                            }
-                         "
                          :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30': isDropping, 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900': !isDropping }"
                          class="flex flex-col items-center justify-center w-full h-24 px-4 py-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 relative">
 
                         <div class="flex flex-col items-center justify-center pointer-events-none">
                             <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold text-indigo-600">Haz clic</span> o arrastra archivos aquí</p>
-                            <p class="text-[11px] text-gray-400 dark:text-gray-500">También puedes pegar (Ctrl+V) una imagen copiada</p>
+                            <p class="text-[11px] text-gray-400 dark:text-gray-500">También puedes pegar (Ctrl+V) una imagen copiada en cualquier parte</p>
                         </div>
-                        <input type="file" x-on:change="if(!window._isPastingFiles) { @this.uploadMultiple('tempFiles', $event.target.files) }" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        <input type="file" wire:model="tempFiles" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                     </div>
 
                     <div wire:loading wire:target="tempFiles" class="mt-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
