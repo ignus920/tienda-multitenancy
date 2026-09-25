@@ -963,6 +963,8 @@ class ProductQuoter extends Component
         $product = Items::select('id', 'type')->find($productId);
         
         // Si el producto es ENSAMBLADO, abrir el modal de configuración en lugar de agregarlo directamente
+        // FUNCIONALIDAD DESACTIVADA TEMPORALMENTE (RAMA 144)
+        /*
         if (!$bypassAssembledCheck && $product && $product->type === 'ENSAMBLADO') {
             $this->dispatch('open-assembled-product-modal', [
                 'productId' => $productId,
@@ -971,6 +973,7 @@ class ProductQuoter extends Component
             ]);
             return;
         }
+        */
 
         // Verificar si el producto ya está en el cotizador (sin consulta DB)
         $existingIndex = $this->findProductInQuoter($productId);
