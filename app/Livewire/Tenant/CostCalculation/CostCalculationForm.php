@@ -717,14 +717,12 @@ class CostCalculationForm extends Component
             // Crear el precio de lista usando el salePrice que haya configurado
             $price = is_numeric($this->salePrice) ? (float) $this->salePrice : $this->computeTotals($this->computeAllLines())['total'];
             
-            DB::connection('tenant')->table('inv_values')->insert([
+            \App\Models\Tenant\Items\InvValues::create([
                 'itemId' => $item->id,
                 'priceListId' => 1, // Lista base normal
                 'type' => 'Lista',
                 'price' => $price,
                 'cost' => $this->computeTotals($this->computeAllLines())['total'],
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
 
             // Guardar el tipo en el calculo de costos
