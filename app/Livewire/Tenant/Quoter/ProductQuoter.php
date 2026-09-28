@@ -3517,7 +3517,11 @@ class ProductQuoter extends Component
                 $this->opSellersList = \App\Models\Auth\User::whereHas('tenants', function ($q) use ($tenantId) { 
                     $q->where('tenants.id', $tenantId)
                       ->where('user_tenants.is_active', 1); 
-                })->orderBy('name')->get()->toArray();
+                })
+                ->whereIn('profile_id', [4, 16])
+                ->orderBy('name')
+                ->get()
+                ->toArray();
             } else {
                 $this->clientNeedsSeller = false;
                 $this->selectedOpSellerId = null;
