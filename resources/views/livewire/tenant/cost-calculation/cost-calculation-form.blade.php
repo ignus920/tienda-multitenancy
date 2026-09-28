@@ -438,6 +438,7 @@
                                                 <th scope="col" class="px-4 py-3 text-center">Cantidad</th>
                                                 <th scope="col" class="px-4 py-3 text-right">Potencia unitaria</th>
                                                 <th scope="col" class="px-4 py-3 text-right">Potencia total</th>
+                                                <th scope="col" class="px-4 py-3 w-10"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -464,6 +465,12 @@
                                                         <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ $opt['quantity'] }}</td>
                                                         <td class="px-4 py-3 text-right">{{ number_format($opt['unit_power'], 0) }} W</td>
                                                         <td class="px-4 py-3 text-right font-extrabold text-indigo-600 dark:text-indigo-400">{{ number_format($opt['total_power'], 0) }} W</td>
+                                                        <td class="px-4 py-3 text-right">
+                                                            <button type="button" wire:click="addPowerSupplyToLines({{ $opt['item_id'] }}, {{ $opt['quantity'] }})" class="px-3 py-1.5 text-xs font-bold text-white bg-green-500 hover:bg-green-600 rounded shadow-sm transition-colors flex items-center gap-1">
+                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                                                Agregar
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 @endforeach
                                             @endforeach

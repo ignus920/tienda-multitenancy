@@ -264,6 +264,30 @@ class CostCalculationForm extends Component
         $this->showPowerSupplyModal = true;
     }
 
+    public function addPowerSupplyToLines($itemId, $quantity)
+    {
+        if (!$this->checkCanEdit()) return;
+
+        $item = Items::with(['invValues', 'tax', 'dimensions'])->find($itemId);
+        if (!$item) return;
+
+        $fullDescription = $item->internal_code ? "{$item->internal_code} - {$item->name}" : $item->name;
+
+        $this->lines[] = [
+            'db_id' => null,
+            'origin' => 'erp',
+            'item_id' => $item->id,
+            'description' => $fullDescription,
+            'mode' => 'unit',
+            'quantity' => $quantity,
+            'cm_quantity' => null,
+            'ext_unit_value' => null,
+        ];
+
+        $this->showPowerSupplyModal = false; // Cerramos el modal
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => "Se agregaron {$quantity}x {$fullDescription} a la lista"]);
+    }
+
     // ---------------- Producto externo ----------------
 
     public function addExternalItem()

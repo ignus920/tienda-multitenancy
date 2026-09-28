@@ -148,6 +148,7 @@ class PowerSupplyCalculatorService
 
                     if ($bestSource) {
                         $options[] = [
+                            'item_id' => $bestSource->id,
                             'type' => 1,
                             'code' => $bestSource->internal_code ?: $bestSource->sku,
                             'quantity' => 1,
@@ -163,6 +164,7 @@ class PowerSupplyCalculatorService
                     });
                     if ($bestSource) {
                         $options[] = [
+                            'item_id' => $bestSource->id,
                             'type' => 1,
                             'code' => $bestSource->internal_code ?: $bestSource->sku,
                             'quantity' => 1,
@@ -180,6 +182,7 @@ class PowerSupplyCalculatorService
 
                     if ($bestPairSource) {
                         $options[] = [
+                            'item_id' => $bestPairSource->id,
                             'type' => 2,
                             'code' => $bestPairSource->internal_code ?: $bestPairSource->sku,
                             'quantity' => 2,
