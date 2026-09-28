@@ -379,6 +379,7 @@ class ImportList extends Component
                 'inv_items.description',
                 'inv_items.name',
                 'inv_items.internal_code',
+                'inv_items.is_under_evaluation',
                 'inv_items_store.stock_items_store',
                 'imp_items_setup.exw',
                 's7m.salidas_7_meses',
