@@ -28,55 +28,54 @@ class PowerSupplyCalculatorService
             if (!$item) continue;
 
             $dimensions = $item->dimensions;
-            if (!$dimensions) {
-                // No tiene dimensiones
-                continue;
-            }
+            $voltage = $dimensions ? floatval($dimensions->voltage) : 0;
+            $power = $dimensions ? floatval($dimensions->power) : 0;
+            $itemName = strtoupper($item->name);
 
             // Validar que el producto NO sea una fuente de poder (las fuentes no consumen energía, la proveen)
-            $itemName = strtoupper($item->name);
             if (str_contains($itemName, 'FUENTE') || str_contains($itemName, 'DRIVER') || str_contains($itemName, 'TRANSFORMADOR')) {
                 continue;
             }
 
-            $voltage = floatval($dimensions->voltage);
-            $power = floatval($dimensions->power);
-
-            // Si el producto no tiene voltaje o potencia, quizás no es un producto que consuma energía
-            // Sin embargo, si es una cinta LED o módulo, debería tenerlo.
-            if ($voltage > 0 && $power > 0) {
-                // Calcular cantidad real (Metros o Unidades)
-                $qty = 0;
-                if (isset($line['mode']) && $line['mode'] === 'cm') {
-                    // Si se cobra por cm, la cantidad en metros es cm / 100
-                    $qty = floatval($line['cm_quantity']) / 100;
-                } else {
-                    $qty = floatval($line['quantity']);
-                }
-
-                if ($qty <= 0) {
-                    return [
-                        'status' => 'error',
-                        'message' => "El producto {$item->internal_code} tiene cantidad 0 o inválida."
-                    ];
-                }
-
-                $productsToPower[] = [
-                    'item' => $item,
-                    'voltage' => $voltage,
-                    'power' => $power,
-                    'qty' => $qty,
-                    'total_power' => $power * $qty
-                ];
-            } else {
-                // Validación "A prueba de tontos": Si el producto no tiene voltaje o potencia, pero por su nombre sabemos que debería tenerlo
+            // Validación "A prueba de tontos": Si el producto NO tiene voltaje o potencia, verificamos si es algo que debería tenerlo
+            if ($voltage <= 0 || $power <= 0) {
                 if (str_contains($itemName, 'CINTA') || str_contains($itemName, 'LED') || str_contains($itemName, 'MODULO') || str_contains($itemName, 'NEON') || str_contains($itemName, 'MANGUERA')) {
                     return [
                         'status' => 'error',
                         'message' => "El producto '{$item->internal_code} - {$item->name}' es un artículo de iluminación, pero NO tiene su Voltaje o Potencia configurados. Por favor parametrice estos valores numéricos en la pestaña 'Medidas' de su ficha técnica para poder calcular."
                     ];
                 }
+                // Si no es un artículo de iluminación, simplemente lo ignoramos (ej. un tornillo o un cable)
+                continue;
             }
+
+            // Si llegamos aquí, es porque SÍ tiene voltaje y potencia válidos
+
+            // Si el producto no tiene voltaje o potencia, quizás no es un producto que consuma energía
+            // Sin embargo, si es una cinta LED o módulo, debería tenerlo.
+            // Calcular cantidad real (Metros o Unidades)
+            $qty = 0;
+            if (isset($line['mode']) && $line['mode'] === 'cm') {
+                // Si se cobra por cm, la cantidad en metros es cm / 100
+                $qty = floatval($line['cm_quantity']) / 100;
+            } else {
+                $qty = floatval($line['quantity']);
+            }
+
+            if ($qty <= 0) {
+                return [
+                    'status' => 'error',
+                    'message' => "El producto {$item->internal_code} tiene cantidad 0 o inválida."
+                ];
+            }
+
+            $productsToPower[] = [
+                'item' => $item,
+                'voltage' => $voltage,
+                'power' => $power,
+                'qty' => $qty,
+                'total_power' => $power * $qty
+            ];
         }
 
         if (empty($productsToPower)) {
