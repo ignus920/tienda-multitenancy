@@ -710,7 +710,7 @@ class CostCalculationForm extends Component
                 'inventoriable' => 1,
                 'purchasing_unit' => 1, // Unidad
                 'consumption_unit' => 1, // Unidad
-                'status' => 'active',
+                'status' => 1,
                 'cost_calculation_id' => $this->calculationId, // El puente!
             ]);
 
