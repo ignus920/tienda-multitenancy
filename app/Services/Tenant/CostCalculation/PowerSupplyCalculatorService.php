@@ -33,6 +33,12 @@ class PowerSupplyCalculatorService
                 continue;
             }
 
+            // Validar que el producto NO sea una fuente de poder (las fuentes no consumen energía, la proveen)
+            $itemName = strtoupper($item->name);
+            if (str_contains($itemName, 'FUENTE') || str_contains($itemName, 'DRIVER') || str_contains($itemName, 'TRANSFORMADOR')) {
+                continue;
+            }
+
             $voltage = floatval($dimensions->voltage);
             $power = floatval($dimensions->power);
 
@@ -63,8 +69,13 @@ class PowerSupplyCalculatorService
                     'total_power' => $power * $qty
                 ];
             } else {
-                // Validar si parece un producto que debería tener voltaje (opcional)
-                // Por ejemplo, si pertenece a categoría cintas LED
+                // Validación "A prueba de tontos": Si el producto no tiene voltaje o potencia, pero por su nombre sabemos que debería tenerlo
+                if (str_contains($itemName, 'CINTA') || str_contains($itemName, 'LED') || str_contains($itemName, 'MODULO') || str_contains($itemName, 'NEON') || str_contains($itemName, 'MANGUERA')) {
+                    return [
+                        'status' => 'error',
+                        'message' => "El producto '{$item->internal_code} - {$item->name}' es un artículo de iluminación, pero NO tiene su Voltaje o Potencia configurados. Por favor parametrice estos valores numéricos en la pestaña 'Medidas' de su ficha técnica para poder calcular."
+                    ];
+                }
             }
         }
 
