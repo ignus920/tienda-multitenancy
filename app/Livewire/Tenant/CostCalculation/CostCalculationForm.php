@@ -708,8 +708,8 @@ class CostCalculationForm extends Component
                 'type' => 'ENSAMBLADO',
                 'taxId' => $this->fp_tax_id,
                 'inventoriable' => 1,
-                'purchasing_unit' => 'Unidad',
-                'consumption_unit' => 'Unidad',
+                'purchasing_unit' => 1, // Unidad
+                'consumption_unit' => 1, // Unidad
                 'status' => 'active',
                 'cost_calculation_id' => $this->calculationId, // El puente!
             ]);
