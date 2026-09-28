@@ -44,6 +44,14 @@ class Items extends Model
     ];
 
     /**
+     * Parámetros de fijación de precios y escalas (Simulador de Importaciones).
+     */
+    public function pricingParams()
+    {
+        return $this->hasOne(\App\Models\Tenant\Items\InvItemPricingParam::class, 'item_id', 'id');
+    }
+
+    /**
      * Variable estática para controlar si la configuración ya fue inicializada
      */
     private static $configurationInitialized = false;
