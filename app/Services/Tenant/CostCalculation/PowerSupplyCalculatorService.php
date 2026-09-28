@@ -88,17 +88,6 @@ class PowerSupplyCalculatorService
             $groupedByVoltage[$v]['installed_power'] += $prod['total_power'];
         }
 
-        // 3. Obtener el ID de categoría para "FUENTES"
-        // Buscamos la categoría por nombre o un comodín
-        $sourceCategory = \App\Models\Tenant\Items\Category::where('name', 'like', '%FUENTE%')->first();
-        if (!$sourceCategory) {
-            return [
-                'status' => 'error',
-                'message' => 'No se encontró la categoría de "Fuentes" en el inventario para poder buscar alternativas.'
-            ];
-        }
-        $categoryId = $sourceCategory->id;
-
         // Cargar marcas (Brand) para mapear nombres
         $brands = Brand::pluck('name', 'id')->toArray();
 
@@ -110,11 +99,15 @@ class PowerSupplyCalculatorService
             $installedPower = $group['installed_power'];
             $requiredPower = $installedPower * 1.20; // 20% margen
 
-            // Buscar fuentes de este voltaje
+            // Buscar fuentes de este voltaje por NOMBRE y no por categoría
             // Hacemos join con inv_items_dimensions para filtrar por voltaje y obtener potencia
             $sources = Items::select('inv_items.*', 'inv_items_dimensions.power as source_power', 'inv_items_dimensions.voltage as source_voltage')
                 ->join('inv_items_dimensions', 'inv_items.id', '=', 'inv_items_dimensions.item_id')
-                ->where('inv_items.categoryId', $categoryId)
+                ->where(function($q) {
+                    $q->where('inv_items.name', 'like', '%FUENTE%')
+                      ->orWhere('inv_items.name', 'like', '%DRIVER%')
+                      ->orWhere('inv_items.name', 'like', '%TRANSFORMADOR%');
+                })
                 ->where('inv_items.status', 1)
                 ->where('inv_items_dimensions.voltage', $voltage)
                 ->where('inv_items_dimensions.power', '>', 0)
