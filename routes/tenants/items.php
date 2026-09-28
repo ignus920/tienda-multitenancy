@@ -13,6 +13,7 @@ use App\Http\Controllers\Inventory\WarehousesController;
 //Items
 Route::prefix('/items')->group(function () {
     Route::get('/items', [ItemsController::class, 'homeItems'])->name('items');
+    Route::get('/pricing-simulator', \App\Livewire\Tenant\Pricing\PricingSimulator::class)->name('items.pricing_simulator');
 });
 
 //Categories

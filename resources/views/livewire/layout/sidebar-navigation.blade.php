@@ -915,6 +915,8 @@ new class extends Component
                 @if($invSub('items'))
                 <a href="{{url('/items/items')}}" wire:navigate
                     class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Ítems</a>
+                <a href="{{ route('items.pricing_simulator') }}" wire:navigate
+                    class="block px-2 py-1 hover:text-indigo-600 dark:hover:text-indigo-400">Asignador de Precios</a>
                 @endif
                 @if($invSub('categorias'))
                 <a href="{{url('/inventory/categories')}}" wire:navigate
@@ -967,6 +969,8 @@ new class extends Component
                 @if($invSub('items'))
                 <a href="{{url('/items/items')}}" wire:navigate
                     class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Ítems</a>
+                <a href="{{ route('items.pricing_simulator') }}" wire:navigate
+                    class="block px-3 py-2 text-sm hover:bg-gray-700 transition-colors">Asignador de Precios</a>
                 @endif
                 @if($invSub('categorias'))
                 <a href="{{url('/inventory/categories')}}" wire:navigate
