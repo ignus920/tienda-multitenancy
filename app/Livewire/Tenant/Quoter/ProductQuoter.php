@@ -259,11 +259,8 @@ class ProductQuoter extends Component
         $this->assembledStockError = '';
         $this->assembledIsReady = true;
 
-        $warehouseId = $this->selectedWarehouseId ?? session('selected_warehouse_id') ?? VntWarehouse::first()->id ?? null;
-        
-        // El warehouseId corresponde a la tabla central vnt_warehouses.
-        // Necesitamos el ID interno del almacen en el tenant (inv_store).
-        $storeId = $warehouseId ? (DB::connection('tenant')->table('inv_store')->where('warehouseId', $warehouseId)->value('id') ?? $warehouseId) : null;
+        // Obtener el ID interno de la bodega (inv_store) directamente del usuario
+        $storeId = $this->getUserStoreId();
 
         foreach ($this->assembledFields as &$field) {
             $hasAnyStock = false;
