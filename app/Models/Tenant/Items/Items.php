@@ -39,6 +39,7 @@ class Items extends Model
         'status',
         'handles_serial',
         'is_cuttable',
+        'is_under_evaluation',
     ];
 
     /**

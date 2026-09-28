@@ -206,6 +206,26 @@ class ImportList extends Component
         $this->dispatch('clear-item-selection');
     }
 
+    public function toggleEvaluationStatus($itemId)
+    {
+        try {
+            $this->ensureTenantConnection();
+            $item = Items::find($itemId);
+            if ($item) {
+                $item->is_under_evaluation = !$item->is_under_evaluation;
+                $item->save();
+                
+                $status = $item->is_under_evaluation ? 'En evaluación' : 'Removido de evaluación';
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => "Producto: {$status}."
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error toggleEvaluationStatus: ' . $e->getMessage());
+        }
+    }
+
     public function getOccupiedPrioritiesProperty()
     {
         if (empty($this->selectedItems)) {
@@ -236,6 +256,7 @@ class ImportList extends Component
                 'inv_items.description',
                 'inv_items.name',
                 'inv_items.internal_code',
+                'inv_items.is_under_evaluation',
                 DB::raw('COALESCE(inv_items_store.stock_items_store, 0) AS stock_items_store'),
                  DB::raw(
                      $this->selectedLabelId
@@ -317,30 +338,40 @@ class ImportList extends Component
                     });
                 }
             })
-            ->when($this->filterCritical !== 'ninguno', function ($query) {
-                if ($this->filterCritical === 'importados') {
-                    $query->where('inv_items.type', 'IMPORTADO');
-                } elseif ($this->filterCritical === 'compra_nacional') {
-                    $query->where('inv_items.type', 'COMPRA NACIONAL');
-                } else {
-                    $query->whereIn('inv_items.type', ['IMPORTADO', 'COMPRA NACIONAL']);
-                }
+            ->when($this->filterCritical === 'evaluacion', function ($query) {
+                $query->where('inv_items.is_under_evaluation', 1);
+            }, function ($query) {
+                // Si no estamos viendo "En evaluación", ocultamos los que sí lo están
+                $query->where(function ($q) {
+                    $q->where('inv_items.is_under_evaluation', 0)
+                      ->orWhereNull('inv_items.is_under_evaluation');
+                });
+                
+                $query->when($this->filterCritical !== 'ninguno', function ($q2) {
+                    if ($this->filterCritical === 'importados') {
+                        $q2->where('inv_items.type', 'IMPORTADO');
+                    } elseif ($this->filterCritical === 'compra_nacional') {
+                        $q2->where('inv_items.type', 'COMPRA NACIONAL');
+                    } else {
+                        $q2->whereIn('inv_items.type', ['IMPORTADO', 'COMPRA NACIONAL']);
+                    }
 
-                $query->where(DB::raw('
-                        CASE 
-                            WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
-                            THEN (COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0))
-                            ELSE 0 
-                        END
-                    '), '<', 50)
-                    ->whereNotExists(function ($subQuery) {
-                        $subQuery->select(DB::raw(1))
-                            ->from('imp_imports as iim')
-                            ->whereColumn('iim.item_id', 'inv_items.id')
-                            ->whereNotIn('iim.status', [8, 11])
-                            ->whereNull('iim.deleted_at')
-                            ->whereIn('iim.priority', ['ASAP', 'Second', 'Third']);
-                    });
+                    $q2->where(DB::raw('
+                            CASE 
+                                WHEN (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0)) > 0 
+                                THEN (COALESCE(inv_items_store.stock_items_store, 0) * 100) / (COALESCE(inv_items_store.stock_items_store, 0) + COALESCE(s7m.salidas_7_meses, 0))
+                                ELSE 0 
+                            END
+                        '), '<', 50)
+                        ->whereNotExists(function ($subQuery) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('imp_imports as iim')
+                                ->whereColumn('iim.item_id', 'inv_items.id')
+                                ->whereNotIn('iim.status', [8, 11])
+                                ->whereNull('iim.deleted_at')
+                                ->whereIn('iim.priority', ['ASAP', 'Second', 'Third']);
+                        });
+                });
             })
             ->groupBy(array_filter([
                 'inv_items.id',
