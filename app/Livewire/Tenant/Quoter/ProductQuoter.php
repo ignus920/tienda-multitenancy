@@ -270,7 +270,7 @@ class ProductQuoter extends Component
                 $baseQty = (float)($field['quantity']);
                 $requiredQty = $baseQty * $this->assembledQty;
                 
-                $stock = $storeId ? (InvItemsStore::where('item_id', $optItemId)->where('store_id', $storeId)->value('stock_items_store') ?? 0) : 0;
+                $stock = $storeId ? (InvItemsStore::where('itemId', $optItemId)->where('storeId', $storeId)->value('stock_items_store') ?? 0) : 0;
                 
                 $opt['available_stock'] = $stock;
                 $opt['required_qty'] = $requiredQty;
