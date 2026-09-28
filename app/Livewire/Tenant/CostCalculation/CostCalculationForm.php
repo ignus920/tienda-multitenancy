@@ -57,6 +57,10 @@ class CostCalculationForm extends Component
     public $showDeleteModal = false;
     public $deleteReason = '';
 
+    // Cálculo de Fuentes
+    public $showPowerSupplyModal = false;
+    public $powerSupplyResults = [];
+
     public function mount($calculationId = null)
     {
         $this->ensureTenantConnection();
@@ -238,6 +242,26 @@ class CostCalculationForm extends Component
 
         $this->reset('search', 'searchResults');
         $this->dispatch('show-toast', ['type' => 'success', 'message' => $isCuttable ? 'Agregado — cotízalo por centímetro' : 'Producto agregado']);
+    }
+
+    // ---------------- Cálculo de Fuentes ----------------
+
+    public function calculatePowerSupplies()
+    {
+        $service = new \App\Services\Tenant\CostCalculation\PowerSupplyCalculatorService();
+        $response = $service->calculate($this->lines);
+
+        if ($response['status'] === 'error') {
+            $this->dispatch('show-toast', [
+                'type' => 'error', 
+                'message' => $response['message'],
+                'time' => 8000
+            ]);
+            return;
+        }
+
+        $this->powerSupplyResults = $response['data'];
+        $this->showPowerSupplyModal = true;
     }
 
     // ---------------- Producto externo ----------------

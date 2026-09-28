@@ -102,6 +102,15 @@
                 + Producto externo
             </button>
         </div>
+        
+        <div class="mt-3 flex justify-end">
+            <button type="button" wire:click="calculatePowerSupplies" wire:loading.attr="disabled"
+                class="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow transition-colors shrink-0 flex items-center gap-2">
+                <svg wire:loading.remove wire:target="calculatePowerSupplies" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                <svg wire:loading wire:target="calculatePowerSupplies" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                CALCULAR FUENTES
+            </button>
+        </div>
 
         @if($showExternalForm)
         <div class="bg-gray-50 dark:bg-gray-850 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex gap-2 flex-wrap items-end">
@@ -345,4 +354,135 @@
         </div>
     </div>
     @endif
+
+    <!-- Modal de Cálculo de Fuentes -->
+    <div x-data="{ show: @entangle('showPowerSupplyModal') }"
+         x-show="show"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div x-show="show"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"
+                 @click="show = false" aria-hidden="true"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal panel -->
+            <div x-show="show"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                
+                <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-lg leading-6 font-bold text-white flex items-center gap-2" id="modal-title">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        Informe: Cálculo de Fuentes
+                    </h3>
+                    <button type="button" @click="show = false" class="text-white hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 bg-gray-50 dark:bg-gray-900 max-h-[75vh] overflow-y-auto space-y-6">
+                    @if(!empty($powerSupplyResults))
+                        @foreach($powerSupplyResults as $result)
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+                            
+                            <!-- Resumen por Voltaje -->
+                            <div class="bg-gray-100 dark:bg-gray-750 px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                                <h4 class="text-lg font-extrabold text-gray-900 dark:text-white uppercase mb-3">
+                                    VOLTAJE: <span class="text-indigo-600 dark:text-indigo-400">{{ $result['voltage'] }} VDC</span>
+                                </h4>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Potencia Instalada</p>
+                                        <p class="text-lg font-bold text-gray-800 dark:text-gray-200">{{ number_format($result['installed_power'], 2) }} W</p>
+                                    </div>
+                                    <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600 text-center relative">
+                                        <div class="absolute -left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">+</div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Margen Adicional</p>
+                                        <p class="text-lg font-bold text-gray-800 dark:text-gray-200">20%</p>
+                                        <div class="absolute -right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">=</div>
+                                    </div>
+                                    <div class="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 text-center">
+                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">Potencia Mínima Requerida</p>
+                                        <p class="text-xl font-extrabold text-indigo-700 dark:text-indigo-300">{{ number_format($result['required_power'], 2) }} W</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabla de Alternativas -->
+                            <div class="p-5">
+                                <h5 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-4">Alternativas Encontradas:</h5>
+                                
+                                <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <table class="w-full text-sm text-left text-gray-600 dark:text-gray-300">
+                                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
+                                            <tr>
+                                                <th scope="col" class="px-4 py-3">Línea / Marca</th>
+                                                <th scope="col" class="px-4 py-3 text-center">Opción</th>
+                                                <th scope="col" class="px-4 py-3">Código Fuente</th>
+                                                <th scope="col" class="px-4 py-3 text-center">Cantidad</th>
+                                                <th scope="col" class="px-4 py-3 text-right">Potencia unitaria</th>
+                                                <th scope="col" class="px-4 py-3 text-right">Potencia total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($result['brands'] as $brand)
+                                                @php
+                                                    // Asignar colores por marca (dinámico)
+                                                    $bName = strtolower(trim($brand['brand_name']));
+                                                    $bgClass = 'bg-gray-50 dark:bg-gray-800/50';
+                                                    if(str_contains($bName, 'mean well') || str_contains($bName, 'meanwell')) $bgClass = 'bg-blue-50/50 dark:bg-blue-900/10';
+                                                    elseif(str_contains($bName, 'cl')) $bgClass = 'bg-orange-50/50 dark:bg-orange-900/10';
+                                                    elseif(str_contains($bName, 'genérica') || str_contains($bName, 'generica')) $bgClass = 'bg-green-50/50 dark:bg-green-900/10';
+                                                    elseif(str_contains($bName, 'slim')) $bgClass = 'bg-purple-50/50 dark:bg-purple-900/10';
+                                                @endphp
+                                                
+                                                @foreach($brand['options'] as $idx => $opt)
+                                                    <tr class="border-b border-gray-100 dark:border-gray-750 {{ $bgClass }} hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                                                        @if($idx === 0)
+                                                            <td rowspan="{{ count($brand['options']) }}" class="px-4 py-3 font-extrabold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-700 align-middle">
+                                                                {{ $brand['brand_name'] }}
+                                                            </td>
+                                                        @endif
+                                                        <td class="px-4 py-3 text-center font-bold">{{ $opt['type'] }}</td>
+                                                        <td class="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{{ $opt['code'] }}</td>
+                                                        <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ $opt['quantity'] }}</td>
+                                                        <td class="px-4 py-3 text-right">{{ number_format($opt['unit_power'], 0) }} W</td>
+                                                        <td class="px-4 py-3 text-right font-extrabold text-indigo-600 dark:text-indigo-400">{{ number_format($opt['total_power'], 0) }} W</td>
+                                                    </tr>
+                                                @endforeach
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                        @endforeach
+                    @endif
+                </div>
+
+                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <button type="button" @click="show = false" class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition-colors">
+                        Cerrar Informe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
