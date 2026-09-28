@@ -102,7 +102,7 @@ class PricingSimulator extends Component
                 'factor_min' => $params->factor_min ?? $this->globalFactorMin,
                 'max_discount' => $params->max_discount ?? 10,
                 'box_discount' => $params->box_discount ?? 15,
-                'web_price' => $params->web_price ?? 0,
+                'web_price' => round($params->web_price ?? 0),
                 'scale_1_qty' => $params->scale_1_qty ?? 20,
                 'scale_1_discount' => $params->scale_1_discount ?? 7,
                 'scale_2_qty' => $params->scale_2_qty ?? 100,
@@ -113,7 +113,7 @@ class PricingSimulator extends Component
                 'scale_4_discount' => $params->scale_4_discount ?? 25,
                 
                 // Estos valores serian el P (Lista) manual o calculado
-                'manual_price_list' => $this->getCurrentPrice($item->id, 'Precio Regular') ?? 0, 
+                'manual_price_list' => round($this->getCurrentPrice($item->id, 'Precio Regular') ?? 0), 
             ];
         }
 
@@ -214,7 +214,7 @@ class PricingSimulator extends Component
                 // Precio 1 (Lista -> Precio Regular)
                 InvValues::updateOrCreate(
                     ['itemId' => $item['item_id'], 'type' => 'precio', 'label' => 'Precio Regular'],
-                    ['values' => $p]
+                    ['values' => round($p)]
                 );
 
                 // Precio 2 (Mínimo -> Precio Base)
@@ -222,14 +222,14 @@ class PricingSimulator extends Component
                 $minimoReal = $p - ($p * $maxDscto);
                 InvValues::updateOrCreate(
                     ['itemId' => $item['item_id'], 'type' => 'precio', 'label' => 'Precio Base'],
-                    ['values' => $minimoReal]
+                    ['values' => round($minimoReal)]
                 );
 
                 // Precio 3 (Crédito) = P * 1.10
                 $credito = $p * 1.10;
                 InvValues::updateOrCreate(
                     ['itemId' => $item['item_id'], 'type' => 'precio', 'label' => 'Precio Crédito'],
-                    ['values' => $credito]
+                    ['values' => round($credito)]
                 );
             }
         }
