@@ -520,7 +520,8 @@
                                     Importado
                                 </button>
                                 
-                                <!-- Pestaña Ficha Dinámica -->
+                                {{-- 
+                                <!-- Pestaña Ficha Dinámica (Deshabilitada por reemplazo de módulo Cálculo de Costos) -->
                                 <button type="button" wire:click="activateDynamicSection({{$item_id}})"
                                     wire:loading.attr="disabled" wire:loading.class="opacity-50 cursor-not-allowed"
                                     @mouseenter="showTip($event, 'Formulario dinámico con campos personalizados para el producto.')" @mouseleave="tipVisible = false"
@@ -529,6 +530,7 @@
                                     'text-gray-500 hover:text-gray-800 hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50': !@js($showDynamicSection)}">
                                     Ficha Técnica
                                 </button>
+                                --}}
                                 @endif
 
                                 <!-- Pestaña Proceso de Producción - Solo si tipo PRODUCIDO -->

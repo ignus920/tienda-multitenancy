@@ -2377,35 +2377,22 @@
                     @endif
 
                     <div class="space-y-4">
-                        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">Especificaciones</h4>
+                        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">Piezas Variables Requeridas</h4>
                         
                         @foreach($assembledFields as $index => $field)
                             <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">{{ $field['label'] }}</label>
                                 
-                                @if($field['field_type'] === 'single_product' && !empty($field['value']))
-                                    <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-2 rounded text-xs border border-gray-100 dark:border-gray-600">
-                                        <span class="text-gray-700 dark:text-gray-300 font-medium">{{ $field['value']['code'] ?? '' }} - {{ $field['value']['name'] ?? '' }}</span>
-                                        <span class="text-gray-500 font-bold bg-white dark:bg-gray-600 px-2 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-500">
-                                            Req: {{ ($field['value']['qty'] ?? 1) * $assembledQty }} und
-                                        </span>
-                                    </div>
-                                @elseif($field['field_type'] === 'multiple_products' && !empty($field['options']))
-                                    <select wire:model.live="assembledFields.{{ $index }}.user_value" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                        <option value="">Seleccione una opción...</option>
-                                        @foreach($field['options'] as $opt)
-                                            <option value="{{ $opt['id'] }}" {{ !($opt['has_stock'] ?? true) ? 'disabled' : '' }}>
-                                                {{ $opt['code'] ?? '' }} - {{ $opt['name'] ?? '' }} 
-                                                ({{ ($opt['qty'] ?? 1) * $assembledQty }} req / {{ $opt['available_stock'] ?? 0 }} stock) 
-                                                {{ !($opt['has_stock'] ?? true) ? '⚠️ Sin stock' : '' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                @elseif($field['field_type'] === 'text')
-                                    <input type="text" wire:model.live.debounce.300ms="assembledFields.{{ $index }}.user_value" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                                @elseif($field['field_type'] === 'textarea')
-                                    <textarea wire:model.live.debounce.300ms="assembledFields.{{ $index }}.user_value" rows="2" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                                @endif
+                                <select wire:model.live="assembledFields.{{ $index }}.user_value" class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Seleccione una opción...</option>
+                                    @foreach($field['options'] as $opt)
+                                        <option value="{{ $opt['item_id'] ?? $opt['id'] }}" {{ !($opt['has_stock'] ?? true) ? 'disabled' : '' }}>
+                                            {{ $opt['code'] ?? '' }} - {{ $opt['name'] ?? '' }} 
+                                            ({{ ($field['quantity'] ?? 1) * $assembledQty }} req / {{ $opt['available_stock'] ?? 0 }} stock) 
+                                            {{ !($opt['has_stock'] ?? true) ? '⚠️ Sin stock' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                         @endforeach
                     </div>

@@ -61,6 +61,20 @@ class CostCalculationForm extends Component
     public $showPowerSupplyModal = false;
     public $powerSupplyResults = [];
 
+    // Opciones Variables
+    public $showOptionSearchModal = false;
+    public $targetLineIndex = null;
+    public $optionSearch = '';
+    public $optionSearchResults = [];
+
+    // Producto Terminado
+    public $showFinishedProductModal = false;
+    public $fp_code = '';
+    public $fp_category_id = null;
+    public $fp_tax_id = null;
+    public $categoriesList = [];
+    public $taxesList = [];
+
     public function mount($calculationId = null)
     {
         $this->ensureTenantConnection();
@@ -73,6 +87,14 @@ class CostCalculationForm extends Component
             $this->creatorName = Auth::user()->name ?? '';
             $this->seedPriceListOptions();
         }
+
+        $this->loadSelectOptions();
+    }
+
+    private function loadSelectOptions()
+    {
+        $this->categoriesList = DB::connection('tenant')->table('inv_categories')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->taxesList = DB::connection('tenant')->table('cnf_taxes')->whereNull('deleted_at')->get(['id', 'name', 'percentage'])->toArray();
     }
 
     public function boot()
@@ -174,6 +196,8 @@ class CostCalculationForm extends Component
                 'quantity' => $item->quantity,
                 'cm_quantity' => $item->cm_quantity,
                 'ext_unit_value' => $item->origin === 'externo' ? (float) $item->unit_value : null,
+                'is_variable' => (bool) $item->is_variable,
+                'options' => is_array($item->variable_options) ? $item->variable_options : (json_decode($item->variable_options, true) ?: [])
             ];
         })->toArray();
     }
@@ -238,6 +262,8 @@ class CostCalculationForm extends Component
             'quantity' => $isCuttable ? null : 1,
             'cm_quantity' => $isCuttable ? 100 : null,
             'ext_unit_value' => null,
+            'is_variable' => false,
+            'options' => []
         ];
 
         $this->reset('search', 'searchResults');
@@ -282,6 +308,8 @@ class CostCalculationForm extends Component
             'quantity' => $quantity,
             'cm_quantity' => null,
             'ext_unit_value' => null,
+            'is_variable' => false,
+            'options' => []
         ];
 
         $this->showPowerSupplyModal = false; // Cerramos el modal
@@ -313,12 +341,80 @@ class CostCalculationForm extends Component
             'quantity' => $this->extQuantity,
             'cm_quantity' => null,
             'ext_unit_value' => (float) $this->extPrice,
+            'is_variable' => false,
+            'options' => []
         ];
 
         $this->reset(['extDescription', 'extPrice']);
         $this->extQuantity = 1;
         $this->showExternalForm = false;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Producto externo agregado']);
+    }
+
+    public function toggleVariable($index)
+    {
+        if (!$this->checkCanEdit()) return;
+        if (isset($this->lines[$index])) {
+            $this->lines[$index]['is_variable'] = !($this->lines[$index]['is_variable'] ?? false);
+            if (!isset($this->lines[$index]['options'])) {
+                $this->lines[$index]['options'] = [];
+            }
+        }
+    }
+
+    public function openOptionSearch($index)
+    {
+        $this->targetLineIndex = $index;
+        $this->showOptionSearchModal = true;
+        $this->optionSearch = '';
+        $this->optionSearchResults = [];
+    }
+
+    public function updatedOptionSearch()
+    {
+        $this->ensureTenantConnection();
+        if (strlen($this->optionSearch) < 2) {
+            $this->optionSearchResults = [];
+            return;
+        }
+
+        $words = array_filter(explode(' ', trim($this->optionSearch)));
+        $query = Items::with(['invValues', 'tax', 'dimensions'])->active();
+        foreach ($words as $word) {
+            $query->where(function ($q) use ($word) {
+                $q->where('name', 'like', '%' . $word . '%')
+                  ->orWhere('internal_code', 'like', '%' . $word . '%');
+            });
+        }
+
+        $this->optionSearchResults = $query->limit(5)->get()->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'code' => $item->internal_code,
+            ];
+        })->toArray();
+    }
+
+    public function selectOptionItem($itemId)
+    {
+        $item = Items::find($itemId);
+        if (!$item) return;
+
+        $this->lines[$this->targetLineIndex]['options'][] = [
+            'item_id' => $item->id,
+            'code' => $item->internal_code,
+            'name' => $item->name
+        ];
+
+        $this->showOptionSearchModal = false;
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Opción agregada']);
+    }
+    
+    public function removeOption($lineIndex, $optionIndex)
+    {
+        unset($this->lines[$lineIndex]['options'][$optionIndex]);
+        $this->lines[$lineIndex]['options'] = array_values($this->lines[$lineIndex]['options']);
     }
 
     public function removeLine($index)
@@ -509,6 +605,8 @@ class CostCalculationForm extends Component
                     'cm_quantity' => $line['mode'] === 'cm' ? ($line['cm_quantity'] ?? $line['qty_display']) : null,
                     'unit_value' => $line['unit_display'],
                     'line_cost' => $line['subtotal'],
+                    'is_variable' => $line['is_variable'] ?? false,
+                    'variable_options' => ($line['is_variable'] ?? false) ? ($line['options'] ?? []) : null,
                 ]);
             }
 
@@ -557,6 +655,94 @@ class CostCalculationForm extends Component
     }
 
     // ---------------- Exportar ----------------
+
+    public function openFinishedProductModal()
+    {
+        if (!$this->checkCanEdit()) return;
+        if (empty($this->lines)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Agrega al menos un producto a la lista.']);
+            return;
+        }
+        $this->showFinishedProductModal = true;
+    }
+
+    public function saveAsFinishedProduct()
+    {
+        if (!$this->checkCanEdit()) return;
+
+        $this->validate([
+            'fp_code' => 'required|string|max:50',
+            'fp_category_id' => 'required',
+            'fp_tax_id' => 'required',
+            'name' => 'required|string|max:255',
+        ], [
+            'fp_code.required' => 'El código es obligatorio.',
+            'fp_category_id.required' => 'La categoría es obligatoria.',
+            'fp_tax_id.required' => 'El impuesto es obligatorio.',
+        ]);
+
+        $this->ensureTenantConnection();
+        $exists = Items::where('internal_code', $this->fp_code)->exists();
+        if ($exists) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Ese código ya existe en el inventario.']);
+            return;
+        }
+
+        // Primero guardamos el cálculo de costos normal
+        $this->save(); 
+        
+        if (!$this->calculationId) {
+            return; // Algo falló al guardar
+        }
+
+        // Ahora creamos el producto terminado y lo asociamos
+        DB::connection('tenant')->beginTransaction();
+        try {
+            $item = Items::create([
+                'api_data_id' => 1,
+                'categoryId' => $this->fp_category_id,
+                'name' => $this->name,
+                'internal_code' => $this->fp_code,
+                'sku' => $this->fp_code,
+                'description' => 'Receta: ' . $this->name,
+                'type' => 'ENSAMBLADO',
+                'taxId' => $this->fp_tax_id,
+                'inventoriable' => 1,
+                'purchasing_unit' => 'Unidad',
+                'consumption_unit' => 'Unidad',
+                'status' => 'active',
+                'cost_calculation_id' => $this->calculationId, // El puente!
+            ]);
+
+            // Crear el precio de lista usando el salePrice que haya configurado
+            $price = is_numeric($this->salePrice) ? (float) $this->salePrice : $this->computeTotals($this->computeAllLines())['total'];
+            
+            DB::connection('tenant')->table('inv_values')->insert([
+                'itemId' => $item->id,
+                'priceListId' => 1, // Lista base normal
+                'type' => 'Lista',
+                'price' => $price,
+                'cost' => $this->computeTotals($this->computeAllLines())['total'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Guardar el tipo en el calculo de costos
+            CostCalculation::where('id', $this->calculationId)->update(['type' => 'finished_product']);
+
+            DB::connection('tenant')->commit();
+            
+            $this->showFinishedProductModal = false;
+            $this->dispatch('show-toast', ['type' => 'success', 'message' => '¡Producto Terminado Creado Exitosamente!']);
+            
+            // Refrescar el estado a tipo finished_product
+            $this->type = 'finished_product';
+
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear el producto: ' . $e->getMessage()]);
+        }
+    }
 
     public function exportExcel()
     {
