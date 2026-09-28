@@ -794,6 +794,23 @@ $header = 'Seleccionar productos';
                         Verifiqué que la <strong>dirección y la ciudad</strong> corresponden a la entrega de este pedido.
                     </span>
                 </label>
+
+                @if($clientNeedsSeller)
+                <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-900/20 dark:border-amber-800">
+                    <label class="block text-sm font-bold text-amber-900 dark:text-amber-200 mb-1">
+                        Asignar Vendedor Oficial al Cliente <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model.live="selectedOpSellerId" class="block w-full rounded-md border-amber-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                        <option value="">-- Seleccione un vendedor --</option>
+                        @foreach($opSellersList as $seller)
+                            <option value="{{ $seller['id'] }}">{{ $seller['name'] }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-amber-700 dark:text-amber-400 font-medium">
+                        El cliente no tiene un vendedor fijo asignado en su perfil. Debes elegir uno para poder crear la Orden.
+                    </p>
+                </div>
+                @endif
             </div>
 
             <!-- Footer -->
@@ -805,8 +822,8 @@ $header = 'Seleccionar productos';
                 <button wire:click="confirmOPFinal"
                         wire:loading.attr="disabled"
                         wire:target="confirmOPFinal"
-                        :disabled="!confirmed"
-                        :class="{ 'opacity-50 cursor-not-allowed': !confirmed }"
+                        :disabled="!confirmed || {{ $clientNeedsSeller ? '!$wire.selectedOpSellerId' : 'false' }}"
+                        :class="{ 'opacity-50 cursor-not-allowed': !confirmed || {{ $clientNeedsSeller ? '!$wire.selectedOpSellerId' : 'false' }} }"
                         class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm flex items-center justify-center transition-colors shadow-md disabled:opacity-50">
                     <svg wire:loading wire:target="confirmOPFinal" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
