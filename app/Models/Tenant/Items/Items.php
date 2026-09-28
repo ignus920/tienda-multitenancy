@@ -40,6 +40,7 @@ class Items extends Model
         'handles_serial',
         'is_cuttable',
         'is_under_evaluation',
+        'cost_calculation_id',
     ];
 
     /**

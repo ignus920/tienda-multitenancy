@@ -21,6 +21,8 @@ class CostCalculationItem extends Model
         'cm_quantity',
         'unit_value',
         'line_cost',
+        'is_variable',
+        'variable_options',
     ];
 
     protected $casts = [
@@ -28,6 +30,8 @@ class CostCalculationItem extends Model
         'cm_quantity' => 'decimal:2',
         'unit_value' => 'decimal:2',
         'line_cost' => 'decimal:2',
+        'is_variable' => 'boolean',
+        'variable_options' => 'array',
     ];
 
     public function calculation()

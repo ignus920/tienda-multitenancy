@@ -215,8 +215,8 @@ class ProductQuoter extends Component
     public function openAssembledModal($payload)
     {
         $this->ensureTenantConnection();
-        $this->assembledProduct = Items::with(['dynamicAttributes'])->find($payload['productId']);
-        if (!$this->assembledProduct) return;
+        $this->assembledProduct = Items::find($payload['productId']);
+        if (!$this->assembledProduct || !$this->assembledProduct->cost_calculation_id) return;
 
         $this->assembledPrice = $payload['selectedPrice'];
         $this->assembledPriceLabel = $payload['priceLabel'];
@@ -225,28 +225,21 @@ class ProductQuoter extends Component
         $this->assembledIsReady = false;
         
         $this->assembledFields = [];
-        foreach ($this->assembledProduct->dynamicAttributes as $attr) {
-            $value = $attr->value;
-            $options = $attr->options;
-            
-            if ($attr->field_type === 'multiple_products' && !empty($options) && is_string($options)) {
-                $options = json_decode($options, true) ?? [];
-            }
-            if ($attr->field_type === 'multiple_products' && !empty($value) && is_string($value)) {
-                $value = json_decode($value, true) ?? null;
-            }
-            if ($attr->field_type === 'single_product' && !empty($value) && is_string($value)) {
-                $value = json_decode($value, true) ?? null;
-            }
+        
+        $variableItems = DB::connection('tenant')
+            ->table('cnf_cost_calculation_items')
+            ->where('cost_calculation_id', $this->assembledProduct->cost_calculation_id)
+            ->where('is_variable', 1)
+            ->get();
 
+        foreach ($variableItems as $varItem) {
+            $options = json_decode($varItem->variable_options, true) ?? [];
             $this->assembledFields[] = [
-                'id' => $attr->id,
-                'label' => $attr->label,
-                'field_type' => $attr->field_type,
+                'id' => $varItem->id, 
+                'label' => $varItem->description,
+                'quantity' => $varItem->quantity ?? $varItem->cm_quantity ?? 1,
                 'options' => $options,
-                'value' => $value,
-                'user_value' => '', // Valor escogido/escrito por el usuario
-                'order_index' => $attr->order_index,
+                'user_value' => '', // ID del item seleccionado
             ];
         }
 
@@ -268,39 +261,39 @@ class ProductQuoter extends Component
 
         $storeId = $this->selectedWarehouseId ?? session('selected_warehouse_id') ?? VntWarehouse::first()->id ?? null;
 
-        foreach ($this->assembledFields as $key => &$field) {
-            if ($field['field_type'] === 'single_product' && !empty($field['value'])) {
-                $fixedItemId = $field['value']['id'] ?? null;
-                if (!$fixedItemId) continue;
-                $baseQty = (float)($field['value']['qty'] ?? 1);
+        foreach ($this->assembledFields as &$field) {
+            $hasAnyStock = false;
+            foreach ($field['options'] as &$opt) {
+                $optItemId = $opt['item_id'] ?? $opt['id'] ?? null;
+                if (!$optItemId) continue;
+                
+                $baseQty = (float)($field['quantity']);
                 $requiredQty = $baseQty * $this->assembledQty;
                 
-                $stock = $storeId ? (InvItemsStore::where('item_id', $fixedItemId)->where('store_id', $storeId)->value('stock_items_store') ?? 0) : 0;
+                $stock = $storeId ? (InvItemsStore::where('item_id', $optItemId)->where('store_id', $storeId)->value('stock_items_store') ?? 0) : 0;
                 
-                if ($stock < $requiredQty) {
-                    $this->assembledStockError = "Materiales insuficientes: ({$field['value']['code']} - {$field['value']['name']}) requiere {$requiredQty} pero solo hay {$stock} en stock.";
-                    $this->assembledIsReady = false;
-                    break;
+                $opt['available_stock'] = $stock;
+                $opt['required_qty'] = $requiredQty;
+                $opt['has_stock'] = ($stock >= $requiredQty);
+                
+                if ($opt['has_stock']) {
+                    $hasAnyStock = true;
+                }
+                
+                // Si estaba seleccionado y ya no tiene stock, quitar selección
+                if ($field['user_value'] == $optItemId && !$opt['has_stock']) {
+                    $field['user_value'] = '';
                 }
             }
             
-            if ($field['field_type'] === 'multiple_products' && !empty($field['options'])) {
-                foreach ($field['options'] as $optKey => &$opt) {
-                    $optItemId = $opt['id'] ?? null;
-                    if (!$optItemId) continue;
-                    $baseQty = (float)($opt['qty'] ?? 1);
-                    $requiredQty = $baseQty * $this->assembledQty;
-                    
-                    $stock = $storeId ? (InvItemsStore::where('item_id', $optItemId)->where('store_id', $storeId)->value('stock_items_store') ?? 0) : 0;
-                    
-                    $opt['available_stock'] = $stock;
-                    $opt['required_qty'] = $requiredQty;
-                    $opt['has_stock'] = ($stock >= $requiredQty);
-                    
-                    if ($field['user_value'] == $optItemId && !$opt['has_stock']) {
-                        $field['user_value'] = '';
-                    }
-                }
+            if (!$hasAnyStock) {
+                $this->assembledStockError = "No hay stock suficiente en ninguna de las opciones para: " . $field['label'];
+                $this->assembledIsReady = false;
+                break;
+            }
+            
+            if (empty($field['user_value'])) {
+                $this->assembledIsReady = false;
             }
         }
     }
@@ -309,13 +302,10 @@ class ProductQuoter extends Component
     {
         if (!$this->assembledIsReady) return;
 
-        // Validar que se hayan completado todos los campos dinámicos
         foreach ($this->assembledFields as $field) {
-            if (in_array($field['field_type'], ['multiple_products', 'text', 'textarea'])) {
-                if (empty(trim($field['user_value'] ?? ''))) {
-                    $this->assembledStockError = "Por favor complete la especificación: " . $field['label'];
-                    return;
-                }
+            if (empty($field['user_value'])) {
+                $this->assembledStockError = "Por favor selecciona una opción para: " . $field['label'];
+                return;
             }
         }
         
@@ -323,34 +313,22 @@ class ProductQuoter extends Component
         $recipe = [];
         
         foreach ($this->assembledFields as $field) {
-            if ($field['field_type'] === 'text' || $field['field_type'] === 'textarea') {
-                if (!empty($field['user_value'])) {
-                    $notes[] = $field['label'] . ': ' . $field['user_value'];
-                }
-            } elseif ($field['field_type'] === 'single_product' && !empty($field['value'])) {
-                $baseQty = (float)($field['value']['qty'] ?? 1);
+            $selectedOpt = collect($field['options'])->firstWhere(function($o) use ($field) {
+                return ($o['item_id'] ?? $o['id'] ?? null) == $field['user_value'];
+            });
+            
+            if ($selectedOpt) {
+                $notes[] = $field['label'] . ': ' . ($selectedOpt['code'] ?? '') . ' ' . ($selectedOpt['name'] ?? '');
+                $baseQty = (float)($field['quantity']);
                 $requiredQty = $baseQty * $this->assembledQty;
                 $recipe[] = [
-                    'id' => $field['value']['id'],
+                    'id' => $field['user_value'],
                     'qty' => $requiredQty
                 ];
-            } elseif ($field['field_type'] === 'multiple_products') {
-                if (!empty($field['user_value'])) {
-                    $selectedOpt = collect($field['options'])->firstWhere('id', $field['user_value']);
-                    if ($selectedOpt) {
-                        $notes[] = $field['label'] . ': ' . ($selectedOpt['code'] ?? '') . ' ' . ($selectedOpt['name'] ?? '');
-                        $baseQty = (float)($selectedOpt['qty'] ?? 1);
-                        $requiredQty = $baseQty * $this->assembledQty;
-                        $recipe[] = [
-                            'id' => $selectedOpt['id'],
-                            'qty' => $requiredQty
-                        ];
-                    }
-                }
             }
         }
         
-        $configNotes = !empty($notes) ? "Configuración:\n" . implode("\n", $notes) : '';
+        $configNotes = !empty($notes) ? "Opciones seleccionadas:\n" . implode("\n", $notes) : '';
         $recipeJson = !empty($recipe) ? json_encode($recipe) : null;
         
         // Agregar al cotizador bypassing the check
@@ -363,9 +341,6 @@ class ProductQuoter extends Component
             $this->quoterItems[$index]['assembled_config'] = $configNotes;
             $this->quoterItems[$index]['assembled_recipe'] = $recipeJson;
             
-            // Si hay justificación/notas, anexar al nombre o justificación para que salga en el cotizador?
-            // La cotización muestra justificación, o podemos usar "assembled_config" en la vista.
-            
             session(['quoter_items' => $this->quoterItems]);
             $this->calculateTotal();
         }
@@ -373,7 +348,7 @@ class ProductQuoter extends Component
         $this->showAssembledModal = false;
         $this->dispatch('show-toast', [
             'type' => 'success',
-            'message' => 'Producto Ensamblado configurado y agregado correctamente.'
+            'message' => 'Producto agregado con las opciones seleccionadas.'
         ]);
     }
 
@@ -964,20 +939,25 @@ class ProductQuoter extends Component
     public function addToQuoter($productId, $selectedPrice, $priceLabel, $bypassAssembledCheck = false)
     {
         $this->ensureTenantConnection();
-        $product = Items::select('id', 'type')->find($productId);
+        $product = Items::select('id', 'type', 'cost_calculation_id')->find($productId);
         
-        // Si el producto es ENSAMBLADO, abrir el modal de configuración en lugar de agregarlo directamente
-        // FUNCIONALIDAD DESACTIVADA TEMPORALMENTE (RAMA 144)
-        /*
-        if (!$bypassAssembledCheck && $product && $product->type === 'ENSAMBLADO') {
-            $this->dispatch('open-assembled-product-modal', [
-                'productId' => $productId,
-                'selectedPrice' => $selectedPrice,
-                'priceLabel' => $priceLabel
-            ]);
-            return;
+        if (!$bypassAssembledCheck && $product && $product->type === 'ENSAMBLADO' && $product->cost_calculation_id) {
+            // Revisar si la receta tiene variables
+            $hasVariables = DB::connection('tenant')
+                ->table('cnf_cost_calculation_items')
+                ->where('cost_calculation_id', $product->cost_calculation_id)
+                ->where('is_variable', 1)
+                ->exists();
+
+            if ($hasVariables) {
+                $this->dispatch('open-assembled-product-modal', [
+                    'productId' => $productId,
+                    'selectedPrice' => $selectedPrice,
+                    'priceLabel' => $priceLabel
+                ]);
+                return;
+            }
         }
-        */
 
         // Verificar si el producto ya está en el cotizador (sin consulta DB)
         $existingIndex = $this->findProductInQuoter($productId);
