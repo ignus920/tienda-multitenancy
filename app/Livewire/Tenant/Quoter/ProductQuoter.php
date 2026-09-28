@@ -67,6 +67,9 @@ class ProductQuoter extends Component
     public $showWarehouseModal = false; // Flag para mostrar el modal de gestión de sucursales
     public $showOPConfirmationModal = false; // Flag para mostrar el modal de confirmación de OP
     public $hideQuoter = false; // Flag para ocultar el carrito/cotizador (modo Bodega)
+    public $clientNeedsSeller = false;
+    public $opSellersList = [];
+    public $selectedOpSellerId = null;
 
     // Propiedades para desglose de impuestos
     public $subTotal = 0; // Valor sin impuestos
@@ -3505,6 +3508,23 @@ class ProductQuoter extends Component
             return;
         }
 
+        // Cargar vendedores si el cliente no tiene uno asignado
+        if ($this->selectedCustomer && isset($this->selectedCustomer['id'])) {
+            $company = VntCompany::find($this->selectedCustomer['id']);
+            if ($company && empty($company->seller_id)) {
+                $this->clientNeedsSeller = true;
+                $tenantId = session('tenant_id');
+                $this->opSellersList = \App\Models\Auth\User::whereHas('tenants', function ($q) use ($tenantId) { 
+                    $q->where('tenants.id', $tenantId)
+                      ->where('user_tenants.is_active', 1); 
+                })->orderBy('name')->get()->toArray();
+            } else {
+                $this->clientNeedsSeller = false;
+                $this->selectedOpSellerId = null;
+                $this->opSellersList = [];
+            }
+        }
+
         // Abrir modal de confirmación final
         $this->showOPConfirmationModal = true;
     }
@@ -3530,6 +3550,17 @@ class ProductQuoter extends Component
             DB::connection('tenant')->beginTransaction();
 
             $quote = VntQuote::findOrFail($this->editingQuoteId);
+
+            // Guardar el vendedor si era requerido y se seleccionó
+            if ($this->clientNeedsSeller && $this->selectedOpSellerId && $this->selectedCustomer) {
+                $company = VntCompany::find($this->selectedCustomer['id']);
+                if ($company && empty($company->seller_id)) {
+                    $company->seller_id = $this->selectedOpSellerId;
+                    $company->save();
+                    // Refrescar el cliente localmente
+                    $this->selectedCustomer = $company->toArray();
+                }
+            }
 
             // Actualizar la cotización con la sucursal de envío seleccionada por el comercial
             $quote->update([
