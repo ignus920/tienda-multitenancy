@@ -719,10 +719,11 @@ class CostCalculationForm extends Component
             
             $invValue = new \App\Models\Tenant\Items\InvValues();
             $invValue->itemId = $item->id;
-            $invValue->priceListId = 1; // Lista base normal
-            $invValue->type = 'Lista';
-            $invValue->price = $price;
-            $invValue->cost = $this->computeTotals($this->computeAllLines())['total'];
+            $invValue->label = 'Precio Base';
+            $invValue->type = 'precio';
+            $invValue->values = $price;
+            $invValue->date = now();
+            $invValue->warehouseId = 0;
             $invValue->save();
 
             // Guardar el tipo en el calculo de costos
