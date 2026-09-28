@@ -696,7 +696,6 @@ class CostCalculationForm extends Component
         }
 
         // Ahora creamos el producto terminado y lo asociamos
-        DB::connection('tenant')->beginTransaction();
         try {
             $item = Items::create([
                 'api_data_id' => 1,
@@ -728,8 +727,6 @@ class CostCalculationForm extends Component
 
             // Guardar el tipo en el calculo de costos
             CostCalculation::where('id', $this->calculationId)->update(['type' => 'finished_product']);
-
-            DB::connection('tenant')->commit();
             
             $this->showFinishedProductModal = false;
             $this->dispatch('show-toast', ['type' => 'success', 'message' => '¡Producto Terminado Creado Exitosamente!']);
@@ -738,7 +735,6 @@ class CostCalculationForm extends Component
             $this->type = 'finished_product';
 
         } catch (\Exception $e) {
-            DB::connection('tenant')->rollBack();
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear el producto: ' . $e->getMessage()]);
         }
     }
