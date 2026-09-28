@@ -698,7 +698,7 @@ class CostCalculationForm extends Component
         // Ahora creamos el producto terminado y lo asociamos
         DB::connection('tenant')->beginTransaction();
         try {
-            $item = Items::create([
+            $itemId = DB::connection('tenant')->table('inv_items')->insertGetId([
                 'api_data_id' => 1,
                 'categoryId' => $this->fp_category_id,
                 'name' => $this->name,
@@ -708,17 +708,19 @@ class CostCalculationForm extends Component
                 'type' => 'ENSAMBLADO',
                 'taxId' => $this->fp_tax_id,
                 'inventoriable' => 1,
-                'purchasing_unit' => 1, // Unidad
-                'consumption_unit' => 1, // Unidad
+                'purchasing_unit' => 1,
+                'consumption_unit' => 1,
                 'status' => 1,
-                'cost_calculation_id' => $this->calculationId, // El puente!
+                'cost_calculation_id' => $this->calculationId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             // Crear el precio de lista usando el salePrice que haya configurado
             $price = is_numeric($this->salePrice) ? (float) $this->salePrice : $this->computeTotals($this->computeAllLines())['total'];
             
             $invValue = new \App\Models\Tenant\Items\InvValues();
-            $invValue->itemId = $item->id;
+            $invValue->itemId = $itemId;
             $invValue->label = 'Precio Base';
             $invValue->type = 'precio';
             $invValue->values = $price;
