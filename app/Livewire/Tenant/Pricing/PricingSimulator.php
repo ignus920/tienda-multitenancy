@@ -239,6 +239,6 @@ class PricingSimulator extends Component
 
     public function render()
     {
-        return view('livewire.tenant.pricing.pricing-simulator');
+        return view('livewire.tenant.pricing.pricing-simulator')->layout('layouts.app');
     }
 }
