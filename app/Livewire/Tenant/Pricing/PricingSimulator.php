@@ -186,7 +186,10 @@ class PricingSimulator extends Component
             return;
         }
 
+        $updatedItemIds = [];
         foreach ($this->items as $item) {
+            $updatedItemIds[] = $item['item_id'];
+            
             InvItemPricingParam::updateOrCreate(
                 ['item_id' => $item['item_id']],
                 [
@@ -234,7 +237,13 @@ class PricingSimulator extends Component
             }
         }
 
-        $this->dispatch('swal:success', title: '¡Éxito!', text: 'Precios guardados y encolados para sincronizar con Alegra.');
+        $tenantId = tenant('id');
+        if ($tenantId && count($updatedItemIds) > 0) {
+            \App\Jobs\Tenant\WordPress\SyncWordPressPricingJob::dispatch($tenantId, $updatedItemIds);
+            \App\Jobs\Tenant\Alegra\SyncAlegraPricingJob::dispatch($tenantId, $updatedItemIds);
+        }
+
+        $this->dispatch('swal:success', title: '¡Éxito!', text: 'Precios guardados y encolados para sincronizar con Alegra y WordPress.');
     }
 
     public function render()
