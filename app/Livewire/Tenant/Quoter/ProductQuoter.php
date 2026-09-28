@@ -793,6 +793,7 @@ class ProductQuoter extends Component
                     'inv_items.status',
                     'inv_items.generic',
                     'inv_items.is_cuttable',
+                    'inv_items.is_under_evaluation',
                     'inv_items.created_at',
                     'inv_items.updated_at',
                     'inv_items.deleted_at',
