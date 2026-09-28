@@ -116,18 +116,15 @@ class ManageCatalogs extends Component
             $slug = $this->generateSlug($this->title);
             $vinculo = $this->archivoActual;
             $archivoOriginal = $this->archivoActual ? basename($this->archivoActual) : '';
-            $directoryPath = "catalogs/{$tenantId}";
+            $directoryPath = "catalogs"; // Se remueve el tenantId para hacer el vínculo más corto y limpio
 
             if ($this->selectedCatalogId) {
                 // Usamos el título original de la BD para mantener la URL/slug idéntica al actualizar el archivo
                 $catalog = CatCatalogs::findOrFail($this->selectedCatalogId);
                 $slug = $this->generateSlug($catalog->title);
 
-                // Si el catálogo ya tiene un vínculo anterior, extraemos su directorio original para que el Tenant ID no cambie
-                if ($catalog->link) {
-                    $cleanPath = str_replace('storage/', '', $catalog->link);
-                    $directoryPath = dirname($cleanPath);
-                }
+                // Eliminamos la lógica que preservaba el directorio anterior 
+                // para obligar a que todos los catálogos editados se muevan a la raíz "catalogs/"
             }
 
             if ($this->archivo) {
