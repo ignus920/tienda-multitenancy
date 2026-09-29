@@ -687,6 +687,48 @@ class Orders extends Component
         }
     }
 
+    public function deleteNewProductRequest($id, $justification)
+    {
+        $this->ensureTenantConnection();
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            // Guardar justificación como última nota
+            $query = ImpComments::where('new_product_id', $id)->where('initiator', 1)->first();
+            $initiatorExists = !is_null($query);
+            
+            ImpComments::create([
+                'new_product_id' => $id,
+                'comment' => $justification,
+                'user_id' => Auth::id(),
+                'initiator' => $initiatorExists ? 0 : 1
+            ]);
+
+            // Cambiar estado a DELETED
+            DB::connection('tenant')->table('imp_new_products')
+                ->where('id', $id)
+                ->update([
+                    'status' => 'DELETED',
+                    'updated_at' => now()
+                ]);
+
+            DB::connection('tenant')->commit();
+            
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Solicitud eliminada exitosamente'
+            ]);
+            $this->dispatch('$refresh');
+        } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            Log::error('❌ Error eliminando solicitud de producto nuevo: ' . $e->getMessage());
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Ocurrió un error al eliminar la solicitud'
+            ]);
+        }
+    }
+
     public function updatedSelectAll($value)
     {
         $this->ensureTenantConnection();

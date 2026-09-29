@@ -398,6 +398,13 @@ class ImportWordPressTieredPricing extends Command
                     $pct = $this->cell($sheet, $pctCol, $r);
                     $n   = $i + 1;
 
+                    if (empty($qty) && empty($pct)) {
+                        break;
+                    }
+                    if ((is_numeric($qty) && $qty == 0) || (is_numeric($pct) && $pct == 0)) {
+                        break; // Tratamos 0 como escala vacía/inexistente y detenemos la lectura
+                    }
+
                     if (!$this->isPositiveInt($qty) || !is_numeric($pct) || $pct <= 0 || $pct >= 1) {
                         $error = "Escala {$n} incompleta o inválida (cant '{$qty}', % '{$pct}')";
                         break;
