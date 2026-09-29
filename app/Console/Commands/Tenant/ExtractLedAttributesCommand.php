@@ -118,8 +118,8 @@ class ExtractLedAttributesCommand extends Command
 
                 $updated = false;
 
-                // Solo actualizamos si el campo está vacío para no sobreescribir
-                if ($lm_per_meter && empty($dimension->lumens_per_meter)) {
+                // Solo actualizamos si el campo está vacío o es un cero (0.00) para no sobreescribir trabajo manual
+                if ($lm_per_meter && (empty($dimension->lumens_per_meter) || (float)$dimension->lumens_per_meter == 0)) {
                     $dimension->lumens_per_meter = $lm_per_meter;
                     $updated = true;
                 }
@@ -127,19 +127,19 @@ class ExtractLedAttributesCommand extends Command
                     $dimension->electrical_type = $electrical_type;
                     $updated = true;
                 }
-                if ($voltage !== null && empty($dimension->voltage) && empty($dimension->voltage)) { // Si voltage == 0 (empty)
+                if ($voltage !== null && (empty($dimension->voltage) || (float)$dimension->voltage == 0)) {
                     $dimension->voltage = $voltage;
                     $updated = true;
                 }
-                if ($power !== null && empty($dimension->power)) {
+                if ($power !== null && (empty($dimension->power) || (float)$dimension->power == 0)) {
                     $dimension->power = $power;
                     $updated = true;
                 }
-                if ($width !== null && empty($dimension->width)) {
+                if ($width !== null && (empty($dimension->width) || (float)$dimension->width == 0)) {
                     $dimension->width = $width;
                     $updated = true;
                 }
-                if ($quntityxbox !== null && empty($dimension->quntityxbox)) {
+                if ($quntityxbox !== null && (empty($dimension->quntityxbox) || (float)$dimension->quntityxbox == 0)) {
                     $dimension->quntityxbox = $quntityxbox;
                     $updated = true;
                 }
