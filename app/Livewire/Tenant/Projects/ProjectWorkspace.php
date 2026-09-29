@@ -280,19 +280,24 @@ class ProjectWorkspace extends Component
         if (!empty($this->mentionedUserIds)) {
             $sessionTenant = session('tenant_id');
             // Validar que los IDs recibidos del cliente realmente pertenecen al tenant actual
-            $validUserIds = User::whereHas('tenants', function ($q) use ($sessionTenant) {
+            $validUsers = User::whereHas('tenants', function ($q) use ($sessionTenant) {
                 $q->where('tenants.id', $sessionTenant);
-            })->whereIn('id', $this->mentionedUserIds)->pluck('id')->toArray();
+            })->whereIn('id', $this->mentionedUserIds)->get();
 
-            foreach ($validUserIds as $userId) {
-                ProjectMention::create([
-                    'project_id' => $this->projectId,
-                    'message_id' => $message->id,
-                    'mentioned_by' => Auth::id(),
-                    'mentioned_to' => $userId,
-                    'status' => 'pendiente'
-                ]);
-                $mentionedUserIds[] = $userId;
+            foreach ($validUsers as $user) {
+                // Filtro anti-fantasmas: Verificar si al menos el primer nombre del usuario sigue estando en el texto
+                $firstName = explode(' ', $user->name)[0] ?? '';
+                
+                if (stripos($this->newMessageText, $firstName) !== false) {
+                    ProjectMention::create([
+                        'project_id' => $this->projectId,
+                        'message_id' => $message->id,
+                        'mentioned_by' => Auth::id(),
+                        'mentioned_to' => $user->id,
+                        'status' => 'pendiente'
+                    ]);
+                    $mentionedUserIds[] = $user->id;
+                }
             }
         }
 
