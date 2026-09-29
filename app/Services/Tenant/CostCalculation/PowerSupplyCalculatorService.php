@@ -92,10 +92,15 @@ class PowerSupplyCalculatorService
             if (!isset($groupedByVoltage[$v])) {
                 $groupedByVoltage[$v] = [
                     'voltage' => $prod['voltage'],
-                    'installed_power' => 0
+                    'installed_power' => 0,
+                    'theoretical_intensity' => 0
                 ];
             }
             $groupedByVoltage[$v]['installed_power'] += $prod['total_power'];
+            
+            // Sumar la intensidad teórica (Lm/m * cantidad)
+            $lmm = floatval($prod['item']->dimensions->lumens_per_meter ?? 0);
+            $groupedByVoltage[$v]['theoretical_intensity'] += ($lmm * $prod['qty']);
         }
 
         // Cargar marcas (Brand) para mapear nombres
@@ -148,7 +153,7 @@ class PowerSupplyCalculatorService
                 // Ordenar fuentes de la marca por potencia ascendente
                 $brandSources = collect($brandSources)->sortBy('source_power')->values();
 
-                $options = [];
+                $options = []; // En realidad ahora solo tendrá 1 elemento (una sola sugerencia por marca)
 
                 if ($requiredPower <= 450) {
                     // Buscar 1 fuente individual >= requiredPower
@@ -159,32 +164,16 @@ class PowerSupplyCalculatorService
                     if ($bestSource) {
                         $options[] = [
                             'item_id' => $bestSource->id,
-                            'type' => 1,
                             'code' => $bestSource->internal_code ?: $bestSource->sku,
+                            'description' => $bestSource->description,
+                            'stock' => $bestSource->stock_disponible_venta,
                             'quantity' => 1,
                             'unit_power' => floatval($bestSource->source_power),
                             'total_power' => floatval($bestSource->source_power)
                         ];
                     }
                 } else {
-                    // Requerimiento > 450W
-                    // Opción 1: Buscar fuente individual grande
-                    $bestSource = $brandSources->first(function($src) use ($requiredPower) {
-                        return floatval($src->source_power) >= $requiredPower;
-                    });
-                    if ($bestSource) {
-                        $options[] = [
-                            'item_id' => $bestSource->id,
-                            'type' => 1,
-                            'code' => $bestSource->internal_code ?: $bestSource->sku,
-                            'quantity' => 1,
-                            'unit_power' => floatval($bestSource->source_power),
-                            'total_power' => floatval($bestSource->source_power)
-                        ];
-                    }
-
-                    // Opción 2: Buscar 2 fuentes
-                    // Potencia de cada fuente debe ser >= requiredPower / 2
+                    // Requerimiento > 450W: Solo sugerimos obligatoriamente 2 fuentes (se divide la carga)
                     $halfPower = $requiredPower / 2;
                     $bestPairSource = $brandSources->first(function($src) use ($halfPower) {
                         return floatval($src->source_power) >= $halfPower;
@@ -193,8 +182,9 @@ class PowerSupplyCalculatorService
                     if ($bestPairSource) {
                         $options[] = [
                             'item_id' => $bestPairSource->id,
-                            'type' => 2,
                             'code' => $bestPairSource->internal_code ?: $bestPairSource->sku,
+                            'description' => $bestPairSource->description,
+                            'stock' => $bestPairSource->stock_disponible_venta,
                             'quantity' => 2,
                             'unit_power' => floatval($bestPairSource->source_power),
                             'total_power' => floatval($bestPairSource->source_power) * 2
@@ -205,7 +195,7 @@ class PowerSupplyCalculatorService
                 if (!empty($options)) {
                     $brandAlternatives[] = [
                         'brand_name' => $brandName,
-                        'options' => $options
+                        'options' => $options // Siempre tendrá 1 solo elemento ahora
                     ];
                 }
             }
@@ -219,6 +209,7 @@ class PowerSupplyCalculatorService
 
             $results[] = [
                 'voltage' => $voltage,
+                'theoretical_intensity' => $group['theoretical_intensity'],
                 'installed_power' => $installedPower,
                 'margin_power' => $installedPower * 0.20,
                 'required_power' => $requiredPower,
