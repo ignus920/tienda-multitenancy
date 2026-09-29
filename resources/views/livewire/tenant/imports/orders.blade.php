@@ -738,7 +738,7 @@
                                     <div class="flex items-center gap-3">
 
                                         @php
-                                            if (isset($order->source_type) && $order->source_type == 'new_product' || $order->status == 13 || $order->status == 14) {
+                                            if (isset($order->source_type) && $order->source_type == 'new_product' || in_array($order->status, [13, 14, 15])) {
                                                 $imagesArr = json_decode($order->image_path, true);
                                                 if (is_array($imagesArr) && count($imagesArr) > 0) {
                                                     $thumbnail = asset('storage/' . $imagesArr[0]);
@@ -755,7 +755,7 @@
                                         @endphp
                                         <div class="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                                              @click.stop="
-                                                 @if((isset($order->source_type) && $order->source_type == 'new_product') || $order->status == 13 || $order->status == 14)
+                                                 @if((isset($order->source_type) && $order->source_type == 'new_product') || in_array($order->status, [13, 14, 15]))
                                                      Swal.fire({
                                                          imageUrl: '{{ $thumbnail }}',
                                                          imageAlt: 'Imagen del producto nuevo',

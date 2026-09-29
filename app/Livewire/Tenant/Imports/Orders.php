@@ -274,28 +274,24 @@ class Orders extends Component
             ]);
         }
 
-        // Agregar de forma dinámica los productos nuevos eliminados al contador de Eliminado (id = 11)
+        // Agregar contador a la tarjeta de Nuevas Eliminadas (Filtro 15)
         $deletedNewProductsCount = DB::connection('tenant')
             ->table('imp_new_products')
             ->whereNull('deleted_at')
             ->where('status', '=', 'DELETED')
             ->count();
 
-        if ($deletedNewProductsCount > 0) {
-            $status11 = $statuses->firstWhere('id', 11);
-            if ($status11) {
-                $status11->cantidad += $deletedNewProductsCount;
-            } else {
-                $s11 = DB::connection('tenant')->table('imp_status')->where('id', 11)->first();
-                if ($s11) {
-                    $statuses->push((object)[
-                        'nombre_estado' => $s11->name,
-                        'translated_name' => $s11->translated_name,
-                        'cantidad' => $deletedNewProductsCount,
-                        'id' => 11
-                    ]);
-                }
-            }
+        $status15 = $statuses->firstWhere('id', 15);
+        if ($status15) {
+            $status15->cantidad = $deletedNewProductsCount;
+        } else {
+            // Si el cliente no ha corrido el SQL aún, lo agregamos virtualmente para que ya funcione
+            $statuses->push((object)[
+                'nombre_estado' => 'Nuevas Eliminadas',
+                'translated_name' => 'Deleted Requests',
+                'cantidad' => $deletedNewProductsCount,
+                'id' => 15
+            ]);
         }
 
         // Agregar de forma dinámica el estado 14 (Converted Products) para Camilo/Fervicom
@@ -523,6 +519,60 @@ class Orders extends Component
                 ->paginate($this->perPage);
         }
 
+        if ($this->filterStatus == 15) {
+            return DB::connection('tenant')
+                ->table('imp_new_products as inp')
+                ->select([
+                    'inp.id',
+                    DB::raw('NULL as item_id'),
+                    DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
+                    DB::raw("'N/A' as factory_ref"),
+                    DB::raw("0 as exw"),
+                    DB::raw("1 as qty_requested"),
+                    DB::raw("'N/A' AS label"),
+                    DB::raw("'Deleted' AS translated_name"),
+                    DB::raw('15 AS status'),
+                    DB::raw('NULL AS priority'),
+                    DB::raw('NULL as priority_assigned_at'),
+                    DB::raw('0 as qty_shipped'),
+                    DB::raw('0 as news'),
+                    DB::raw('0 as price'),
+                    DB::raw('NULL as delete_justification'),
+                    DB::raw('NULL as packing_number'),
+                    DB::raw('NULL as operation_number'),
+                    DB::raw('NULL as etd'),
+                    DB::raw('NULL as way'),
+                    DB::raw("(SELECT comment 
+                            FROM imp_comments 
+                            WHERE new_product_id = inp.id 
+                            ORDER BY created_at DESC 
+                            LIMIT 1
+                        ) AS ultimo_comentario"),
+                    DB::raw('NULL as received_at'),
+                    DB::raw("(SELECT u.name 
+                             FROM imp_comments ic 
+                             JOIN {$centralDbName}.users u ON ic.user_id = u.id 
+                             WHERE ic.new_product_id = inp.id 
+                             ORDER BY ic.created_at DESC 
+                             LIMIT 1
+                        ) AS deleted_by_user"),
+                    'inp.image_path'
+                ])
+                ->whereNull('inp.deleted_at')
+                ->where('inp.status', '=', 'DELETED')
+                ->when($this->search, function ($query) {
+                    $words = array_filter(explode(' ', trim($this->search)));
+                    foreach ($words as $word) {
+                        $query->where(function ($q) use ($word) {
+                            $q->where('inp.description', 'like', '%' . $word . '%')
+                              ->orWhere('inp.code', 'like', '%' . $word . '%');
+                        });
+                    }
+                    return $query;
+                })
+                ->paginate($this->perPage);
+        }
+
 
         $query = DB::connection('tenant')
             ->table('imp_imports as i')
@@ -612,51 +662,6 @@ class Orders extends Component
                 return $query;
             });
 
-        if ($this->filterStatus == 11) {
-            $queryNewProducts = DB::connection('tenant')
-                ->table('imp_new_products as inp')
-                ->select([
-                    'inp.id',
-                    DB::raw('NULL as item_id'),
-                    DB::raw("CONCAT(inp.code, ' - ', inp.description) AS item"),
-                    DB::raw("'N/A' as factory_ref"),
-                    DB::raw("0 as exw"),
-                    DB::raw("1 as qty_requested"),
-                    DB::raw("'N/A' AS label"),
-                    DB::raw("'Eliminado' AS translated_name"),
-                    DB::raw('11 AS status'),
-                    DB::raw('NULL AS priority'),
-                    DB::raw('NULL as priority_assigned_at'),
-                    DB::raw('0 as qty_shipped'),
-                    DB::raw('0 as news'),
-                    DB::raw('0 as price'),
-                    DB::raw('NULL as delete_justification'),
-                    DB::raw('NULL as packing_number'),
-                    DB::raw('NULL as operation_number'),
-                    DB::raw('NULL as etd'),
-                    DB::raw('NULL as way'),
-                    DB::raw("(SELECT comment FROM imp_comments WHERE new_product_id = inp.id ORDER BY created_at DESC LIMIT 1) AS ultimo_comentario"),
-                    DB::raw('NULL as received_at'),
-                    DB::raw("(SELECT u.name FROM imp_comments ic JOIN {$centralDbName}.users u ON ic.user_id = u.id WHERE ic.new_product_id = inp.id ORDER BY ic.created_at DESC LIMIT 1) AS deleted_by_user"),
-                    'inp.image_path',
-                    DB::raw("'new_product' as source_type")
-                ])
-                ->whereNull('inp.deleted_at')
-                ->where('inp.status', '=', 'DELETED')
-                ->when($this->search, function ($query) {
-                    $words = array_filter(explode(' ', trim($this->search)));
-                    foreach ($words as $word) {
-                        $query->where(function ($q) use ($word) {
-                            $q->where('inp.description', 'like', '%' . $word . '%')
-                              ->orWhere('inp.code', 'like', '%' . $word . '%');
-                        });
-                    }
-                    return $query;
-                });
-
-            $query = $query->unionAll($queryNewProducts);
-        }
-
         return $query->paginate($this->perPage);
     }
 
@@ -705,7 +710,7 @@ class Orders extends Component
     {
         $this->ensureTenantConnection();
 
-        if ($this->filterStatus == 13) {
+        if (in_array($this->filterStatus, [13, 14, 15])) {
             try {
                 $query = ImpComments::where('new_product_id', $idImport)->where('initiator', 1)->first();
                 $initiatorExists = !is_null($query);
@@ -871,6 +876,16 @@ class Orders extends Component
         }
 
         $centralDbName = config('database.connections.central.database');
+        
+        if (in_array($this->filterStatus, [13, 14, 15])) {
+            return ImpComments::query()
+                ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
+                ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
+                ->where('imp_comments.new_product_id', $this->import_id)
+                ->orderBy('imp_comments.created_at', 'DESC')
+                ->get();
+        }
+
         return ImpComments::query()
             ->select('imp_comments.created_at', 'imp_comments.comment', 'u.name')
             ->join("{$centralDbName}.users as u", 'u.id', '=', 'imp_comments.user_id')
