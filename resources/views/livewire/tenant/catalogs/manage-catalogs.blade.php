@@ -157,8 +157,8 @@
                             {{ $catalog->file_name }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <a href="{{ url(str_replace('storage/', '', $catalog->link)) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 underline font-mono text-xs">
-                                {{ str_replace('storage/', '', $catalog->link) }}
+                            <a href="{{ url(str_replace(['storage/catalogs/', 'storage/'], ['fervicom/', 'fervicom/'], $catalog->link)) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 underline font-mono text-xs">
+                                {{ str_replace(['storage/catalogs/', 'storage/'], ['fervicom/', 'fervicom/'], $catalog->link) }}
                             </a>
                         </td>
                         <td class="px-6 py-4 text-center whitespace-nowrap text-gray-500 dark:text-gray-400">
@@ -171,7 +171,7 @@
                             <button wire:click="edit({{ $catalog->id }})" class="p-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors" title="Editar catálogo">
                                 <x-heroicon-o-pencil class="w-4 h-4" />
                             </button>
-                            <button @click="copiarAlPortapapeles('{{ url(str_replace('storage/', '', $catalog->link)) }}')" class="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" title="Copiar vínculo">
+                            <button @click="copiarAlPortapapeles('{{ url(str_replace(['storage/catalogs/', 'storage/'], ['fervicom/', 'fervicom/'], $catalog->link)) }}')" class="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" title="Copiar vínculo">
                                 <x-heroicon-o-clipboard-document-check class="w-4 h-4" />
                             </button>
                             <button @click="
