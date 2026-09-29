@@ -3511,13 +3511,15 @@ class ProductQuoter extends Component
         // Lógica de transición de Vendedor (FV2-44)
         if ($this->selectedCustomer && isset($this->selectedCustomer['id'])) {
             $company = VntCompany::find($this->selectedCustomer['id']);
-            if ($company && empty($company->seller_id)) {
+            if ($company) {
                 // Fecha de cambio de lógica: 2 de Noviembre de 2026 (00:00:00)
-                // Usamos 2026 (o el año actual) asumiendo que es este año.
                 $transitionDate = \Carbon\Carbon::parse(date('Y') . '-11-02 00:00:00');
                 
                 if (now()->lessThan($transitionDate)) {
-                    // Fase Transición (Hasta el 1 de Nov): Obligar a elegir en modal
+                    // Fase Transición (Hasta el 1 de Nov): 
+                    // El cliente pidió explícitamente IGNORAR el historial viejo de Alegra.
+                    // Asumimos que nadie tiene vendedor asignado y lo pedimos SIEMPRE en cada venta 
+                    // para sobrescribir los datos sucios.
                     $this->clientNeedsSeller = true;
                     $tenantId = session('tenant_id');
                     $this->opSellersList = \App\Models\Auth\User::whereHas('tenants', function ($q) use ($tenantId) { 
@@ -3530,18 +3532,21 @@ class ProductQuoter extends Component
                     ->toArray();
                 } else {
                     // Fase Definitiva (2 de Nov en adelante): 
-                    // No se pide vendedor, el cliente sigue "libre", 
-                    // y la venta se le cargará a quien hizo la cotización.
-                    $this->clientNeedsSeller = false;
-                    $quote = VntQuote::find($this->editingQuoteId);
-                    $this->selectedOpSellerId = $quote ? $quote->userId : null;
-                    $this->opSellersList = [];
+                    if (empty($company->seller_id)) {
+                        // No se pide vendedor en el modal.
+                        // La venta se le cargará a quien hizo la cotización porque sigue "libre".
+                        $this->clientNeedsSeller = false;
+                        $quote = VntQuote::find($this->editingQuoteId);
+                        $this->selectedOpSellerId = $quote ? $quote->userId : null;
+                        $this->opSellersList = [];
+                    } else {
+                        // El cliente YA tiene un vendedor asignado fijo (sobrescrito en la recolección), 
+                        // se respeta siempre y se blinda su comisión.
+                        $this->clientNeedsSeller = false;
+                        $this->selectedOpSellerId = $company->seller_id;
+                        $this->opSellersList = [];
+                    }
                 }
-            } else {
-                // El cliente YA tiene un vendedor asignado fijo, se respeta siempre.
-                $this->clientNeedsSeller = false;
-                $this->selectedOpSellerId = $company->seller_id ?? null;
-                $this->opSellersList = [];
             }
         }
 
@@ -3575,7 +3580,7 @@ class ProductQuoter extends Component
             // (cuando se eligió manual en el modal porque era requerido).
             if ($this->clientNeedsSeller && $this->selectedOpSellerId && $this->selectedCustomer) {
                 $company = VntCompany::find($this->selectedCustomer['id']);
-                if ($company && empty($company->seller_id)) {
+                if ($company) {
                     $company->seller_id = $this->selectedOpSellerId;
                     $company->save();
                     // Refrescar el cliente localmente
