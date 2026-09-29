@@ -18,6 +18,8 @@ class ManageDimensions extends Component
     public $width;
     public $voltage;
     public $power;
+    public $electrical_type;
+    public $lumens_per_meter;
     public $weight;
     public $quntityxbox;
     public $scale_1_qty;
@@ -82,6 +84,8 @@ class ManageDimensions extends Component
             'width' => $this->width,
             'voltage' => $this->voltage,
             'power' => $this->power,
+            'electrical_type' => $this->electrical_type === '' ? null : $this->electrical_type,
+            'lumens_per_meter' => $this->lumens_per_meter === '' ? null : $this->lumens_per_meter,
             'weight' => $this->weight,
             'quntityxbox' => $this->quntityxbox,
             'scale_1_qty' => $this->scale_1_qty === '' ? null : $this->scale_1_qty,
@@ -141,6 +145,8 @@ class ManageDimensions extends Component
             $this->width = $itemDimension->width;
             $this->voltage = $itemDimension->voltage;
             $this->power = $itemDimension->power;
+            $this->electrical_type = $itemDimension->electrical_type;
+            $this->lumens_per_meter = $itemDimension->lumens_per_meter;
             $this->weight = $itemDimension->weight;
             $this->quntityxbox = $itemDimension->quntityxbox;
             $this->scale_1_qty = $itemDimension->scale_1_qty;
@@ -190,6 +196,8 @@ class ManageDimensions extends Component
         $this->width = '';
         $this->voltage = '';
         $this->power = '';
+        $this->electrical_type = '';
+        $this->lumens_per_meter = '';
         $this->weight = '';
         $this->quntityxbox = '';
         $this->scale_1_qty = '';
