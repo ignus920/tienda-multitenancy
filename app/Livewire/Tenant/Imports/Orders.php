@@ -2521,9 +2521,19 @@ class Orders extends Component
         try {
             DB::connection('tenant')->beginTransaction();
 
+            $existingShipping = null;
             if ($this->isExistingShipping) {
-                // 1. Obtener el envío existente
                 $existingShipping = ImpShippments::findOrFail($this->selectedExistingShippingId);
+            } else {
+                // Escudo Anti-Duplicidad: Buscar si el numero de operacion ya existe
+                $existingShipping = ImpShippments::where('operation_number', $this->operation_number)
+                                                 ->where('way', $this->way)
+                                                 ->first();
+            }
+
+            if ($existingShipping) {
+                // 1. Obtener el envío existente
+                // ID ya fue obtenido arriba
                 
                 // 2. Buscar si ya hay un packing asociado a este envío
                 $packing = ImpPacking::where('shipping_id', $existingShipping->id)->first();
