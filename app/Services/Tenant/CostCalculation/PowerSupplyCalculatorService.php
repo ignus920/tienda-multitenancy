@@ -29,6 +29,7 @@ class PowerSupplyCalculatorService
 
             $dimensions = $item->dimensions;
             $voltage = $dimensions ? floatval($dimensions->voltage) : 0;
+            $electricalType = $dimensions ? $dimensions->electrical_type : null;
             $power = $dimensions ? floatval($dimensions->power) : 0;
             $itemName = strtoupper($item->name);
 
@@ -72,6 +73,7 @@ class PowerSupplyCalculatorService
             $productsToPower[] = [
                 'item' => $item,
                 'voltage' => $voltage,
+                'electrical_type' => $electricalType,
                 'power' => $power,
                 'qty' => $qty,
                 'total_power' => $power * $qty
@@ -85,22 +87,25 @@ class PowerSupplyCalculatorService
             ];
         }
 
-        // 2. Agrupar por Voltaje
+        // 2. Agrupar por Voltaje y Tipo Eléctrico (CC/VC)
         $groupedByVoltage = [];
         foreach ($productsToPower as $prod) {
             $v = (string)$prod['voltage'];
-            if (!isset($groupedByVoltage[$v])) {
-                $groupedByVoltage[$v] = [
+            $et = (string)$prod['electrical_type'];
+            $key = $v . '|' . $et;
+            if (!isset($groupedByVoltage[$key])) {
+                $groupedByVoltage[$key] = [
                     'voltage' => $prod['voltage'],
+                    'electrical_type' => $prod['electrical_type'],
                     'installed_power' => 0,
                     'theoretical_intensity' => 0
                 ];
             }
-            $groupedByVoltage[$v]['installed_power'] += $prod['total_power'];
+            $groupedByVoltage[$key]['installed_power'] += $prod['total_power'];
             
             // Sumar la intensidad teórica (Lm/m * cantidad)
             $lmm = floatval($prod['item']->dimensions->lumens_per_meter ?? 0);
-            $groupedByVoltage[$v]['theoretical_intensity'] += ($lmm * $prod['qty']);
+            $groupedByVoltage[$key]['theoretical_intensity'] += ($lmm * $prod['qty']);
         }
 
         // Cargar marcas (Brand) para mapear nombres
@@ -108,14 +113,14 @@ class PowerSupplyCalculatorService
 
         $results = [];
 
-        // 4. Calcular alternativas para cada grupo de voltaje
+        // 4. Calcular alternativas para cada grupo de voltaje y tipo eléctrico
         foreach ($groupedByVoltage as $group) {
             $voltage = $group['voltage'];
+            $electricalType = $group['electrical_type'];
             $installedPower = $group['installed_power'];
             $requiredPower = $installedPower * 1.20; // 20% margen
 
-            // Buscar fuentes de este voltaje por NOMBRE y no por categoría
-            // Hacemos join con inv_items_dimensions para filtrar por voltaje y obtener potencia
+            // Buscar fuentes de este voltaje y tipo eléctrico por NOMBRE
             $sources = Items::select('inv_items.*', 'inv_items_dimensions.power as source_power', 'inv_items_dimensions.voltage as source_voltage')
                 ->join('inv_items_dimensions', 'inv_items.id', '=', 'inv_items_dimensions.item_id')
                 ->where(function($q) {
@@ -126,12 +131,16 @@ class PowerSupplyCalculatorService
                 ->where('inv_items.status', 1)
                 ->where('inv_items_dimensions.voltage', $voltage)
                 ->where('inv_items_dimensions.power', '>', 0)
+                ->when($electricalType, function($query, $electricalType) {
+                    return $query->where('inv_items_dimensions.electrical_type', $electricalType);
+                })
                 ->get();
 
             if ($sources->isEmpty()) {
+                $tipoEtiqueta = $electricalType ? " ($electricalType)" : '';
                 return [
                     'status' => 'error',
-                    'message' => "No se encontraron fuentes de alimentación compatibles para el voltaje de {$voltage}V registradas en el inventario."
+                    'message' => "No se encontraron fuentes de alimentación compatibles registradas para {$voltage}V{$tipoEtiqueta}."
                 ];
             }
 
