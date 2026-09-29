@@ -234,12 +234,24 @@ class ProductQuoter extends Component
 
         foreach ($variableItems as $varItem) {
             $options = json_decode($varItem->variable_options, true) ?? [];
+            
+            // PARCHE: Inyectar el producto original en las opciones
+            $baseItem = \App\Models\Tenant\Items\Items::find($varItem->item_id);
+            if ($baseItem) {
+                // Lo ponemos de primero en la lista desplegable
+                array_unshift($options, [
+                    'item_id' => $baseItem->id,
+                    'code' => $baseItem->sku ?? $baseItem->internal_code,
+                    'name' => $baseItem->name
+                ]);
+            }
+            
             $this->assembledFields[] = [
                 'id' => $varItem->id, 
-                'label' => $varItem->description,
+                'label' => 'Seleccionar variante para: ' . ($baseItem->sku ?? '') . ' ' . ($baseItem->name ?? $varItem->description),
                 'quantity' => $varItem->quantity ?? $varItem->cm_quantity ?? 1,
                 'options' => $options,
-                'user_value' => '', // ID del item seleccionado
+                'user_value' => $baseItem ? $baseItem->id : '', // Pre-seleccionamos el blanco por defecto!
             ];
         }
 
@@ -1394,7 +1406,9 @@ class ProductQuoter extends Component
                     'price_label' => $item['price_label'] ?? 'Precio', // Guardar el label de la lista de precios
                     'justification' => $item['justification'] ?? null,
                     'assembled_config' => $item['assembled_config'] ?? null,
-                    'assembled_recipe' => $item['assembled_recipe'] ?? null,
+                    'assembled_recipe' => isset($item['assembled_recipe']) && !empty($item['assembled_recipe']) 
+                                            ? (is_string($item['assembled_recipe']) ? $item['assembled_recipe'] : json_encode($item['assembled_recipe'])) 
+                                            : null,
                 ]);
             }
 
