@@ -43,6 +43,8 @@ class InvItemsDimensions extends Model
         'width',
         'voltage',
         'power',
+        'electrical_type',
+        'lumens_per_meter',
         'weight',
         'quntityxbox',
         'scale_1_qty',
