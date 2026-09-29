@@ -988,16 +988,51 @@ class ManageTasks extends Component
         $start = Carbon::parse($startIso);
         $end = $endIso ? Carbon::parse($endIso) : $start->copy()->addMinutes($task->total_occupied_minutes);
 
+        // --- INICIO AJUSTE ALMUERZO ---
+        // Buscamos el horario laboral del primer trabajador asignado
+        $firstUser = $task->assignments->first()?->user_id;
+        if ($firstUser) {
+            $daySchedule = \App\Models\Tenant\TaskPlanner\EmployeeSchedule::where('user_id', $firstUser)
+                ->where('day_of_week', $start->dayOfWeek)
+                ->first();
+
+            if ($daySchedule && $daySchedule->break_start && $daySchedule->break_end) {
+                $breakStart = $start->copy()->setTimeFromTimeString($daySchedule->break_start);
+                $breakEnd = $start->copy()->setTimeFromTimeString($daySchedule->break_end);
+
+                // Si empieza antes del fin de almuerzo y termina después del inicio de almuerzo
+                if ($start->lt($breakEnd) && $end->gt($breakStart)) {
+                    // Si NO se redimensionó manualmente (no hay endIso), estiramos la hora de fin automáticamente
+                    if (!$endIso) {
+                        $lunchDuration = $breakStart->diffInMinutes($breakEnd);
+                        $end->addMinutes($lunchDuration);
+                    }
+                }
+            }
+        }
+        // --- FIN AJUSTE ALMUERZO ---
+
         $currentSchedule = TaskSchedule::where('task_id', $task->id)
             ->whereNotIn('schedule_status', ['cancelada'])
             ->latest('id')
             ->first();
 
-        // Si ya estaba agendado y se mueve DENTRO DEL MISMO DÍA, auto-guardar
-        if ($currentSchedule && $currentSchedule->scheduled_start->format('Y-m-d') === $start->format('Y-m-d')) {
-            $schedulingService = app(SchedulingService::class);
-            $userIds = $task->assignments->pluck('user_id')->toArray();
+        $schedulingService = app(SchedulingService::class);
+        $userIds = $task->assignments->pluck('user_id')->toArray();
+        $conflicts = $schedulingService->checkAvailabilityForUsers($userIds, $start, $end, $currentSchedule?->id);
+        
+        $hasRealConflicts = false;
+        foreach ($conflicts as $userConflicts) {
+            foreach ($userConflicts as $c) {
+                if ($c['type'] !== 'horario_almuerzo') {
+                    $hasRealConflicts = true;
+                    break 2;
+                }
+            }
+        }
 
+        // Si ya estaba agendado, se mueve DENTRO DEL MISMO DÍA, y NO hay conflictos graves, auto-guardar
+        if ($currentSchedule && $currentSchedule->scheduled_start->format('Y-m-d') === $start->format('Y-m-d') && !$hasRealConflicts) {
             // Auto-configurar fecha límite al final del día si el nuevo horario lo sobrepasa
             if ($end->copy()->endOfDay()->gt($task->deadline_at)) {
                 $task->deadline_at = $end->copy()->endOfDay();
@@ -1010,7 +1045,7 @@ class ManageTasks extends Component
             return;
         }
 
-        // Si se mueve a OTRO DÍA o viene desde la bandeja (no estaba agendado)
+        // Si hay conflictos graves, o se mueve a OTRO DÍA o viene desde la bandeja, abrimos el modal
         $this->schedulingTaskId = $task->id;
         $this->scheduleDate = $start->format('Y-m-d');
         $this->scheduleStartTime = $start->format('H:i');
@@ -1022,7 +1057,7 @@ class ManageTasks extends Component
         $this->isReschedulingToAnotherDay = $currentSchedule ? true : false;
         $this->showScheduleModal = true;
 
-        $this->checkScheduleConflicts(app(SchedulingService::class));
+        $this->checkScheduleConflicts($schedulingService);
     }
 
     // ---------------------------------------------------------------
