@@ -455,7 +455,7 @@
                                     VOLTAJE: <span class="text-indigo-600 dark:text-indigo-400">{{ $result['voltage'] }} VDC</span>
                                 </h4>
                                 
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                     <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600 text-center">
                                         <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Potencia Instalada</p>
                                         <p class="text-lg font-bold text-gray-800 dark:text-gray-200">{{ number_format($result['installed_power'], 2) }} W</p>
@@ -467,8 +467,13 @@
                                         <div class="absolute -right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">=</div>
                                     </div>
                                     <div class="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 text-center">
-                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">Potencia Mínima Requerida</p>
+                                        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">Potencia Requerida</p>
                                         <p class="text-xl font-extrabold text-indigo-700 dark:text-indigo-300">{{ number_format($result['required_power'], 2) }} W</p>
+                                    </div>
+                                    <div class="bg-amber-50 dark:bg-amber-900/30 p-2 rounded-lg border border-amber-200 dark:border-amber-800 text-center" title="Solo aplica para productos de la gama de Blancos.">
+                                        <p class="text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase leading-tight">Intensidad Teórica</p>
+                                        <p class="text-xl font-extrabold text-amber-700 dark:text-amber-300">{{ number_format($result['theoretical_intensity'], 0) }} Lm</p>
+                                        <p class="text-3xs text-amber-500/80 mt-0.5 leading-none">Solo aplica a gama de blancos.</p>
                                     </div>
                                 </div>
                             </div>
@@ -482,12 +487,11 @@
                                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
                                             <tr>
                                                 <th scope="col" class="px-4 py-3">Línea / Marca</th>
-                                                <th scope="col" class="px-4 py-3 text-center">Opción</th>
-                                                <th scope="col" class="px-4 py-3">Código Fuente</th>
-                                                <th scope="col" class="px-4 py-3 text-center">Cantidad</th>
-                                                <th scope="col" class="px-4 py-3 text-right">Potencia unitaria</th>
-                                                <th scope="col" class="px-4 py-3 text-right">Potencia total</th>
-                                                <th scope="col" class="px-4 py-3 w-10"></th>
+                                                <th scope="col" class="px-3 py-2 w-[40%]">Código / Descripción</th>
+                                                <th scope="col" class="px-2 py-2 text-center">Cantidad</th>
+                                                <th scope="col" class="px-2 py-2 text-right">Potencia unit.</th>
+                                                <th scope="col" class="px-2 py-2 text-right">Potencia total</th>
+                                                <th scope="col" class="px-2 py-2 w-10"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -503,22 +507,30 @@
                                                 @endphp
                                                 
                                                 @foreach($brand['options'] as $idx => $opt)
-                                                    <tr class="border-b border-gray-100 dark:border-gray-750 {{ $bgClass }} hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+                                                    <tr class="border-b border-gray-100 dark:border-gray-750 {{ $bgClass }} transition-colors {{ $opt['stock'] < $opt['quantity'] ? 'opacity-60 bg-gray-200/50 dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50' }}">
                                                         @if($idx === 0)
                                                             <td rowspan="{{ count($brand['options']) }}" class="px-4 py-3 font-extrabold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-700 align-middle">
                                                                 {{ $brand['brand_name'] }}
                                                             </td>
                                                         @endif
-                                                        <td class="px-4 py-3 text-center font-bold">{{ $opt['type'] }}</td>
-                                                        <td class="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{{ $opt['code'] }}</td>
-                                                        <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ $opt['quantity'] }}</td>
-                                                        <td class="px-4 py-3 text-right">{{ number_format($opt['unit_power'], 0) }} W</td>
-                                                        <td class="px-4 py-3 text-right font-extrabold text-indigo-600 dark:text-indigo-400">{{ number_format($opt['total_power'], 0) }} W</td>
-                                                        <td class="px-4 py-3 text-right">
-                                                            <button type="button" wire:click="addPowerSupplyToLines({{ $opt['item_id'] }}, {{ $opt['quantity'] }})" class="px-3 py-1.5 text-xs font-bold text-white bg-green-500 hover:bg-green-600 rounded shadow-sm transition-colors flex items-center gap-1">
-                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                                                Agregar
-                                                            </button>
+                                                        <td class="px-3 py-2">
+                                                            <span class="font-bold text-gray-800 dark:text-gray-200 block">{{ $opt['code'] }}</span>
+                                                            <div class="text-xs text-gray-500 truncate max-w-[250px]" title="{{ $opt['description'] ?? '' }}">
+                                                                {{ $opt['description'] ?? '' }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-2 py-2 text-center font-bold text-gray-900 dark:text-white">{{ $opt['quantity'] }}</td>
+                                                        <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($opt['unit_power'], 0) }} W</td>
+                                                        <td class="px-2 py-2 text-right font-extrabold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{{ number_format($opt['total_power'], 0) }} W</td>
+                                                        <td class="px-2 py-2 text-right">
+                                                            @if($opt['stock'] < $opt['quantity'])
+                                                                <span class="text-xs font-bold text-red-500 dark:text-red-400 block whitespace-nowrap text-center">Sin stock ({{ $opt['stock'] }})</span>
+                                                            @else
+                                                                <button type="button" wire:click="addPowerSupplyToLines({{ $opt['item_id'] }}, {{ $opt['quantity'] }})" class="px-3 py-1.5 text-xs font-bold text-white bg-green-500 hover:bg-green-600 rounded shadow-sm transition-colors flex items-center gap-1">
+                                                                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                                                    Agregar
+                                                                </button>
+                                                            @endif
                                                         </td>
                                                     </tr>
                                                 @endforeach
