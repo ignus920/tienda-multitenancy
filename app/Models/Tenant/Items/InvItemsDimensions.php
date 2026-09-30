@@ -45,6 +45,7 @@ class InvItemsDimensions extends Model
         'power',
         'electrical_type',
         'lumens_per_meter',
+        'min_cut_length',
         'weight',
         'quntityxbox',
         'scale_1_qty',
