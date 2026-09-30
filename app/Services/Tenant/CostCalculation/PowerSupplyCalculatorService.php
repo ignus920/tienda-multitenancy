@@ -174,11 +174,19 @@ class PowerSupplyCalculatorService
                 $options = []; 
 
                 if ($requiredPower <= 450) {
-                    $validSources = $brandSources->filter(function($src) use ($requiredPower) {
+                    $bestSource = $brandSources->first(function($src) use ($requiredPower) {
                         return floatval($src->source_power) >= $requiredPower;
                     });
 
-                    foreach ($validSources as $bestSource) {
+                    if ($bestSource) {
+                        $unitPrice = 0;
+                        foreach ($bestSource->all_prices as $k => $v) {
+                            if (strtoupper($k) === 'LISTA') {
+                                $unitPrice = $v;
+                                break;
+                            }
+                        }
+
                         $options[] = [
                             'item_id' => $bestSource->id,
                             'code' => $bestSource->internal_code ?: $bestSource->sku,
@@ -187,17 +195,25 @@ class PowerSupplyCalculatorService
                             'quantity' => 1,
                             'unit_power' => floatval($bestSource->source_power),
                             'total_power' => floatval($bestSource->source_power),
-                            'unit_price' => $bestSource->all_prices['Lista'] ?? 0
+                            'unit_price' => $unitPrice
                         ];
                     }
                 } else {
                     // Requerimiento > 450W: Solo sugerimos obligatoriamente 2 fuentes (se divide la carga)
                     $halfPower = $requiredPower / 2;
-                    $validPairs = $brandSources->filter(function($src) use ($halfPower) {
+                    $bestPairSource = $brandSources->first(function($src) use ($halfPower) {
                         return floatval($src->source_power) >= $halfPower;
                     });
 
-                    foreach ($validPairs as $bestPairSource) {
+                    if ($bestPairSource) {
+                        $unitPrice = 0;
+                        foreach ($bestPairSource->all_prices as $k => $v) {
+                            if (strtoupper($k) === 'LISTA') {
+                                $unitPrice = $v;
+                                break;
+                            }
+                        }
+
                         $options[] = [
                             'item_id' => $bestPairSource->id,
                             'code' => $bestPairSource->internal_code ?: $bestPairSource->sku,
@@ -206,7 +222,7 @@ class PowerSupplyCalculatorService
                             'quantity' => 2,
                             'unit_power' => floatval($bestPairSource->source_power),
                             'total_power' => floatval($bestPairSource->source_power) * 2,
-                            'unit_price' => $bestPairSource->all_prices['Lista'] ?? 0
+                            'unit_price' => $unitPrice
                         ];
                     }
                 }
