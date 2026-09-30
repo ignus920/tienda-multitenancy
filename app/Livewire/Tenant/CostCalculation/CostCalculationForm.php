@@ -253,6 +253,9 @@ class CostCalculationForm extends Component
             return;
         }
 
+        $minCutLength = optional($item->dimensions)->min_cut_length ? floatval($item->dimensions->min_cut_length) : 1;
+        $initialCmQty = $isCuttable ? (ceil(100 / $minCutLength) * $minCutLength) : null;
+
         $this->lines[] = [
             'db_id' => null,
             'origin' => 'erp',
@@ -260,7 +263,7 @@ class CostCalculationForm extends Component
             'description' => $fullDescription,
             'mode' => $isCuttable ? 'cm' : 'unit',
             'quantity' => $isCuttable ? null : 1,
-            'cm_quantity' => $isCuttable ? 100 : null,
+            'cm_quantity' => $initialCmQty,
             'ext_unit_value' => null,
             'is_variable' => false,
             'options' => []
@@ -506,6 +509,7 @@ class CostCalculationForm extends Component
 
             if ($line['mode'] === 'cm') {
                 $length = optional($item->dimensions)->long;
+                $minCutLength = optional($item->dimensions)->min_cut_length;
                 $cmPrice = ($length > 0) ? ceil($unitPrice / $length) : 0;
                 $qty = (float) ($line['cm_quantity'] ?? 0);
                 return array_merge($line, [
@@ -514,6 +518,7 @@ class CostCalculationForm extends Component
                     'subtotal' => ceil($cmPrice * $qty),
                     'missing' => false,
                     'no_length' => !($length > 0),
+                    'min_cut_length' => $minCutLength != null ? floatval($minCutLength) : null,
                 ]);
             }
 

@@ -66,8 +66,8 @@ class ExtractLedAttributesCommand extends Command
             $quntityxbox = null;
 
             // 1. Extraer Lm/m (Lúmenes por metro)
-            if (preg_match('/(\d+(?:\.\d+)?)\s*(?:LM\/M|LM\/MT|L\/M|LUMEN\/M|LUMENES\/M|LUMENES\/MT)/', $desc, $matches)) {
-                $lm_per_meter = $matches[1];
+            if (preg_match('/(\d+(?:[\.,]\d+)?)\s*(?:LM\/M|LM\/MT|L\/M|LUMEN\/M|LUMENES\/M|LUMENES\/MT)/', $desc, $matches)) {
+                $lm_per_meter = str_replace(',', '.', $matches[1]);
             }
 
             // 2. Extraer Tipo Eléctrico (CC o CV)
@@ -83,18 +83,18 @@ class ExtractLedAttributesCommand extends Command
             }
 
             // 3. Extraer Voltaje (ej. 12V, 24V, 110V, 110VAC, 110VDC)
-            if (preg_match('/(\d+(?:\.\d+)?)\s*(?:V|VAC|VDC|VCA|VCC)\b/i', $desc, $matches)) {
-                $voltage = $matches[1];
+            if (preg_match('/(\d+(?:[\.,]\d+)?)\s*(?:V|VAC|VDC|VCA|VCC)\b/i', $desc, $matches)) {
+                $voltage = str_replace(',', '.', $matches[1]);
             }
 
-            // 4. Extraer Potencia (ej. 10W, 13.68W, 7.5W)
-            if (preg_match('/(\d+(?:\.\d+)?)\s*W\b/', $desc, $matches)) {
-                $power = $matches[1];
+            // 4. Extraer Potencia (ej. 10W, 13.68W, 7.5W, 14,4W)
+            if (preg_match('/(\d+(?:[\.,]\d+)?)\s*W\b/', $desc, $matches)) {
+                $power = str_replace(',', '.', $matches[1]);
             }
 
-            // 5. Extraer Ancho (ej. 10MM, 8MM)
-            if (preg_match('/(\d+(?:\.\d+)?)\s*MM\b/', $desc, $matches)) {
-                $width = $matches[1];
+            // 5. Extraer Ancho (ej. 10MM, 8MM, 2.5MM)
+            if (preg_match('/(\d+(?:[\.,]\d+)?)\s*MM\b/', $desc, $matches)) {
+                $width = str_replace(',', '.', $matches[1]);
             }
 
             // 6. Extraer Cantidad por Caja (ej. CJ100, CJ 50, CJ-200)
@@ -123,7 +123,6 @@ class ExtractLedAttributesCommand extends Command
 
                 $updated = false;
 
-                // Solo actualizamos si el campo está vacío o es un cero (0.00) para no sobreescribir trabajo manual
                 if ($lm_per_meter && (empty($dimension->lumens_per_meter) || (float)$dimension->lumens_per_meter == 0)) {
                     $dimension->lumens_per_meter = $lm_per_meter;
                     $updated = true;
@@ -154,6 +153,27 @@ class ExtractLedAttributesCommand extends Command
                     $updatedCount++;
                 }
             }
+
+            // --- Lógica de categorización de fuentes de poder ---
+            $code = strtoupper($item->internal_code);
+            $newGroupId = null;
+
+            if (preg_match('/^(LRS|RS|RSP|SE)-?/', $code)) {
+                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'MW Uso Interior')->value('id');
+            } elseif (preg_match('/^(LPV|XLG)-?/', $code)) {
+                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'MW Uso Exterior')->value('id');
+            } elseif (preg_match('/^CL-?/', $code)) {
+                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'CL Uso Interior')->value('id');
+            } elseif (preg_match('/^DPV-?/', $code)) {
+                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'CL Uso Exterior')->value('id');
+            }
+
+            if ($newGroupId && $item->commercial_group_id != $newGroupId) {
+                $item->commercial_group_id = $newGroupId;
+                $item->save();
+            }
+
+
             $this->output->progressAdvance();
         }
 

@@ -106,6 +106,40 @@ class ManageItems extends Component
     public $sortDirection = 'asc';
     public $showModal = false;
 
+    public function saveCommercialGroup()
+    {
+        $this->validate([
+            'newCommercialGroupName' => 'required|string|min:2|max:100'
+        ], [
+            'newCommercialGroupName.required' => 'El nombre del grupo comercial es obligatorio.',
+            'newCommercialGroupName.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'newCommercialGroupName.max' => 'El nombre no puede exceder 100 caracteres.',
+        ]);
+
+        try {
+            $id = DB::connection('tenant')->table('inv_commercial_groups')->insertGetId([
+                'name' => trim($this->newCommercialGroupName),
+                'status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->commercial_group_id = $id;
+            $this->showCommercialGroupInput = false;
+            $this->newCommercialGroupName = '';
+            
+            $this->dispatch('swal:toast', [
+                'type' => 'success',
+                'title' => 'Grupo comercial agregado correctamente',
+                'timer' => 3000
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al guardar grupo comercial: ' . $e->getMessage());
+            $this->addError('newCommercialGroupName', 'Error al guardar el grupo comercial. Es posible que ya exista.');
+        }
+    }
+
     public function updatingProductFilter()
     {
         $this->resetPage();
@@ -121,6 +155,10 @@ class ManageItems extends Component
     //Información para categorias
     public $showCategoryInput = false;
     public $newCategoryName = '';
+    
+    //Información para Grupo Comercial
+    public $showCommercialGroupInput = false;
+    public $newCommercialGroupName = '';
 
     //Información para comandas
     public $showCommandInput = false;

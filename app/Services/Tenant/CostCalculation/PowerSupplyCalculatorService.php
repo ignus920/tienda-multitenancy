@@ -130,6 +130,7 @@ class PowerSupplyCalculatorService
 
             // Buscar fuentes de este voltaje y tipo eléctrico por NOMBRE
             $sources = Items::select('inv_items.*', 'inv_items_dimensions.power as source_power', 'inv_items_dimensions.voltage as source_voltage')
+                ->with(['invValues'])
                 ->join('inv_items_dimensions', 'inv_items.id', '=', 'inv_items_dimensions.item_id')
                 ->where(function($q) {
                     $q->where('inv_items.name', 'like', '%FUENTE%')
@@ -170,15 +171,14 @@ class PowerSupplyCalculatorService
                 // Ordenar fuentes del grupo por potencia ascendente
                 $brandSources = collect($brandSources)->sortBy('source_power')->values();
 
-                $options = []; // En realidad ahora solo tendrá 1 elemento (una sola sugerencia por marca)
+                $options = []; 
 
                 if ($requiredPower <= 450) {
-                    // Buscar 1 fuente individual >= requiredPower
-                    $bestSource = $brandSources->first(function($src) use ($requiredPower) {
+                    $validSources = $brandSources->filter(function($src) use ($requiredPower) {
                         return floatval($src->source_power) >= $requiredPower;
                     });
 
-                    if ($bestSource) {
+                    foreach ($validSources as $bestSource) {
                         $options[] = [
                             'item_id' => $bestSource->id,
                             'code' => $bestSource->internal_code ?: $bestSource->sku,
@@ -186,17 +186,18 @@ class PowerSupplyCalculatorService
                             'stock' => $bestSource->stock_disponible_venta,
                             'quantity' => 1,
                             'unit_power' => floatval($bestSource->source_power),
-                            'total_power' => floatval($bestSource->source_power)
+                            'total_power' => floatval($bestSource->source_power),
+                            'unit_price' => $bestSource->all_prices['Lista'] ?? 0
                         ];
                     }
                 } else {
                     // Requerimiento > 450W: Solo sugerimos obligatoriamente 2 fuentes (se divide la carga)
                     $halfPower = $requiredPower / 2;
-                    $bestPairSource = $brandSources->first(function($src) use ($halfPower) {
+                    $validPairs = $brandSources->filter(function($src) use ($halfPower) {
                         return floatval($src->source_power) >= $halfPower;
                     });
 
-                    if ($bestPairSource) {
+                    foreach ($validPairs as $bestPairSource) {
                         $options[] = [
                             'item_id' => $bestPairSource->id,
                             'code' => $bestPairSource->internal_code ?: $bestPairSource->sku,
@@ -204,7 +205,8 @@ class PowerSupplyCalculatorService
                             'stock' => $bestPairSource->stock_disponible_venta,
                             'quantity' => 2,
                             'unit_power' => floatval($bestPairSource->source_power),
-                            'total_power' => floatval($bestPairSource->source_power) * 2
+                            'total_power' => floatval($bestPairSource->source_power) * 2,
+                            'unit_price' => $bestPairSource->all_prices['Lista'] ?? 0
                         ];
                     }
                 }
