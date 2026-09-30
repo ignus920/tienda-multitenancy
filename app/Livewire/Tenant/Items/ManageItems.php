@@ -582,8 +582,8 @@ class ManageItems extends Component
         return view('livewire.tenant.items.manage-items', [
             'items' => $items,
             'categories' => Category::where('status', 1)->get(),
-            'commercial_groups' => \Illuminate\Support\Facades\Schema::hasTable('inv_commercial_groups') 
-                                    ? \Illuminate\Support\Facades\DB::table('inv_commercial_groups')->where('status', 1)->get() 
+            'commercial_groups' => \Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('inv_commercial_groups') 
+                                    ? \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('status', 1)->get() 
                                     : collect([]),
             'types' => $this->types,
             'hasFullItemEditAccess' => $this->hasFullItemEditAccess(),
