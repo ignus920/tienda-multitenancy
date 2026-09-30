@@ -429,6 +429,34 @@ class CostCalculationForm extends Component
 
     // ---------------- Cálculo de precios en vivo ----------------
 
+    public function updated($propertyName, $value)
+    {
+        if (preg_match('/^lines\.(\d+)\.cm_quantity$/', $propertyName, $matches)) {
+            $index = $matches[1];
+            if (isset($this->lines[$index]) && $this->lines[$index]['origin'] === 'erp') {
+                $item = Items::with('dimensions')->find($this->lines[$index]['item_id']);
+                if ($item && $item->is_cuttable) {
+                    $minCut = optional($item->dimensions)->min_cut_length ? floatval($item->dimensions->min_cut_length) : 1;
+                    if ($minCut > 0) {
+                        $floatVal = floatval($value);
+                        // Usar fmod para decimales, compara la diferencia con una pequeña tolerancia
+                        if (abs(fmod($floatVal, $minCut)) > 0.01 && abs(fmod($floatVal, $minCut) - $minCut) > 0.01) {
+                            $rounded = round($floatVal / $minCut) * $minCut;
+                            if ($rounded <= 0) $rounded = $minCut;
+                            
+                            $this->lines[$index]['cm_quantity'] = $rounded;
+                            
+                            $this->dispatch('show-toast', [
+                                'type' => 'warning', 
+                                'message' => "El corte debe ser múltiplo de {$minCut}. Se ajustó a {$rounded} cm."
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private function resolvePriceForLabel(Items $item, ?string $label): float
     {
         $prices = $item->all_prices;
