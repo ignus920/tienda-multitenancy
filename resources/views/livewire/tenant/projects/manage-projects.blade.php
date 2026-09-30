@@ -469,7 +469,7 @@
                 <!-- Descripción -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">Descripción del Proyecto *</label>
-                    <textarea wire:model="description" rows="4" placeholder="Describe los requerimientos mínimos de iluminación, drivers, perfiles..."
+                    <textarea wire:model="description" rows="4" placeholder="Transmita a su equipo de trabajo los detalles que usted conoce sobre el proyecto. Que habló con el cliente, en donde esta ubicado el proyecto, describa que es lo que quiere el cliente, detalles que se deben contemplar... quien es el cliente..."
                         class="block w-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                     @error('description') <span class="text-xs text-red-500 mt-0.5 block font-semibold">{{ $message }}</span> @enderror
                 </div>

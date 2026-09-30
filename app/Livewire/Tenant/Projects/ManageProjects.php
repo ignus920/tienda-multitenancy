@@ -292,7 +292,8 @@ class ManageProjects extends Component
     {
         return User::where('profile_id', $profileId)
             ->whereHas('tenants', function ($q) {
-                $q->where('tenants.id', session('tenant_id'));
+                $q->where('tenants.id', session('tenant_id'))
+                  ->where('user_tenants.is_active', 1);
             })
             ->pluck('id')
             ->all();
@@ -508,7 +509,8 @@ class ManageProjects extends Component
 
         // Usuarios del tenant para asignar proyectos internos
         $assignableUsers = User::whereHas('tenants', function ($q) {
-                $q->where('tenants.id', session('tenant_id'));
+                $q->where('tenants.id', session('tenant_id'))
+                  ->where('user_tenants.is_active', 1);
             })
             ->whereNotIn('profile_id', [17, 18]) // Solo personal interno de Fervicom
             ->orderBy('name')
