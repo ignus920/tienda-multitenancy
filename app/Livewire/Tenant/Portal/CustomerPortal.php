@@ -197,6 +197,7 @@ class CustomerPortal extends Component
                 'inv_items.id',
                 'inv_items.api_data_id',
                 'inv_items.categoryId',
+                'inv_items.commercial_group_id',
                 'inv_items.name',
                 'inv_items.internal_code',
                 'inv_items.sku',
