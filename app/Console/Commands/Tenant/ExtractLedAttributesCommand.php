@@ -123,27 +123,27 @@ class ExtractLedAttributesCommand extends Command
 
                 $updated = false;
 
-                if ($lm_per_meter && (empty($dimension->lumens_per_meter) || (float)$dimension->lumens_per_meter == 0)) {
+                if ($lm_per_meter) {
                     $dimension->lumens_per_meter = $lm_per_meter;
                     $updated = true;
                 }
-                if ($electrical_type && empty($dimension->electrical_type)) {
+                if ($electrical_type) {
                     $dimension->electrical_type = $electrical_type;
                     $updated = true;
                 }
-                if ($voltage !== null && $dimension->voltage != $voltage) {
+                if ($voltage !== null) {
                     $dimension->voltage = $voltage;
                     $updated = true;
                 }
-                if ($power !== null && (empty($dimension->power) || (float)$dimension->power == 0)) {
+                if ($power !== null) {
                     $dimension->power = $power;
                     $updated = true;
                 }
-                if ($width !== null && (empty($dimension->width) || (float)$dimension->width == 0)) {
+                if ($width !== null) {
                     $dimension->width = $width;
                     $updated = true;
                 }
-                if ($quntityxbox !== null && (empty($dimension->quntityxbox) || (float)$dimension->quntityxbox == 0)) {
+                if ($quntityxbox !== null) {
                     $dimension->quntityxbox = $quntityxbox;
                     $updated = true;
                 }

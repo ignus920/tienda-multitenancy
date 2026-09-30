@@ -657,6 +657,7 @@
                                         Agrupación comercial para búsquedas en cotizaciones y alternativas (Ej: MW Uso Interior).
                                     </div>
                                 </div>
+                            </label>
                             <div class="flex gap-2 items-start">
                                 <div class="flex-1">
                                     <select wire:model="commercial_group_id"
