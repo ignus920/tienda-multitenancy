@@ -104,7 +104,7 @@
                         </div>
                     </div>
                 </label>
-                <input wire:model="min_cut_length" type="number" step="any"
+                <input wire:model.defer="min_cut_length" type="number" step="any"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                     placeholder="Ej: 5">
                 <span class="text-xs text-gray-500 dark:text-gray-400">Diligencie en centímetros</span>

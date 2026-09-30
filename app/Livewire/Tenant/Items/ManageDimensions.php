@@ -49,6 +49,7 @@ class ManageDimensions extends Component
             'width' => 'required|numeric',
             'weight' => 'required|numeric',
             'quntityxbox' => 'required|numeric',
+            'min_cut_length' => 'nullable|numeric',
         ];
 
         if ($this->is_cuttable) {
@@ -67,6 +68,7 @@ class ManageDimensions extends Component
             'width' => $this->width,
             'weight' => $this->weight,
             'quntityxbox' => $this->quntityxbox,
+            'min_cut_length' => $this->min_cut_length,
         ], $rules, [
             'required' => 'Por favor complete todos los campos obligatorios de dimensiones.',
             'numeric' => 'Los campos de dimensiones deben ser valores numéricos.'
