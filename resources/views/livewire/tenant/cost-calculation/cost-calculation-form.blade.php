@@ -178,10 +178,22 @@
                                             wire:change="$set('lines.{{ $i }}.quantity', $event.target.value)"
                                             class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right">
                                     @elseif($line['mode'] === 'cm')
-                                        <input type="number" step="1" min="1" value="{{ $line['cm_quantity'] }}"
-                                            wire:change="$set('lines.{{ $i }}.cm_quantity', $event.target.value)"
-                                            class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right">
-                                        <span class="text-2xs text-gray-400">cm</span>
+                                        @php
+                                            $cutStep = !empty($line['min_cut_length']) ? floatval($line['min_cut_length']) : 1;
+                                            $meters = ($line['cm_quantity'] ?? 0) / 100;
+                                        @endphp
+                                        <div class="flex items-center justify-end gap-2">
+                                            <span class="text-[11px] text-gray-500 font-medium bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-1.5 py-1 rounded whitespace-nowrap" title="Equivalente en metros">
+                                                {{ number_format($meters, 2) }} m
+                                            </span>
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" step="{{ $cutStep }}" min="{{ $cutStep }}" value="{{ $line['cm_quantity'] }}"
+                                                    wire:change="$set('lines.{{ $i }}.cm_quantity', $event.target.value)"
+                                                    class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right"
+                                                    title="La cantidad debe ser múltiplo de {{ $cutStep }} cm">
+                                                <span class="text-2xs text-gray-400">cm</span>
+                                            </div>
+                                        </div>
                                     @else
                                         <input type="number" step="1" min="1" value="{{ $line['quantity'] }}"
                                             onkeypress="return event.charCode >= 48 && event.charCode <= 57"
@@ -489,6 +501,7 @@
                                                 <th scope="col" class="px-4 py-3">Grupo Comercial</th>
                                                 <th scope="col" class="px-3 py-2 w-[40%]">Código / Descripción</th>
                                                 <th scope="col" class="px-2 py-2 text-center">Cantidad</th>
+                                                <th scope="col" class="px-2 py-2 text-right">Precio unit.</th>
                                                 <th scope="col" class="px-2 py-2 text-right">Potencia unit.</th>
                                                 <th scope="col" class="px-2 py-2 text-right">Potencia total</th>
                                                 <th scope="col" class="px-2 py-2 w-10"></th>
@@ -520,6 +533,7 @@
                                                             </div>
                                                         </td>
                                                         <td class="px-2 py-2 text-center font-bold text-gray-900 dark:text-white">{{ $opt['quantity'] }}</td>
+                                                        <td class="px-2 py-2 text-right font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">${{ number_format($opt['unit_price'] ?? 0, 0) }}</td>
                                                         <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($opt['unit_power'], 0) }} W</td>
                                                         <td class="px-2 py-2 text-right font-extrabold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{{ number_format($opt['total_power'], 0) }} W</td>
                                                         <td class="px-2 py-2 text-right">

@@ -46,7 +46,7 @@
         <div class="mb-3 grid grid-cols-2 gap-2">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
-                    Tipo Eléctrico
+                    Tipo de Alimentación
                     <!-- Tooltip -->
                     <div x-data="{ show: false }" class="relative inline-block ml-1.5">
                         <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
@@ -55,7 +55,7 @@
                             </svg>
                         </button>
                         <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                            Aplica para Cintas, Módulos y Fuentes: CC (Corriente Constante) o CV (Voltaje Constante).
+                            Aplica para Cintas, Módulos, Regletas LED y Fuentes: CC (Corriente Constante) o CV (Voltaje Constante).
                         </div>
                     </div>
                 </label>
@@ -84,6 +84,30 @@
                 <input wire:model="lumens_per_meter" type="number" step="any"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                     placeholder="Ej: 1200">
+            </div>
+        </div>
+
+        <!-- Row 1.8: Unidad Mínima Corte -->
+        <div class="mb-3 grid grid-cols-2 gap-2">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center select-none">
+                    Unidad Mínima de Corte
+                    <!-- Tooltip -->
+                    <div x-data="{ show: false }" class="relative inline-block ml-1.5">
+                        <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
+                            Distancia mínima a la cual se puede realizar un corte (Aplica para cintas y regletas).
+                        </div>
+                    </div>
+                </label>
+                <input wire:model="min_cut_length" type="number" step="any"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="Ej: 5">
+                <span class="text-xs text-gray-500 dark:text-gray-400">Diligencie en centímetros</span>
             </div>
         </div>
 

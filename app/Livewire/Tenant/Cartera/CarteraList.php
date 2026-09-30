@@ -534,7 +534,8 @@ class CarteraList extends Component
                 $filePath = $row['proof_payment'] ?? null;
                 
                 if (isset($this->paymentFiles[$index])) {
-                    $filePath = $this->paymentFiles[$index]->store('proof_payments', 'public');
+                    $tenantId = tenant('id') ?? 'global';
+                    $filePath = $this->paymentFiles[$index]->store("tenants/{$tenantId}/proof_payments", 'public');
                 }
 
                 $paymentsArray[] = [

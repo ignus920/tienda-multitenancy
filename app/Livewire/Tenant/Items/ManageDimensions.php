@@ -20,6 +20,7 @@ class ManageDimensions extends Component
     public $power;
     public $electrical_type;
     public $lumens_per_meter;
+    public $min_cut_length;
     public $weight;
     public $quntityxbox;
     public $scale_1_qty;
@@ -86,6 +87,7 @@ class ManageDimensions extends Component
             'power' => $this->power,
             'electrical_type' => $this->electrical_type === '' ? null : $this->electrical_type,
             'lumens_per_meter' => $this->lumens_per_meter === '' ? null : $this->lumens_per_meter,
+            'min_cut_length' => $this->min_cut_length === '' ? null : $this->min_cut_length,
             'weight' => $this->weight,
             'quntityxbox' => $this->quntityxbox,
             'scale_1_qty' => $this->scale_1_qty === '' ? null : $this->scale_1_qty,
@@ -143,10 +145,11 @@ class ManageDimensions extends Component
             $this->high = $itemDimension->high;
             $this->long = $itemDimension->long;
             $this->width = $itemDimension->width;
-            $this->voltage = $itemDimension->voltage;
+            $this->voltage = $itemDimension->voltage != null ? floatval($itemDimension->voltage) : null;
             $this->power = $itemDimension->power;
             $this->electrical_type = $itemDimension->electrical_type;
             $this->lumens_per_meter = $itemDimension->lumens_per_meter;
+            $this->min_cut_length = $itemDimension->min_cut_length != null ? floatval($itemDimension->min_cut_length) : null;
             $this->weight = $itemDimension->weight;
             $this->quntityxbox = $itemDimension->quntityxbox;
             $this->scale_1_qty = $itemDimension->scale_1_qty;

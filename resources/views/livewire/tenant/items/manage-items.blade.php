@@ -657,15 +657,38 @@
                                         Agrupación comercial para búsquedas en cotizaciones y alternativas (Ej: MW Uso Interior).
                                     </div>
                                 </div>
-                            </label>
-                            <select wire:model="commercial_group_id"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">-- No aplica / Sin grupo --</option>
-                                @foreach($commercial_groups as $group)
-                                <option value="{{ $group->id }}">{{ $group->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('commercial_group_id') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                            <div class="flex gap-2 items-start">
+                                <div class="flex-1">
+                                    <select wire:model="commercial_group_id"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">-- No aplica / Sin grupo --</option>
+                                        @foreach($commercial_groups as $group)
+                                        <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('commercial_group_id') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                                <button type="button" wire:click="$toggle('showCommercialGroupInput')" class="w-[42px] h-[42px] flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors border border-indigo-700 flex-shrink-0" title="Agregar nuevo Grupo Comercial">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            @if($showCommercialGroupInput)
+                            <div class="mt-3 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl">
+                                <div class="flex items-center gap-2">
+                                    <input type="text" wire:model.defer="newCommercialGroupName" placeholder="Ingrese nombre del grupo comercial" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                                    <button type="button" wire:click="saveCommercialGroup" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
+                                        Agregar
+                                    </button>
+                                    <button type="button" wire:click="$set('showCommercialGroupInput', false)" class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium rounded-lg transition-colors">
+                                        Cancelar
+                                    </button>
+                                </div>
+                                @error('newCommercialGroupName') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                            @endif
                         </div>
 
                         <div class="mb-3">
