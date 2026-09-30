@@ -208,7 +208,8 @@ class ProjectParticipants extends Component
         $sessionTenant = session('tenant_id');
 
         $availableUsers = User::whereHas('tenants', function ($q) use ($sessionTenant) {
-                $q->where('tenants.id', $sessionTenant);
+                $q->where('tenants.id', $sessionTenant)
+                  ->where('user_tenants.is_active', 1);
             })
             ->whereNotIn('id', $participantIds)
             ->orderBy('name')
