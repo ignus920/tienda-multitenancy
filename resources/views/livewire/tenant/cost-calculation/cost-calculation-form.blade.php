@@ -187,8 +187,8 @@
                                                 {{ number_format($meters, 2) }} m
                                             </span>
                                             <div class="flex items-center gap-1">
-                                                <input type="number" step="{{ $cutStep }}" min="{{ $cutStep }}" value="{{ $line['cm_quantity'] }}"
-                                                    wire:change="$set('lines.{{ $i }}.cm_quantity', $event.target.value)"
+                                                <input type="number" step="{{ $cutStep }}" min="{{ $cutStep }}" 
+                                                    wire:model.blur="lines.{{ $i }}.cm_quantity"
                                                     class="w-20 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-sm text-right"
                                                     title="La cantidad debe ser múltiplo de {{ $cutStep }} cm">
                                                 <span class="text-2xs text-gray-400">cm</span>
