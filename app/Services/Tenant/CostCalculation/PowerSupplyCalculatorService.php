@@ -38,6 +38,11 @@ class PowerSupplyCalculatorService
                 continue;
             }
 
+            // Ignorar productos que van directos a la red eléctrica (110V, 120V, 220V) porque no usan fuente
+            if (in_array($voltage, [110, 120, 220, 240])) {
+                continue;
+            }
+
             // Validación "A prueba de tontos": Si el producto NO tiene voltaje o potencia, verificamos si es algo que debería tenerlo
             if ($voltage <= 0 || $power <= 0) {
                 if (str_contains($itemName, 'CINTA') || str_contains($itemName, 'LED') || str_contains($itemName, 'MODULO') || str_contains($itemName, 'NEON') || str_contains($itemName, 'MANGUERA')) {
@@ -108,8 +113,11 @@ class PowerSupplyCalculatorService
             $groupedByVoltage[$key]['theoretical_intensity'] += ($lmm * $prod['qty']);
         }
 
-        // Cargar marcas (Brand) para mapear nombres
-        $brands = Brand::pluck('name', 'id')->toArray();
+        // Cargar Grupos Comerciales para mapear nombres
+        $commercialGroups = \Illuminate\Support\Facades\DB::connection('tenant')
+            ->table('inv_commercial_groups')
+            ->pluck('name', 'id')
+            ->toArray();
 
         $results = [];
 
@@ -144,22 +152,22 @@ class PowerSupplyCalculatorService
                 ];
             }
 
-            // Agrupar fuentes disponibles por marca (brandId)
-            $sourcesByBrand = [];
+            // Agrupar fuentes disponibles por Grupo Comercial (commercial_group_id)
+            $sourcesByGroup = [];
             foreach ($sources as $source) {
-                $bId = $source->brandId ?: 'generica'; // Si es nulo, agrupar como genérica
-                if (!isset($sourcesByBrand[$bId])) {
-                    $sourcesByBrand[$bId] = [];
+                $gId = $source->commercial_group_id ?: 'sin_clasificar'; // Si es nulo, agrupar como sin clasificar
+                if (!isset($sourcesByGroup[$gId])) {
+                    $sourcesByGroup[$gId] = [];
                 }
-                $sourcesByBrand[$bId][] = $source;
+                $sourcesByGroup[$gId][] = $source;
             }
 
             $brandAlternatives = [];
 
-            foreach ($sourcesByBrand as $bId => $brandSources) {
-                $brandName = $bId === 'generica' ? 'Genérica' : ($brands[$bId] ?? 'Desconocida');
+            foreach ($sourcesByGroup as $gId => $brandSources) {
+                $brandName = $gId === 'sin_clasificar' ? 'Otras Fuentes' : ($commercialGroups[$gId] ?? 'Desconocida');
                 
-                // Ordenar fuentes de la marca por potencia ascendente
+                // Ordenar fuentes del grupo por potencia ascendente
                 $brandSources = collect($brandSources)->sortBy('source_power')->values();
 
                 $options = []; // En realidad ahora solo tendrá 1 elemento (una sola sugerencia por marca)

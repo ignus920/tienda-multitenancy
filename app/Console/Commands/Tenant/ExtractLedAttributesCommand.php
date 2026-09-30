@@ -75,10 +75,15 @@ class ExtractLedAttributesCommand extends Command
                 $electrical_type = 'CC';
             } elseif (strpos($desc, 'VOLTAJE CONSTANTE') !== false) {
                 $electrical_type = 'CV';
+            } else {
+                // Por defecto, Cintas, Módulos, Regletas, Mangueras, Neones, Fuentes, Drivers y Adaptadores son de Voltaje Constante (CV)
+                if (strpos($desc, 'CINTA') !== false || strpos($desc, 'MODULO') !== false || strpos($desc, 'REGLETA') !== false || strpos($desc, 'MANGUERA') !== false || strpos($desc, 'NEON') !== false || strpos($desc, 'FUENTE') !== false || strpos($desc, 'DRIVER') !== false || strpos($desc, 'ADAPTADOR') !== false) {
+                    $electrical_type = 'CV';
+                }
             }
 
-            // 3. Extraer Voltaje (ej. 12V, 24V, 110V)
-            if (preg_match('/(\d+(?:\.\d+)?)\s*V\b/', $desc, $matches)) {
+            // 3. Extraer Voltaje (ej. 12V, 24V, 110V, 110VAC, 110VDC)
+            if (preg_match('/(\d+(?:\.\d+)?)\s*(?:V|VAC|VDC|VCA|VCC)\b/i', $desc, $matches)) {
                 $voltage = $matches[1];
             }
 
@@ -127,7 +132,7 @@ class ExtractLedAttributesCommand extends Command
                     $dimension->electrical_type = $electrical_type;
                     $updated = true;
                 }
-                if ($voltage !== null && (empty($dimension->voltage) || (float)$dimension->voltage == 0)) {
+                if ($voltage !== null && $dimension->voltage != $voltage) {
                     $dimension->voltage = $voltage;
                     $updated = true;
                 }

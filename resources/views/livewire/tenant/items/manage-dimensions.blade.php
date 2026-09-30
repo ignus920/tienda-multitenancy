@@ -32,7 +32,7 @@
                             </svg>
                         </button>
                         <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center font-normal leading-normal normal-case">
-                            Potencia eléctrica del artículo (W).
+                            Potencia eléctrica por metro (W).
                         </div>
                     </div>
                 </label>

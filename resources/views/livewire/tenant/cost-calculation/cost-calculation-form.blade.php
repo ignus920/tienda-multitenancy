@@ -486,7 +486,7 @@
                                     <table class="w-full text-sm text-left text-gray-600 dark:text-gray-300">
                                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
                                             <tr>
-                                                <th scope="col" class="px-4 py-3">Línea / Marca</th>
+                                                <th scope="col" class="px-4 py-3">Grupo Comercial</th>
                                                 <th scope="col" class="px-3 py-2 w-[40%]">Código / Descripción</th>
                                                 <th scope="col" class="px-2 py-2 text-center">Cantidad</th>
                                                 <th scope="col" class="px-2 py-2 text-right">Potencia unit.</th>
