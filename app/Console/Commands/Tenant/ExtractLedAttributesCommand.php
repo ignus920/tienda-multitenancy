@@ -159,13 +159,13 @@ class ExtractLedAttributesCommand extends Command
             $newGroupId = null;
 
             if (preg_match('/^(LRS|RS|RSP|SE)-?/', $code)) {
-                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'MW Uso Interior')->value('id');
+                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'MW Uso Interior')->value('id');
             } elseif (preg_match('/^(LPV|XLG)-?/', $code)) {
-                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'MW Uso Exterior')->value('id');
+                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'MW Uso Exterior')->value('id');
             } elseif (preg_match('/^CL-?/', $code)) {
-                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'CL Uso Interior')->value('id');
+                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'CL Uso Interior')->value('id');
             } elseif (preg_match('/^DPV-?/', $code)) {
-                $newGroupId = $tenantManager->getDb()->table('inv_commercial_groups')->where('name', 'CL Uso Exterior')->value('id');
+                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'CL Uso Exterior')->value('id');
             }
 
             if ($newGroupId && $item->commercial_group_id != $newGroupId) {
