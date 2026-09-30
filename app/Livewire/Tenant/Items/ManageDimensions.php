@@ -44,6 +44,18 @@ class ManageDimensions extends Component
 
     public function saveInfoDimensions()
     {
+        // Reemplazar comas por puntos para que pase la validación numérica de Laravel
+        $this->high = str_replace(',', '.', $this->high);
+        $this->width = str_replace(',', '.', $this->width);
+        $this->weight = str_replace(',', '.', $this->weight);
+        $this->quntityxbox = str_replace(',', '.', $this->quntityxbox);
+        if ($this->min_cut_length !== null) {
+            $this->min_cut_length = str_replace(',', '.', $this->min_cut_length);
+        }
+        if ($this->long !== null) {
+            $this->long = str_replace(',', '.', $this->long);
+        }
+
         $rules = [
             'high' => 'required|numeric',
             'width' => 'required|numeric',
