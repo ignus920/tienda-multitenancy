@@ -14,9 +14,18 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
             <div class="flex justify-between gap-4 flex-wrap items-start">
                 <div class="flex-1 min-w-[260px]">
-                    <input wire:model="name" type="text" @if(!$canEdit) disabled @endif
-                        class="w-full text-lg font-bold bg-transparent border-b-2 border-transparent focus:border-indigo-500 focus:outline-none text-gray-900 dark:text-white py-1"
-                        placeholder="Nombre del cálculo de costos *">
+                    <div class="flex items-center gap-2">
+                        <input wire:model="name" type="text" @if(!$canEdit) disabled @endif
+                            class="w-full text-lg font-bold bg-transparent border-b-2 border-transparent focus:border-indigo-500 focus:outline-none text-gray-900 dark:text-white py-1"
+                            placeholder="Nombre del cálculo de costos *">
+                        
+                        @if($assignedFinishedProductCode)
+                            <span class="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2.5 py-1 rounded-md text-xs font-bold border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                                {{ $assignedFinishedProductCode }}
+                            </span>
+                        @endif
+                    </div>
                     @error('name') <span class="text-2xs text-red-500 font-semibold">{{ $message }}</span> @enderror
 
                     <div class="flex gap-4 mt-2 text-2xs text-gray-500 dark:text-gray-400 flex-wrap">

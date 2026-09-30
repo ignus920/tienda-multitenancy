@@ -24,6 +24,7 @@ class CostCalculationForm extends Component
     public $salePrice = null;
     public $maxDiscountPercent = null;
     public $type = 'project';
+    public $assignedFinishedProductCode = null;
 
     // Tiempos de ensamble (opcionales)
     public $time_1_hours = null;
@@ -179,6 +180,13 @@ class CostCalculationForm extends Component
         $this->updatedByName = $calc->updater->name ?? '';
         $this->updatedAtDisplay = $calc->updated_at?->format('d/m/Y h:i A') ?? '';
         $this->createdAtDisplay = $calc->created_at?->format('d/m/Y h:i A') ?? '';
+
+        if ($this->type === 'finished_product') {
+            $fp = Items::where('cost_calculation_id', $this->calculationId)->first();
+            if ($fp) {
+                $this->assignedFinishedProductCode = $fp->internal_code;
+            }
+        }
 
         $seed = Items::active()->with(['invValues', 'tax'])->first();
         $this->priceListOptions = $seed ? array_keys($seed->all_prices) : [];
@@ -766,6 +774,7 @@ class CostCalculationForm extends Component
             
             // Refrescar el estado a tipo finished_product
             $this->type = 'finished_product';
+            $this->assignedFinishedProductCode = $item->internal_code;
 
         } catch (\Exception $e) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear el producto: ' . $e->getMessage()]);
