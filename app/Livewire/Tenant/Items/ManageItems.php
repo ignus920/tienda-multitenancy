@@ -59,6 +59,7 @@ class ManageItems extends Component
     // Propiedades para el formulario
     public $item_id;
     public $category_id;
+    public $commercial_group_id;
     public $name;
     public $internal_code;
     public $sku;
@@ -218,6 +219,7 @@ class ManageItems extends Component
 
     protected $rules = [
         'category_id' => 'required|integer|exists:tenant.inv_categories,id',
+        'commercial_group_id' => 'nullable|integer',
         'name' => 'required|string|min:3|max:255',
         'type' => 'required|string',
         'internal_code' => 'required|string|max:100',
@@ -262,6 +264,7 @@ class ManageItems extends Component
         // Lista de campos que deben validarse en tiempo real
         $fieldsToValidate = [
             'category_id',
+            'commercial_group_id',
             'name',
             //'type',
             'internal_code',
@@ -384,6 +387,7 @@ class ManageItems extends Component
         $item = Items::with('invValues')->findOrFail($idItem);
         $this->item_id = $item->id;
         $this->category_id = $item->categoryId;
+        $this->commercial_group_id = $item->commercial_group_id;
         $this->name = $item->name;
         $this->internal_code = $item->internal_code;
         $this->sku = $item->sku ?? null;
@@ -578,6 +582,9 @@ class ManageItems extends Component
         return view('livewire.tenant.items.manage-items', [
             'items' => $items,
             'categories' => Category::where('status', 1)->get(),
+            'commercial_groups' => \Illuminate\Support\Facades\Schema::hasTable('inv_commercial_groups') 
+                                    ? \Illuminate\Support\Facades\DB::table('inv_commercial_groups')->where('status', 1)->get() 
+                                    : collect([]),
             'types' => $this->types,
             'hasFullItemEditAccess' => $this->hasFullItemEditAccess(),
         ]);
@@ -657,6 +664,7 @@ class ManageItems extends Component
 
         $itemData = [
             'categoryId' => $this->category_id,
+            'commercial_group_id' => $this->commercial_group_id ?: null,
             'name' => $this->name,
             'internal_code' => $this->internal_code,
             'sku' => $this->sku,
