@@ -996,5 +996,111 @@
         </div>
     </div>
     @endif
+
+    @if($documentTitle === 'REMISIÓN')
+        @php
+            // Identificar los productos ensamblados en esta remisión
+            $assembledItems = $quote->detalles->filter(function($detalle) {
+                return !empty($detalle->item->cost_calculation_id);
+            });
+        @endphp
+
+        @if($assembledItems->count() > 0)
+            <div style="page-break-before: always;"></div>
+            
+            <div style="width: 100%; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 15px;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="width: 25%;">
+                            <img src="{{ asset('images/logofervi.png') }}" alt="Logo Fervicom" style="max-height: 50px;">
+                        </td>
+                        <td style="width: 50%; text-align: center;">
+                            <h2 style="color: #0a3d62; font-size: 14pt; margin: 0;">LISTA DE MATERIALES / PICKING</h2>
+                            <p style="font-size: 10pt; color: #7f8c8d; margin: 3px 0 0;">PARA ENSAMBLE DE PRODUCTO</p>
+                        </td>
+                        <td style="width: 25%; text-align: right;">
+                            <div style="background: #3498db; color: white; padding: 5px 10px; border-radius: 5px; display: inline-block;">
+                                <span style="font-size: 8pt; display: block;">REMISIÓN / OP</span>
+                                <span style="font-size: 12pt; font-weight: bold;">#{{ $quote->consecutive }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                @if($customer)
+                <div style="margin-top: 10px; font-size: 9pt;">
+                    <strong>CLIENTE:</strong> {{ $customer->display_name }} | <strong>NIT:</strong> {{ $customer->company->identification ?? $customer->identification ?? 'N/A' }}
+                </div>
+                @endif
+            </div>
+
+            @foreach($assembledItems as $detalle)
+                @php
+                    $costCalc = \App\Models\Tenant\CostCalculation\CostCalculation::with('items.item')->find($detalle->item->cost_calculation_id);
+                @endphp
+                @if($costCalc)
+                    <div style="background-color: #f1f2f6; padding: 8px; font-weight: bold; font-size: 10pt; margin-bottom: 10px; border-left: 4px solid #3498db;">
+                        OPCIÓN DE ENSAMBLE: {{ $detalle->item->internal_code ?? $detalle->item->sku }} - {{ $detalle->item->name ?? $detalle->item->display_name }}
+                        <span style="float: right; color: #2c3e50;">CANTIDAD DE OP: {{ number_format($detalle->quantity, 0) }} Unds</span>
+                    </div>
+
+                    <table class="products-table" style="margin-bottom: 20px;">
+                        <thead>
+                            <tr>
+                                <th class="col-idx">#</th>
+                                <th class="col-code">CÓDIGO</th>
+                                <th class="col-qty">CANT.</th>
+                                <th class="col-desc" style="width: auto;">DESCRIPCIÓN DE INSUMO</th>
+                                <th class="col-price" style="width: 60px;">V.UNIT.</th>
+                                <th class="col-discount" style="width: 60px; font-size: 8pt; line-height: 1.1;">DESCUENTO<br>APLICADO</th>
+                                <th class="col-total" style="width: 80px;">SUBTOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $compIdx = 1; @endphp
+                            @foreach($costCalc->items as $comp)
+                                @php
+                                    $compQty = ($comp->quantity ?? 1) * $detalle->quantity;
+                                    $compName = $comp->description;
+                                    $compCode = $comp->item->internal_code ?? $comp->item->sku ?? 'N/A';
+                                    
+                                    // Si es variante, intentar extraer el nombre exacto de assembled_config
+                                    if ($comp->is_variable && !empty($detalle->assembled_config)) {
+                                        $lines = explode("\n", $detalle->assembled_config);
+                                        foreach ($lines as $line) {
+                                            // La estructura es "Seleccionar variante para: XXXX: YYYY"
+                                            if (stripos($line, 'Seleccionar variante') !== false && stripos($line, ':') !== false) {
+                                                $parts = explode(':', $line);
+                                                if (count($parts) >= 3) {
+                                                    $compName = trim($parts[count($parts)-1]);
+                                                    // Extraer primer codigo antes del espacio
+                                                    $codeParts = explode(' ', $compName);
+                                                    if(count($codeParts) > 0) $compCode = $codeParts[0];
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Si hay medida en CM
+                                    $unitLabel = ($comp->cm_quantity > 0) ? ' cm' : '';
+                                    if ($comp->cm_quantity > 0) {
+                                        $compQty = $comp->cm_quantity * $detalle->quantity;
+                                    }
+                                @endphp
+                                <tr>
+                                    <td class="col-idx">{{ $compIdx++ }}</td>
+                                    <td class="col-code"><div style="font-size: 10pt; font-weight: bold;">{{ $compCode }}</div></td>
+                                    <td class="col-qty" style="font-weight: bold; color: #2c3e50;">{{ number_format($compQty, 2, '.', '') }}{{ $unitLabel }}</td>
+                                    <td class="col-desc">{{ $compName }}</td>
+                                    <td class="col-price"></td>
+                                    <td class="col-discount"></td>
+                                    <td class="col-total"></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            @endforeach
+        @endif
+    @endif
 </body>
 </html>
