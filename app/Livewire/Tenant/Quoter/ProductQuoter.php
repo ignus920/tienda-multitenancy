@@ -3787,8 +3787,11 @@ class ProductQuoter extends Component
                     continue;
                 }
 
-                $productModel = \App\Models\Tenant\Items\Items::find($item['id']);
+                $productModel = \App\Models\Tenant\Items\Items::with(['costCalculation.items'])->find($item['id']);
                 if ($productModel && $productModel->type === 'ENSAMBLADO') {
+                    $allMaterials = [];
+
+                    // 1. Obtener items variables desde la receta seleccionada
                     if (!empty($item['assembled_recipe'])) {
                         $recipe = is_string($item['assembled_recipe']) ? json_decode($item['assembled_recipe'], true) : $item['assembled_recipe'];
                         if (is_array($recipe)) {
@@ -3797,19 +3800,93 @@ class ProductQuoter extends Component
                                 $matQty = (float)($mat['qty'] ?? 0);
                                 if (!$matId || $matQty <= 0) continue;
                                 
-                                $matStore = InvItemsStore::where('itemId', $matId)
-                                    ->where('storeId', $quote->warehouseId)
-                                    ->first();
-                                    
-                                if ($matStore) {
-                                    $matStore->update([
-                                        'stock_items_store' => $matStore->stock_items_store - $matQty
-                                    ]);
-                                }
+                                // Asumimos que si la cantidad requerida es mucho mayor a 1, es probable que sea en CM (esto viene de cm_quantity en el cost calc)
+                                // Para ser precisos, podemos simplemente buscar el item real y decidir
+                                $allMaterials[] = [
+                                    'id' => $matId,
+                                    'qty' => $matQty,
+                                    'is_variable' => true
+                                ];
                             }
                         }
                     }
-                    continue; // El ensamblado no descuenta su propio stock
+
+                    // 2. Obtener items fijos desde el costCalculation
+                    if ($productModel->costCalculation) {
+                        foreach ($productModel->costCalculation->items as $comp) {
+                            if ($comp->is_variable) continue; // Ya los sacamos de la receta
+                            
+                            $matId = $comp->item_id;
+                            $isCm = ($comp->cm_quantity > 0);
+                            $matQty = $isCm ? ($comp->cm_quantity * $item['quantity']) : (($comp->quantity ?? 1) * $item['quantity']);
+                            
+                            $allMaterials[] = [
+                                'id' => $matId,
+                                'qty' => $matQty,
+                                'is_variable' => false,
+                                'is_cm' => $isCm
+                            ];
+                        }
+                    }
+
+                    // 3. Procesar transformación de cada material
+                    foreach ($allMaterials as $mat) {
+                        $realItem = \App\Models\Tenant\Items\Items::with('dimensions')->find($mat['id']);
+                        if (!$realItem) continue;
+
+                        // Determinar si el item se mide en CM
+                        // Si es fijo, ya sabemos por 'is_cm'. Si es variable, lo deducimos si tiene un 'long' válido y si la cantidad requerida es grande
+                        // O simplemente, si tiene 'long' > 0 y la cantidad requerida no es un entero pequeño, asumimos que es en CM.
+                        // Para evitar fallos, buscaremos el 'cm_quantity' del item genérico si pudiéramos, pero basta con comprobar si el item tiene una dimensión 'long' significativa.
+                        $unitLength = (float)($realItem->dimensions->long ?? 0);
+                        $isCm = isset($mat['is_cm']) ? $mat['is_cm'] : ($unitLength > 0 && $mat['qty'] > 10); // Heurística para variables en CM
+
+                        if ($isCm && $unitLength > 0) {
+                            $leftover = \App\Models\Tenant\Inventory\LabLeftover::firstOrCreate(
+                                ['item_id' => $realItem->id],
+                                ['available_cm' => 0]
+                            );
+
+                            $neededCm = $mat['qty'];
+
+                            if ($leftover->available_cm >= $neededCm) {
+                                // Hay sobrante suficiente, no pedimos nada a bodega
+                                $leftover->available_cm -= $neededCm;
+                                $leftover->save();
+                            } else {
+                                // No alcanza, calculamos cuántas unidades completas pedir a bodega
+                                $remainingNeeded = $neededCm - $leftover->available_cm;
+                                $unitsToPick = ceil($remainingNeeded / $unitLength);
+
+                                // Descontar unidades enteras de bodega
+                                $matStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $realItem->id)
+                                    ->where('storeId', $quote->warehouseId)
+                                    ->first();
+                                if ($matStore) {
+                                    $matStore->update([
+                                        'stock_items_store' => $matStore->stock_items_store - $unitsToPick
+                                    ]);
+                                }
+
+                                // Sumar los centímetros del rollo nuevo y restar lo que faltaba
+                                $newCmFromWarehouse = $unitsToPick * $unitLength;
+                                $leftover->available_cm = $newCmFromWarehouse - $remainingNeeded;
+                                $leftover->save();
+                            }
+                        } else {
+                            // Insumo normal (por unidades completas)
+                            $matStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $realItem->id)
+                                ->where('storeId', $quote->warehouseId)
+                                ->first();
+                            if ($matStore) {
+                                $matStore->update([
+                                    'stock_items_store' => $matStore->stock_items_store - $mat['qty']
+                                ]);
+                            }
+                        }
+                    }
+
+                    continue; // El ensamblado como tal no descuenta su propio stock
                 }
 
                 // Actualizar el stock del producto en la bodega específica

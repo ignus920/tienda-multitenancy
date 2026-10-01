@@ -1050,9 +1050,6 @@
                                 <th class="col-code">CÓDIGO</th>
                                 <th class="col-qty">CANT.</th>
                                 <th class="col-desc" style="width: auto;">DESCRIPCIÓN DE INSUMO</th>
-                                <th class="col-price" style="width: 60px;">V.UNIT.</th>
-                                <th class="col-discount" style="width: 60px; font-size: 8pt; line-height: 1.1;">DESCUENTO<br>APLICADO</th>
-                                <th class="col-total" style="width: 80px;">SUBTOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1085,15 +1082,28 @@
                                         }
                                     }
 
+                                    // Cargar dimensiones si es necesario para convertir CM a unidades
+                                    $exactItem = \App\Models\Tenant\Items\Items::with('dimensions')->find($exactItem->id ?? 0) ?? $exactItem;
+                                    
                                     if ($comp->cm_quantity > 0) {
-                                        $compQty = $comp->cm_quantity * $detalle->quantity;
+                                        $totalCm = $comp->cm_quantity * $detalle->quantity;
+                                        $unitLength = (float)($exactItem->dimensions->long ?? 0);
+                                        
+                                        if ($unitLength > 0) {
+                                            $compQty = ceil($totalCm / $unitLength);
+                                        } else {
+                                            $compQty = 1; // Fallback si no tiene dimensiones configuradas
+                                        }
+                                        $unitLabel = '';
+                                    } else {
+                                        $unitLabel = '';
                                     }
 
                                     $mappedItems->push([
                                         'compCode' => $compCode,
                                         'compName' => $compName,
                                         'compQty' => $compQty,
-                                        'unitLabel' => ($comp->cm_quantity > 0) ? ' cm' : '',
+                                        'unitLabel' => $unitLabel,
                                         'pickingCode' => $exactItem->picking ?? ''
                                     ]);
                                 }
@@ -1158,11 +1168,8 @@
                                         @endif
                                         <div style="font-size: 10pt; font-weight: bold; color: #2c3e50;">{{ $itemData['compCode'] }}</div>
                                     </td>
-                                    <td class="col-qty" style="font-weight: bold; color: #2c3e50;">{{ number_format($itemData['compQty'], 2, '.', '') }}{{ $itemData['unitLabel'] }}</td>
+                                    <td class="col-qty" style="font-weight: bold; color: #2c3e50;">{{ number_format($itemData['compQty'], 0, '.', '') }}{{ $itemData['unitLabel'] }}</td>
                                     <td class="col-desc">{{ $itemData['compName'] }}</td>
-                                    <td class="col-price"></td>
-                                    <td class="col-discount"></td>
-                                    <td class="col-total"></td>
                                 </tr>
                             @endforeach
                         </tbody>
