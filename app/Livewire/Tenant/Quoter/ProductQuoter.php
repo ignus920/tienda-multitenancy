@@ -347,9 +347,9 @@ class ProductQuoter extends Component
         // Agregar al cotizador bypassing the check
         $this->addToQuoter($this->assembledProduct->id, $this->assembledPrice, $this->assembledPriceLabel, true);
         
-        // Aplicar la cantidad y las notas a la línea recién agregada o actualizada
-        $index = $this->findProductInQuoter($this->assembledProduct->id);
-        if ($index !== false) {
+        // Aplicar la cantidad y las notas a la línea recién agregada (siempre entra en el índice 0)
+        $index = 0;
+        if (isset($this->quoterItems[$index])) {
             $this->quoterItems[$index]['quantity'] = $this->assembledQty;
             $this->quoterItems[$index]['assembled_config'] = $configNotes;
             $this->quoterItems[$index]['assembled_recipe'] = $recipeJson;
@@ -974,8 +974,8 @@ class ProductQuoter extends Component
             }
         }
 
-        // Verificar si el producto ya está en el cotizador (sin consulta DB)
-        $existingIndex = $this->findProductInQuoter($productId);
+        // Verificar si el producto ya está en el cotizador (fuerza nueva fila si viene de modal de ensamble)
+        $existingIndex = $bypassAssembledCheck ? false : $this->findProductInQuoter($productId);
 
         if ($existingIndex !== false) {
             // Obtener el producto para verificar dimensiones y precios reales
