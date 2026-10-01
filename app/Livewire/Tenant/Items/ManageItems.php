@@ -652,15 +652,19 @@ class ManageItems extends Component
 
         $interior = [];
         $exterior = [];
+        $others = [];
 
         foreach ($allGroups as $group) {
             $name = $group->name;
             $isExterior = stripos($name, 'exterior') !== false;
+            $isInterior = stripos($name, 'interior') !== false;
 
             if ($isExterior) {
                 $exterior[] = $group;
-            } else {
+            } elseif ($isInterior) {
                 $interior[] = $group;
+            } else {
+                $others[] = $group;
             }
         }
 
@@ -680,10 +684,12 @@ class ManageItems extends Component
             return $orderA - $orderB;
         });
 
-        return [
-            'Todos los de uso Interior' => $interior,
-            'Todos los de uso exterior' => $exterior
-        ];
+        $result = [];
+        if (count($interior) > 0) $result['Todos los de uso Interior'] = $interior;
+        if (count($exterior) > 0) $result['Todos los de uso exterior'] = $exterior;
+        if (count($others) > 0) $result['Otros Grupos'] = $others;
+
+        return $result;
     }
 
     #[Computed]
