@@ -142,6 +142,14 @@ class Items extends Model
     }
 
     /**
+     * Relación con el Cálculo de Costos (Receta de Ensamble)
+     */
+    public function costCalculation()
+    {
+        return $this->belongsTo(\App\Models\Tenant\CostCalculation\CostCalculation::class, 'cost_calculation_id', 'id');
+    }
+
+    /**
      * Relación con las localizaciones físicas (Picking)
      */
     public function locations()
