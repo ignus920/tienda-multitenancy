@@ -3812,9 +3812,12 @@ class ProductQuoter extends Component
                     }
 
                     // 2. Obtener items fijos desde el costCalculation
+                    $hasOverrides = !empty($item['assembled_recipe']);
+
                     if ($productModel->costCalculation) {
                         foreach ($productModel->costCalculation->items as $comp) {
-                            if ($comp->is_variable) continue; // Ya los sacamos de la receta
+                            // Solo saltamos los variables si hay overrides dinámicos en la receta
+                            if ($hasOverrides && $comp->is_variable) continue; 
                             
                             $matId = $comp->item_id;
                             $isCm = ($comp->cm_quantity > 0);
