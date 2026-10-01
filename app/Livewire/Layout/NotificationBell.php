@@ -132,7 +132,11 @@ class NotificationBell extends Component
     {
         $this->ensureTenantConnection();
 
-        if (!Auth::check()) return;
+        if (!Auth::check() || !session('tenant_id')) {
+            $this->unreadCount = 0;
+            $this->notifications = [];
+            return;
+        }
 
         $this->unreadCount = ProjectNotification::where('user_id', Auth::id())
             ->whereNull('read_at')
@@ -170,7 +174,7 @@ class NotificationBell extends Component
     {
         $this->ensureTenantConnection();
 
-        if (!Auth::check()) {
+        if (!Auth::check() || !session('tenant_id')) {
             $this->operativeNotifications = [];
             $this->operativeCount = 0;
             return;
@@ -235,7 +239,7 @@ class NotificationBell extends Component
     {
         $this->ensureTenantConnection();
 
-        if (!Auth::check()) {
+        if (!Auth::check() || !session('tenant_id')) {
             $this->taskTodoNotifications = [];
             $this->taskTodoCount = 0;
             return;
@@ -297,7 +301,7 @@ class NotificationBell extends Component
     {
         $this->ensureTenantConnection();
 
-        if (!Auth::check()) {
+        if (!Auth::check() || !session('tenant_id')) {
             $this->pendingMentions = [];
             $this->pendingCount = 0;
             return;
@@ -332,7 +336,7 @@ class NotificationBell extends Component
     {
         $this->ensureTenantConnection();
 
-        if (!Auth::check()) {
+        if (!Auth::check() || !session('tenant_id')) {
             $this->pendingTasks = [];
             $this->taskCount = 0;
             return;

@@ -51,6 +51,8 @@ class ImportCostCalculator extends Component
 
     private function loadGlobalSettings()
     {
+        if (!session('tenant_id')) return;
+
         $settings = ImportPriceCalculation::on('tenant')->first();
         if ($settings) {
             $this->idcp = $settings->id;
@@ -143,6 +145,7 @@ class ImportCostCalculator extends Component
     public function saveSettings()
     {
         $this->ensureTenantConnection();
+        if (!session('tenant_id')) return;
         
         $this->validate([
             'trm' => 'required|numeric|min:1',
