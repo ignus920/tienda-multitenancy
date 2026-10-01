@@ -1055,57 +1055,80 @@
                         <tbody>
                             @php
                                 $mappedItems = collect();
-                                foreach($costCalc->items as $comp) {
-                                    $compQty = ($comp->quantity ?? 1) * $detalle->quantity;
-                                    $compName = $comp->description;
-                                    $compCode = $comp->item->internal_code ?? $comp->item->sku ?? 'N/A';
-                                    $exactItem = $comp->item;
-                                    
-                                    // Si es variante, extraer
-                                    if ($comp->is_variable && !empty($detalle->assembled_config)) {
-                                        $lines = explode("\n", $detalle->assembled_config);
-                                        foreach ($lines as $line) {
-                                            if (stripos($line, 'Seleccionar variante') !== false && stripos($line, ':') !== false) {
-                                                $parts = explode(':', $line);
-                                                if (count($parts) >= 3) {
-                                                    $compName = trim($parts[count($parts)-1]);
-                                                    $codeParts = explode(' ', $compName);
-                                                    if(count($codeParts) > 0) {
-                                                        $compCode = $codeParts[0];
-                                                        $foundItem = \App\Models\Tenant\Items\Items::where('internal_code', $compCode)->orWhere('sku', $compCode)->first();
-                                                        if ($foundItem) {
-                                                            $exactItem = $foundItem;
+                                $pickingJson = !empty($detalle->picking_instructions) ? json_decode($detalle->picking_instructions, true) : null;
+                                
+                                if (is_array($pickingJson) && !empty($pickingJson)) {
+                                    // Usar la memoria exacta guardada al crear la OP
+                                    foreach ($pickingJson as $instr) {
+                                        $exactItem = \App\Models\Tenant\Items\Items::find($instr['item_id']);
+                                        if (!$exactItem) continue;
+                                        
+                                        $compCode = $exactItem->internal_code ?? $exactItem->sku ?? 'N/A';
+                                        $compName = $exactItem->name ?? $exactItem->display_name ?? 'N/A';
+                                        $compQty = $instr['qty_to_pick'];
+                                        
+                                        $mappedItems->push([
+                                            'compCode' => $compCode,
+                                            'compName' => $compName,
+                                            'compQty' => $compQty,
+                                            'unitLabel' => '', // Ya está calculado en unidades enteras
+                                            'pickingCode' => $exactItem->picking ?? ''
+                                        ]);
+                                    }
+                                } else {
+                                    // FALLBACK: Para remisiones antiguas que no tienen memoria
+                                    foreach($costCalc->items as $comp) {
+                                        $compQty = ($comp->quantity ?? 1) * $detalle->quantity;
+                                        $compName = $comp->description;
+                                        $compCode = $comp->item->internal_code ?? $comp->item->sku ?? 'N/A';
+                                        $exactItem = $comp->item;
+                                        
+                                        // Si es variante, extraer
+                                        if ($comp->is_variable && !empty($detalle->assembled_config)) {
+                                            $lines = explode("\n", $detalle->assembled_config);
+                                            foreach ($lines as $line) {
+                                                if (stripos($line, 'Seleccionar variante') !== false && stripos($line, ':') !== false) {
+                                                    $parts = explode(':', $line);
+                                                    if (count($parts) >= 3) {
+                                                        $compName = trim($parts[count($parts)-1]);
+                                                        $codeParts = explode(' ', $compName);
+                                                        if(count($codeParts) > 0) {
+                                                            $compCode = $codeParts[0];
+                                                            $foundItem = \App\Models\Tenant\Items\Items::where('internal_code', $compCode)->orWhere('sku', $compCode)->first();
+                                                            if ($foundItem) {
+                                                                $exactItem = $foundItem;
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
 
-                                    // Cargar dimensiones si es necesario para convertir CM a unidades
-                                    $exactItem = \App\Models\Tenant\Items\Items::with('dimensions')->find($exactItem->id ?? 0) ?? $exactItem;
-                                    
-                                    if ($comp->cm_quantity > 0) {
-                                        $totalCm = $comp->cm_quantity * $detalle->quantity;
-                                        $unitLength = (float)($exactItem->dimensions->long ?? 0);
+                                        // Cargar dimensiones si es necesario para convertir CM a unidades
+                                        $exactItem = \App\Models\Tenant\Items\Items::with('dimensions')->find($exactItem->id ?? 0) ?? $exactItem;
                                         
-                                        if ($unitLength > 0) {
-                                            $compQty = ceil($totalCm / $unitLength);
+                                        if ($comp->cm_quantity > 0) {
+                                            $totalCm = $comp->cm_quantity * $detalle->quantity;
+                                            $unitLength = (float)($exactItem->dimensions->long ?? 0);
+                                            
+                                            if ($unitLength > 0) {
+                                                $compQty = ceil($totalCm / $unitLength);
+                                            } else {
+                                                $compQty = 1; // Fallback si no tiene dimensiones configuradas
+                                            }
+                                            $unitLabel = '';
                                         } else {
-                                            $compQty = 1; // Fallback si no tiene dimensiones configuradas
+                                            $unitLabel = '';
                                         }
-                                        $unitLabel = '';
-                                    } else {
-                                        $unitLabel = '';
-                                    }
 
-                                    $mappedItems->push([
-                                        'compCode' => $compCode,
-                                        'compName' => $compName,
-                                        'compQty' => $compQty,
-                                        'unitLabel' => $unitLabel,
-                                        'pickingCode' => $exactItem->picking ?? ''
-                                    ]);
+                                        $mappedItems->push([
+                                            'compCode' => $compCode,
+                                            'compName' => $compName,
+                                            'compQty' => $compQty,
+                                            'unitLabel' => $unitLabel,
+                                            'pickingCode' => $exactItem->picking ?? ''
+                                        ]);
+                                    }
                                 }
 
                                 $sortedItems = $mappedItems->sort(function ($a, $b) {
