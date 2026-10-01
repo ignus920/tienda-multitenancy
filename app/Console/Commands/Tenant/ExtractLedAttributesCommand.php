@@ -158,14 +158,14 @@ class ExtractLedAttributesCommand extends Command
             $newGroupId = null;
             $groupName = null;
 
-            if (preg_match('/\b(LRS|RS|RSP|SE)-?\d*\b/i', $desc)) {
+            if (preg_match('/\b(LRS|RS|RSP|SE)-/i', $desc)) {
                 $groupName = 'MW Uso Interior';
-            } elseif (preg_match('/\b(LPV|XLG)-?\d*\b/i', $desc)) {
+            } elseif (preg_match('/\b(LPV|XLG)-/i', $desc)) {
                 $groupName = 'MW Uso Exterior';
-            } elseif (preg_match('/\bCL-?\d*\b/i', $desc)) {
-                $groupName = 'CL Uso Interior';
-            } elseif (preg_match('/\bDPV-?\d*\b/i', $desc)) {
+            } elseif (preg_match('/\bDPV-/i', $desc)) {
                 $groupName = 'CL Uso Exterior';
+            } elseif (preg_match('/\bCL-/i', $desc)) {
+                $groupName = 'CL Uso Interior';
             }
 
             if ($groupName) {
