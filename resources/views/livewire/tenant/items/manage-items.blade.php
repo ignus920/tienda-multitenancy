@@ -693,6 +693,9 @@
                                         Cancelar
                                     </button>
                                 </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                    💡 <strong>Tip:</strong> Si el nombre incluye la palabra "Interior" o "Exterior", el sistema lo agrupará automáticamente en esa categoría.
+                                </p>
                                 @error('newCommercialGroupName') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             @endif
