@@ -3451,7 +3451,7 @@ class ProductQuoter extends Component
 
             // Validar si este método requiere soporte obligatorio
             $methodName = strtoupper(trim(\Illuminate\Support\Facades\DB::connection('tenant')->table('vnt_method_payments')->where('id', $payment['method_payment_id'])->value('name')));
-            $exemptKeywords = ['EFECTIVO', 'CONTRA ENTREGA', 'CONTRAENTREGA', 'CREDITO', 'TARJETA', 'WOMPI', 'COVINOC', 'ADDI'];
+            $exemptKeywords = ['EFECTIVO', 'CONTRA ENTREGA', 'CONTRAENTREGA', 'TARJETA', 'COVINOC', 'ADDI'];
             $isExempt = false;
             foreach ($exemptKeywords as $keyword) {
                 if (strpos($methodName, $keyword) !== false) {
