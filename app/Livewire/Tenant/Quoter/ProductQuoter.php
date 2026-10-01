@@ -3771,7 +3771,7 @@ class ProductQuoter extends Component
 
             // Crear detalles de la remisión y actualizar stock
             foreach ($this->quoterItems as $item) {
-                InvDetailRemissions::create([
+                $remissionDetail = InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
                     'tax' => $item['tax'],
                     'tax_label' => $item['tax_label'],
@@ -3830,6 +3830,7 @@ class ProductQuoter extends Component
                     }
 
                     // 3. Procesar transformación de cada material
+                    $pickingInstructions = [];
                     foreach ($allMaterials as $mat) {
                         $realItem = \App\Models\Tenant\Items\Items::with('dimensions')->find($mat['id']);
                         if (!$realItem) continue;
@@ -3858,6 +3859,14 @@ class ProductQuoter extends Component
                                 $remainingNeeded = $neededCm - $leftover->available_cm;
                                 $unitsToPick = ceil($remainingNeeded / $unitLength);
 
+                                if ($unitsToPick > 0) {
+                                    $pickingInstructions[] = [
+                                        'item_id' => $realItem->id,
+                                        'qty_to_pick' => $unitsToPick,
+                                        'is_cm' => true
+                                    ];
+                                }
+
                                 // Descontar unidades enteras de bodega
                                 $matStore = \App\Models\Tenant\Items\InvItemsStore::where('itemId', $realItem->id)
                                     ->where('storeId', $quote->warehouseId)
@@ -3883,7 +3892,20 @@ class ProductQuoter extends Component
                                     'stock_items_store' => $matStore->stock_items_store - $mat['qty']
                                 ]);
                             }
+                            
+                            $pickingInstructions[] = [
+                                'item_id' => $realItem->id,
+                                'qty_to_pick' => $mat['qty'],
+                                'is_cm' => false
+                            ];
                         }
+                    }
+
+                    // Guardar la memoria exacta para el PDF
+                    if (!empty($pickingInstructions) && isset($remissionDetail)) {
+                        $remissionDetail->update([
+                            'picking_instructions' => json_encode($pickingInstructions)
+                        ]);
                     }
 
                     continue; // El ensamblado como tal no descuenta su propio stock

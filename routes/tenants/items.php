@@ -18,6 +18,7 @@ Route::prefix('/items')->group(function () {
 
 //Categories
 Route::prefix('/inventory')->group(function () {
+    Route::get('/lab-leftovers', \App\Livewire\Tenant\Inventory\LabLeftoverComponent::class)->name('inventory.lab-leftovers');
     Route::get('/categories', [CategoriesController::class, 'homeCategories'])->name('categories');
 });
 
