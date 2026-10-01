@@ -23,6 +23,7 @@ class Items extends Model
     protected $fillable = [
         'api_data_id',
         'categoryId',
+        'commercial_group_id',
         'name',
         'internal_code',
         'sku',
