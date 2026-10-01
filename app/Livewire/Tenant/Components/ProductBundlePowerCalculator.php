@@ -119,6 +119,12 @@ class ProductBundlePowerCalculator extends Component
     {
         $this->ensureTenantConnection();
         
+        if (!session('tenant_id')) {
+            return view('livewire.tenant.components.product-bundle-power-calculator', [
+                'products' => collect()
+            ]);
+        }
+        
         $query = Product::on('tenant')
             ->select('inv_items.id', 'inv_items.internal_code', 'inv_items.sku', 'inv_items.name')
             ->join('inv_items_dimensions', 'inv_items.id', '=', 'inv_items_dimensions.item_id')
