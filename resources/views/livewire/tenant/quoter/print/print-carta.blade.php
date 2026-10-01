@@ -1056,41 +1056,110 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @php $compIdx = 1; @endphp
-                            @foreach($costCalc->items as $comp)
-                                @php
+                            @php
+                                $mappedItems = collect();
+                                foreach($costCalc->items as $comp) {
                                     $compQty = ($comp->quantity ?? 1) * $detalle->quantity;
                                     $compName = $comp->description;
                                     $compCode = $comp->item->internal_code ?? $comp->item->sku ?? 'N/A';
+                                    $exactItem = $comp->item;
                                     
-                                    // Si es variante, intentar extraer el nombre exacto de assembled_config
+                                    // Si es variante, extraer
                                     if ($comp->is_variable && !empty($detalle->assembled_config)) {
                                         $lines = explode("\n", $detalle->assembled_config);
                                         foreach ($lines as $line) {
-                                            // La estructura es "Seleccionar variante para: XXXX: YYYY"
                                             if (stripos($line, 'Seleccionar variante') !== false && stripos($line, ':') !== false) {
                                                 $parts = explode(':', $line);
                                                 if (count($parts) >= 3) {
                                                     $compName = trim($parts[count($parts)-1]);
-                                                    // Extraer primer codigo antes del espacio
                                                     $codeParts = explode(' ', $compName);
-                                                    if(count($codeParts) > 0) $compCode = $codeParts[0];
+                                                    if(count($codeParts) > 0) {
+                                                        $compCode = $codeParts[0];
+                                                        $foundItem = \App\Models\Tenant\Items\Items::where('internal_code', $compCode)->orWhere('sku', $compCode)->first();
+                                                        if ($foundItem) {
+                                                            $exactItem = $foundItem;
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
 
-                                    // Si hay medida en CM
-                                    $unitLabel = ($comp->cm_quantity > 0) ? ' cm' : '';
                                     if ($comp->cm_quantity > 0) {
                                         $compQty = $comp->cm_quantity * $detalle->quantity;
                                     }
-                                @endphp
+
+                                    $mappedItems->push([
+                                        'compCode' => $compCode,
+                                        'compName' => $compName,
+                                        'compQty' => $compQty,
+                                        'unitLabel' => ($comp->cm_quantity > 0) ? ' cm' : '',
+                                        'pickingCode' => $exactItem->picking ?? ''
+                                    ]);
+                                }
+
+                                $sortedItems = $mappedItems->sort(function ($a, $b) {
+                                    $getPickingPriority = function ($picking) {
+                                        $picking = strtoupper(trim($picking));
+                                        if (empty($picking) || $picking === 'N/A') return 'ZZZ';
+                                        
+                                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                                        if ($matches) {
+                                            $char1 = $matches[1];
+                                            if ($char1 === 'P') return '1';
+                                            if ($char1 === 'A') return '2';
+                                            if ($char1 === 'M') return '3';
+                                            return '4_' . $char1;
+                                        }
+                                        return 'ZZZ';
+                                    };
+
+                                    $prioA = $getPickingPriority($a['pickingCode']);
+                                    $prioB = $getPickingPriority($b['pickingCode']);
+                                    if ($prioA !== $prioB) return $prioA <=> $prioB;
+
+                                    $getDigits2 = function ($picking) {
+                                        $picking = strtoupper(trim($picking));
+                                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                                        return $matches ? intval($matches[2]) : 999;
+                                    };
+
+                                    $dig2A = $getDigits2($a['pickingCode']);
+                                    $dig2B = $getDigits2($b['pickingCode']);
+                                    if ($dig2A !== $dig2B) return $dig2A <=> $dig2B;
+
+                                    $getChar2 = function ($picking) {
+                                        $picking = strtoupper(trim($picking));
+                                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                                        return $matches ? $matches[3] : 'ZZZ';
+                                    };
+
+                                    $char2A = $getChar2($a['pickingCode']);
+                                    $char2B = $getChar2($b['pickingCode']);
+                                    if ($char2A !== $char2B) return $char2A <=> $char2B;
+
+                                    $getDigits4 = function ($picking) {
+                                        $picking = strtoupper(trim($picking));
+                                        preg_match('/^([A-Z])(\d{2})([A-Z])(\d{2})$/', $picking, $matches);
+                                        return $matches ? intval($matches[4]) : 999;
+                                    };
+
+                                    return $getDigits4($a['pickingCode']) <=> $getDigits4($b['pickingCode']);
+                                });
+
+                                $compIdx = 1;
+                            @endphp
+                            @foreach($sortedItems as $itemData)
                                 <tr>
                                     <td class="col-idx">{{ $compIdx++ }}</td>
-                                    <td class="col-code"><div style="font-size: 10pt; font-weight: bold;">{{ $compCode }}</div></td>
-                                    <td class="col-qty" style="font-weight: bold; color: #2c3e50;">{{ number_format($compQty, 2, '.', '') }}{{ $unitLabel }}</td>
-                                    <td class="col-desc">{{ $compName }}</td>
+                                    <td class="col-code">
+                                        @if(!empty($itemData['pickingCode']) && strtolower($itemData['pickingCode']) !== 'n/a')
+                                            <div style="font-size: 11pt; font-weight: bold; color: #e74c3c; margin-bottom: 2px;">{{ strtoupper($itemData['pickingCode']) }}</div>
+                                        @endif
+                                        <div style="font-size: 10pt; font-weight: bold; color: #2c3e50;">{{ $itemData['compCode'] }}</div>
+                                    </td>
+                                    <td class="col-qty" style="font-weight: bold; color: #2c3e50;">{{ number_format($itemData['compQty'], 2, '.', '') }}{{ $itemData['unitLabel'] }}</td>
+                                    <td class="col-desc">{{ $itemData['compName'] }}</td>
                                     <td class="col-price"></td>
                                     <td class="col-discount"></td>
                                     <td class="col-total"></td>
