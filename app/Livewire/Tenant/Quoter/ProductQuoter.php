@@ -3941,6 +3941,33 @@ class ProductQuoter extends Component
             // Actualizar estado de la cotización
             $quote->update(['status' => 'REMISIÓN']);
 
+            // Notificar a usuarios de Bodega / Importaciones
+            try {
+                $bodegaProfiles = DB::connection('tenant')->table('usr_profiles')
+                    ->whereIn('profile_name', ['Bodega', 'Importaciones', 'Administrador'])
+                    ->pluck('id')->toArray();
+
+                if(!empty($bodegaProfiles)) {
+                    $bodegaUsers = DB::connection('mysql')->table('user_tenants')
+                        ->where('tenant_id', session('tenant_id'))
+                        ->whereIn('profile_id', $bodegaProfiles)
+                        ->where('is_active', 1)
+                        ->pluck('user_id');
+
+                    foreach($bodegaUsers as $uId) {
+                        \App\Models\Tenant\UsrNotification::notify(
+                            $uId,
+                            'NUEVA ORDEN DE ENSAMBLE',
+                            "Se ha generado la OP #{$remission->consecutive} que requiere alistamiento de materiales.",
+                            'Inventario',
+                            "/remissions"
+                        );
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error al enviar notificaciones de OP: ' . $e->getMessage());
+            }
+
             DB::connection('tenant')->commit();
 
             $this->dispatch('show-toast', [
