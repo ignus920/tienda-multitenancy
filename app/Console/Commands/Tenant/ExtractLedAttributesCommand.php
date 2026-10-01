@@ -154,18 +154,33 @@ class ExtractLedAttributesCommand extends Command
                 }
             }
 
-            // --- Lógica de categorización de fuentes de poder ---
-            $code = strtoupper($item->internal_code);
+            // --- Lógica de categorización de fuentes de poder (desde descripción) ---
             $newGroupId = null;
+            $groupName = null;
 
-            if (preg_match('/^(LRS|RS|RSP|SE)-?/', $code)) {
-                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'MW Uso Interior')->value('id');
-            } elseif (preg_match('/^(LPV|XLG)-?/', $code)) {
-                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'MW Uso Exterior')->value('id');
-            } elseif (preg_match('/^CL-?/', $code)) {
-                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'CL Uso Interior')->value('id');
-            } elseif (preg_match('/^DPV-?/', $code)) {
-                $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', 'CL Uso Exterior')->value('id');
+            if (preg_match('/\b(LRS|RS|RSP|SE)-?\d*\b/i', $desc)) {
+                $groupName = 'MW Uso Interior';
+            } elseif (preg_match('/\b(LPV|XLG)-?\d*\b/i', $desc)) {
+                $groupName = 'MW Uso Exterior';
+            } elseif (preg_match('/\bCL-?\d*\b/i', $desc)) {
+                $groupName = 'CL Uso Interior';
+            } elseif (preg_match('/\bDPV-?\d*\b/i', $desc)) {
+                $groupName = 'CL Uso Exterior';
+            }
+
+            if ($groupName) {
+                // Get or create the group
+                $existingGroup = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('name', $groupName)->first();
+                if ($existingGroup) {
+                    $newGroupId = $existingGroup->id;
+                } else {
+                    $newGroupId = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->insertGetId([
+                        'name' => $groupName,
+                        'status' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
             if ($newGroupId && $item->commercial_group_id != $newGroupId) {

@@ -663,8 +663,14 @@
                                     <select wire:model="commercial_group_id"
                                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                         <option value="">-- No aplica / Sin grupo --</option>
-                                        @foreach($commercial_groups as $group)
-                                        <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                        @foreach($commercial_groups as $groupLabel => $groups)
+                                            @if(count($groups) > 0)
+                                                <optgroup label="{{ $groupLabel }}">
+                                                    @foreach($groups as $group)
+                                                    <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                                    @endforeach
+                                                </optgroup>
+                                            @endif
                                         @endforeach
                                     </select>
                                     @error('commercial_group_id') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror

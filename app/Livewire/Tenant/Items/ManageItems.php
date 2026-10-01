@@ -621,12 +621,69 @@ class ManageItems extends Component
         return view('livewire.tenant.items.manage-items', [
             'items' => $items,
             'categories' => Category::where('status', 1)->get(),
-            'commercial_groups' => \Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('inv_commercial_groups') 
-                                    ? \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('status', 1)->get() 
-                                    : collect([]),
+            'commercial_groups' => $this->getGroupedCommercialGroups(),
             'types' => $this->types,
             'hasFullItemEditAccess' => $this->hasFullItemEditAccess(),
         ]);
+    }
+
+    private function getGroupedCommercialGroups()
+    {
+        if (!\Illuminate\Support\Facades\Schema::connection('tenant')->hasTable('inv_commercial_groups')) {
+            return [];
+        }
+
+        $allGroups = \Illuminate\Support\Facades\DB::connection('tenant')->table('inv_commercial_groups')->where('status', 1)->get();
+        
+        $interiorOrder = [
+            'CL Uso Interior' => 1,
+            'MW Uso Interior' => 2,
+            'Generica Uso Interior' => 3,
+            'Slim Uso Interior' => 4,
+            'Tipo Tubo Uso Interior' => 5,
+            'Adaptador Uso Interior' => 6,
+        ];
+        
+        $exteriorOrder = [
+            'CL Uso Exterior' => 1,
+            'MW Uso Exterior' => 2,
+            'Generica Uso Exterior' => 3,
+        ];
+
+        $interior = [];
+        $exterior = [];
+
+        foreach ($allGroups as $group) {
+            $name = $group->name;
+            $isExterior = stripos($name, 'exterior') !== false;
+
+            if ($isExterior) {
+                $exterior[] = $group;
+            } else {
+                $interior[] = $group;
+            }
+        }
+
+        usort($interior, function($a, $b) use ($interiorOrder) {
+            $orderA = 99; $orderB = 99;
+            foreach($interiorOrder as $k => $v) { if (stripos($a->name, $k) !== false) $orderA = $v; }
+            foreach($interiorOrder as $k => $v) { if (stripos($b->name, $k) !== false) $orderB = $v; }
+            if ($orderA == $orderB) return strcmp($a->name, $b->name);
+            return $orderA - $orderB;
+        });
+
+        usort($exterior, function($a, $b) use ($exteriorOrder) {
+            $orderA = 99; $orderB = 99;
+            foreach($exteriorOrder as $k => $v) { if (stripos($a->name, $k) !== false) $orderA = $v; }
+            foreach($exteriorOrder as $k => $v) { if (stripos($b->name, $k) !== false) $orderB = $v; }
+            if ($orderA == $orderB) return strcmp($a->name, $b->name);
+            return $orderA - $orderB;
+        });
+
+        return [
+            'Todos los de uso Interior' => $interior,
+            'Todos los de uso exterior' => $exterior
+        ];
     }
 
     #[Computed]
