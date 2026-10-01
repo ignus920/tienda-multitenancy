@@ -3831,6 +3831,7 @@ class ProductQuoter extends Component
 
                     // 3. Procesar transformación de cada material
                     $pickingInstructions = [];
+                    \Log::info('📦 [DEBUG-SOBRANTES] allMaterials: ', $allMaterials);
                     foreach ($allMaterials as $mat) {
                         $realItem = \App\Models\Tenant\Items\Items::with('dimensions')->find($mat['id']);
                         if (!$realItem) continue;
@@ -3841,6 +3842,8 @@ class ProductQuoter extends Component
                         // Para evitar fallos, buscaremos el 'cm_quantity' del item genérico si pudiéramos, pero basta con comprobar si el item tiene una dimensión 'long' significativa.
                         $unitLength = (float)($realItem->dimensions->long ?? 0);
                         $isCm = isset($mat['is_cm']) ? $mat['is_cm'] : ($unitLength > 0 && $mat['qty'] > 10); // Heurística para variables en CM
+
+                        \Log::info("📦 [DEBUG-SOBRANTES] Evaluando Item ID: {$realItem->id}, isCm: ".($isCm?'true':'false').", unitLength: {$unitLength}, matQty: {$mat['qty']}");
 
                         if ($isCm && $unitLength > 0) {
                             $leftover = \App\Models\Tenant\Inventory\LabLeftover::firstOrCreate(
