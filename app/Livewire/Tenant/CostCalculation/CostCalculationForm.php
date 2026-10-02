@@ -983,6 +983,16 @@ class CostCalculationForm extends Component
                 $erpItem = Items::find($line['item_id']);
                 if (!$erpItem || !$erpItem->api_data_id) continue;
 
+                // Solo los productos inventariables manejan stock en Alegra
+                if ((int)$erpItem->inventoriable !== 1) {
+                    Log::info('ℹ️ [CostCalc] Ítem no inventariable omitido de salida Alegra', [
+                        'item_id'       => $erpItem->id,
+                        'name'          => $erpItem->name,
+                        'inventoriable' => $erpItem->inventoriable
+                    ]);
+                    continue;
+                }
+
                 $qty = (float) ($line['cm_quantity'] ?? $line['quantity'] ?? 0);
                 if ($qty <= 0) continue;
 
@@ -1021,7 +1031,7 @@ class CostCalculationForm extends Component
                 $exitResult = $movementsService->syncAdjustmentToApi($exitPayload);
                 if (!($exitResult['success'] ?? false)) {
                     $exitError = $exitResult['message'] ?? 'Error desconocido en salida de materiales';
-                    throw new \Exception('Falló la salida de materiales en Alegra: ' . $exitError);
+                    throw new \Exception('Falló la salida de materiales en Alegra: ' . $exitError . '. Verifique que los materiales en Alegra tengan la opción "Inventariable" habilitada.');
                 }
 
                 $createdExitAdjustmentId = $exitResult['api_data_id'] ?? null;
