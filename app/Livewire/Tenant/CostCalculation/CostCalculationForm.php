@@ -118,13 +118,14 @@ class CostCalculationForm extends Component
 
     private function loadSelectOptions()
     {
-        $this->categoriesList = DB::connection('tenant')->table('inv_categories')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
-        $this->taxesList = DB::connection('tenant')->table('cnf_taxes')->whereNull('deleted_at')->get(['id', 'name', 'percentage'])->toArray();
-        $this->brandsList = DB::connection('tenant')->table('inv_brands')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
-        $this->housesList = DB::connection('tenant')->table('inv_houses')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
-        $this->purchasingUnitsList = DB::connection('tenant')->table('inv_purchasing_units')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
-        $this->consumptionUnitsList = DB::connection('tenant')->table('inv_consumption_units')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
-        $this->suppliersList = DB::connection('tenant')->table('vnt_companies')->where('type', 'PROVEEDOR')->whereNull('deleted_at')->get(['id', 'businessName as name'])->toArray();
+        $db = DB::connection('tenant');
+        $this->categoriesList    = $db->table('inv_categories')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->taxesList         = $db->table('cnf_taxes')->where('status', 1)->get(['id', 'name', 'percentage'])->toArray();
+        $this->brandsList        = $db->table('inv_values')->where('type', 'brands')->get(['id', 'name'])->toArray();
+        $this->housesList        = $db->table('inv_values')->where('type', 'houses')->get(['id', 'name'])->toArray();
+        $this->purchasingUnitsList  = $db->table('inv_values')->where('type', 'units')->get(['id', 'name'])->toArray();
+        $this->consumptionUnitsList = $db->table('inv_values')->where('type', 'units')->get(['id', 'name'])->toArray();
+        $this->suppliersList     = $db->table('vnt_companies')->where('type', 'PROVEEDOR')->whereNull('deleted_at')->get(['id', 'businessName as name'])->toArray();
     }
 
     public function boot()
