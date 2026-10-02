@@ -1,5 +1,5 @@
 <div>
-    <div class="px-4 py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
             <div class="sm:flex-auto">
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sobrantes de Laboratorio</h1>
