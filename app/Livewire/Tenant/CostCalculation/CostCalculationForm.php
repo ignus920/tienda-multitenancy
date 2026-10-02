@@ -119,13 +119,13 @@ class CostCalculationForm extends Component
     private function loadSelectOptions()
     {
         $db = DB::connection('tenant');
-        $this->categoriesList    = $db->table('inv_categories')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
-        $this->taxesList         = $db->table('cnf_taxes')->where('status', 1)->get(['id', 'name', 'percentage'])->toArray();
-        $this->brandsList        = $db->table('inv_values')->where('type', 'brands')->get(['id', 'name'])->toArray();
-        $this->housesList        = $db->table('inv_values')->where('type', 'houses')->get(['id', 'name'])->toArray();
-        $this->purchasingUnitsList  = $db->table('inv_values')->where('type', 'units')->get(['id', 'name'])->toArray();
-        $this->consumptionUnitsList = $db->table('inv_values')->where('type', 'units')->get(['id', 'name'])->toArray();
-        $this->suppliersList     = $db->table('vnt_companies')->where('type', 'PROVEEDOR')->whereNull('deleted_at')->get(['id', 'businessName as name'])->toArray();
+        $this->categoriesList       = $db->table('inv_categories')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->taxesList            = $db->table('cnf_taxes')->where('status', 1)->get(['id', 'name', 'percentage'])->toArray();
+        $this->brandsList           = $db->table('inv_item_brand')->where('status', 1)->get(['id', 'name'])->toArray();
+        $this->housesList           = $db->table('inv_item_house')->where('status', 1)->get(['id', 'name'])->toArray();
+        $this->purchasingUnitsList  = $db->table('inv_unit_measurements')->where('status', 1)->get(['id', 'description as name'])->toArray();
+        $this->consumptionUnitsList = $db->table('inv_unit_measurements')->where('status', 1)->get(['id', 'description as name'])->toArray();
+        $this->suppliersList        = $db->table('vnt_companies')->where('type', 'PROVEEDOR')->whereNull('deleted_at')->get(['id', 'businessName as name'])->toArray();
     }
 
     public function boot()
