@@ -3770,6 +3770,8 @@ class ProductQuoter extends Component
             }
 
             // Crear detalles de la remisión y actualizar stock
+            $labMaterialsNotificationLines = [];
+
             foreach ($this->quoterItems as $item) {
                 $remissionDetail = InvDetailRemissions::create([
                     'quantity' => $item['quantity'],
@@ -3860,6 +3862,8 @@ class ProductQuoter extends Component
                                 // Hay sobrante suficiente, no pedimos nada a bodega
                                 $leftover->available_cm -= $neededCm;
                                 $leftover->save();
+
+                                $labMaterialsNotificationLines[] = "{$realItem->name}: Sobrante en lab suficiente ({$neededCm} cm consumidos, quedan {$leftover->available_cm} cm). NO requiere rollos de bodega.";
                             } else {
                                 // No alcanza, calculamos cuántas unidades completas pedir a bodega
                                 $remainingNeeded = $neededCm - $leftover->available_cm;
@@ -3887,6 +3891,8 @@ class ProductQuoter extends Component
                                 $newCmFromWarehouse = $unitsToPick * $unitLength;
                                 $leftover->available_cm = $newCmFromWarehouse - $remainingNeeded;
                                 $leftover->save();
+
+                                $labMaterialsNotificationLines[] = "{$realItem->name}: ENTREGAR {$unitsToPick} rollo(s) de bodega a laboratorio (Requeridos {$neededCm} cm. Nuevo sobrante en lab: {$leftover->available_cm} cm).";
                             }
                         } else {
                             // Insumo normal (por unidades completas)
@@ -3904,6 +3910,8 @@ class ProductQuoter extends Component
                                 'qty_to_pick' => $mat['qty'],
                                 'is_cm' => false
                             ];
+
+                            $labMaterialsNotificationLines[] = "{$realItem->name}: Entregar {$mat['qty']} und de bodega a laboratorio.";
                         }
                     }
 
@@ -3949,29 +3957,40 @@ class ProductQuoter extends Component
 
             // Notificar a usuarios de Bodega / Importaciones
             try {
-                $bodegaProfiles = DB::connection('tenant')->table('usr_profiles')
-                    ->whereIn('profile_name', ['Bodega', 'Importaciones', 'Administrador'])
-                    ->pluck('id')->toArray();
+                $importacionUsers = DB::connection('mysql')->table('user_tenants')
+                    ->join('usr_profiles', 'usr_profiles.id', '=', 'user_tenants.profile_id')
+                    ->where('user_tenants.tenant_id', session('tenant_id'))
+                    ->where('user_tenants.is_active', 1)
+                    ->whereNull('usr_profiles.deleted_at')
+                    ->where(function($q) {
+                        $q->where('usr_profiles.name', 'like', '%importacion%')
+                          ->orWhere('usr_profiles.name', 'like', '%bodega%');
+                    })
+                    ->pluck('user_tenants.user_id')
+                    ->unique()
+                    ->toArray();
 
-                if(!empty($bodegaProfiles)) {
-                    $bodegaUsers = DB::connection('mysql')->table('user_tenants')
-                        ->where('tenant_id', session('tenant_id'))
-                        ->whereIn('profile_id', $bodegaProfiles)
-                        ->where('is_active', 1)
-                        ->pluck('user_id');
-
-                    foreach($bodegaUsers as $uId) {
-                        \App\Models\Tenant\UsrNotification::notify(
-                            $uId,
-                            'NUEVA ORDEN DE ENSAMBLE',
-                            "Se ha generado la OP #{$remission->consecutive} que requiere alistamiento de materiales.",
-                            'Inventario',
-                            "/remissions"
-                        );
+                if (!empty($importacionUsers)) {
+                    if (!empty($labMaterialsNotificationLines)) {
+                        $title = "OP #{$remission->consecutive} - Alistamiento Materiales";
+                        $message = implode(" | ", $labMaterialsNotificationLines);
+                    } else {
+                        $title = "NUEVA ORDEN DE PEDIDO #{$remission->consecutive}";
+                        $message = "Se ha generado la OP #{$remission->consecutive} que requiere alistamiento de materiales.";
                     }
+
+                    \App\Models\Tenant\UsrNotification::notify(
+                        $importacionUsers,
+                        'Inventario',
+                        'remission',
+                        $remission->id,
+                        $title,
+                        $message,
+                        "/inventory/lab-leftovers"
+                    );
                 }
             } catch (\Exception $e) {
-                Log::error('Error al enviar notificaciones de OP: ' . $e->getMessage());
+                Log::error('Error al enviar notificaciones de OP a Importaciones: ' . $e->getMessage());
             }
 
             DB::connection('tenant')->commit();
