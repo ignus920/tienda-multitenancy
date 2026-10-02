@@ -795,10 +795,49 @@ class CostCalculationForm extends Component
         $principalStore = InvStore::where('status', 1)->orderBy('id', 'asc')->first();
         $warehouseApiId = $principalStore?->api_data_id ? (string) $principalStore->api_data_id : '1';
 
+        // Precios y Costos
         $costoInicial  = (float) ($this->fp_temp_values['Costo Inicial']  ?? 0);
         $precioBase    = (float) ($this->fp_temp_values['Precio Base']    ?? 0);
         $precioRegular = (float) ($this->fp_temp_values['Precio Regular'] ?? 0);
         $precioCredito = (float) ($this->fp_temp_values['Precio Crédito'] ?? 0);
+
+        // Resolver listas de precios compatibles con la cuenta de Alegra (Producción vs Sandbox)
+        $pricePayload = [];
+        try {
+            $plResult = $apiClient->get('price-lists');
+            $remotePriceLists = ($plResult['success'] ?? false) && is_array($plResult['data'] ?? null)
+                ? $plResult['data']
+                : [];
+
+            $availableIds = array_map(fn($pl) => (string)($pl['id'] ?? ''), $remotePriceLists);
+
+            $productionPriceMap = [
+                '019ac5f3-5f72-7440-874c-6e53c92fbfde' => $precioBase,
+                '019b8e1a-f3fa-73b3-91d7-03f867191b3c' => $precioRegular,
+                '019b8e1b-ab7b-71da-8c15-cf1e136e06c3' => $precioCredito,
+            ];
+
+            $matchedAny = false;
+            foreach ($productionPriceMap as $uuid => $prc) {
+                if (in_array((string)$uuid, $availableIds, true)) {
+                    $pricePayload[] = ['idPriceList' => $uuid, 'price' => $prc];
+                    $matchedAny = true;
+                }
+            }
+
+            if (!$matchedAny && !empty($remotePriceLists)) {
+                $firstListId = $remotePriceLists[0]['id'] ?? 1;
+                $pricePayload[] = ['idPriceList' => $firstListId, 'price' => ($precioBase ?: $precioRegular)];
+            }
+        } catch (\Exception $ePl) {
+            Log::warning('⚠️ [CostCalc] No se pudieron consultar listas de precios de Alegra: ' . $ePl->getMessage());
+        }
+
+        if (empty($pricePayload)) {
+            $pricePayload = [
+                ['idPriceList' => 1, 'price' => ($precioBase ?: $precioRegular)]
+            ];
+        }
 
         $createdAlegraItemId = null;
         $createdExitAdjustmentId = null;
@@ -894,11 +933,7 @@ class CostCalculationForm extends Component
                         ['id' => $warehouseApiId, 'initialQuantity' => 0, 'minQuantity' => 0, 'maxQuantity' => 0]
                     ],
                 ],
-                'price'       => [
-                    ['idPriceList' => '019ac5f3-5f72-7440-874c-6e53c92fbfde', 'price' => $precioBase],
-                    ['idPriceList' => '019b8e1a-f3fa-73b3-91d7-03f867191b3c', 'price' => $precioRegular],
-                    ['idPriceList' => '019b8e1b-ab7b-71da-8c15-cf1e136e06c3', 'price' => $precioCredito],
-                ],
+                'price'       => $pricePayload,
             ];
 
             if ($item->inventoriable != 1) {
