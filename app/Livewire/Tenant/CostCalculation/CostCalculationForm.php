@@ -1005,13 +1005,24 @@ class CostCalculationForm extends Component
                     $unitCost = $valCosto ? (float) $valCosto : 0.0;
                 }
 
-                $itemsSalidaAlegra[] = [
-                    'type'     => 'out',
-                    'id'       => (string) $erpItem->api_data_id,
-                    'unitCost' => $unitCost,
-                    'quantity' => abs($qty),
-                ];
+                $apiId = (string) $erpItem->api_data_id;
+                $cantAbs = abs($qty);
+
+                if (isset($itemsSalidaAlegra[$apiId])) {
+                    // Si el ítem ya existe en la lista de salida, sumamos la cantidad
+                    $itemsSalidaAlegra[$apiId]['quantity'] += $cantAbs;
+                } else {
+                    $itemsSalidaAlegra[$apiId] = [
+                        'type'     => 'out',
+                        'id'       => $apiId,
+                        'unitCost' => $unitCost,
+                        'quantity' => $cantAbs,
+                    ];
+                }
             }
+
+            // Convertir el array asociativo a lista indexada para la API de Alegra
+            $itemsSalidaAlegra = array_values($itemsSalidaAlegra);
 
             $movementsService = new MovementsService();
 
