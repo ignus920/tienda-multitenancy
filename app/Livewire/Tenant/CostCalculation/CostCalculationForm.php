@@ -894,10 +894,6 @@ class CostCalculationForm extends Component
                         ['id' => $warehouseApiId, 'initialQuantity' => 0, 'minQuantity' => 0, 'maxQuantity' => 0]
                     ],
                 ],
-                'accounting'  => [
-                    'inventory'             => $taxData['inventoryAccount'],
-                    'inventariablePurchase' => $taxData['inventariablePurchaseAccount'],
-                ],
                 'price'       => [
                     ['idPriceList' => '019ac5f3-5f72-7440-874c-6e53c92fbfde', 'price' => $precioBase],
                     ['idPriceList' => '019b8e1a-f3fa-73b3-91d7-03f867191b3c', 'price' => $precioRegular],
@@ -906,7 +902,7 @@ class CostCalculationForm extends Component
             ];
 
             if ($item->inventoriable != 1) {
-                unset($apiData['inventory'], $apiData['accounting']);
+                unset($apiData['inventory']);
             }
 
             Log::info('🚀 [CostCalc] Creando producto en Alegra', [
