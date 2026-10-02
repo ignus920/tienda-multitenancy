@@ -780,39 +780,61 @@ class CostCalculationForm extends Component
             return; // Algo falló al guardar
         }
 
-        // 2. Creamos el producto terminado en la BD local (transacción)
-        $item = null;
-        try {
-            DB::connection('tenant')->beginTransaction();
+        // Validar configuración de facturación de Alegra antes de proceder
+        $user = Auth::user();
+        $optimizedConfig = $user ? DatabaseConfigService::getFacturacionConfigByUser($user->id) : null;
+        if (!$optimizedConfig) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se encontró configuración de facturación con Alegra para su usuario. El producto no puede crearse.'
+            ]);
+            return;
+        }
 
+        $apiClient = ApiClient::forConfig($optimizedConfig);
+        $principalStore = InvStore::where('status', 1)->orderBy('id', 'asc')->first();
+        $warehouseApiId = $principalStore?->api_data_id ? (string) $principalStore->api_data_id : '1';
+
+        $costoInicial  = (float) ($this->fp_temp_values['Costo Inicial']  ?? 0);
+        $precioBase    = (float) ($this->fp_temp_values['Precio Base']    ?? 0);
+        $precioRegular = (float) ($this->fp_temp_values['Precio Regular'] ?? 0);
+        $precioCredito = (float) ($this->fp_temp_values['Precio Crédito'] ?? 0);
+
+        $createdAlegraItemId = null;
+        $createdExitAdjustmentId = null;
+
+        DB::connection('tenant')->beginTransaction();
+
+        try {
+            // 2. Creamos el producto en la BD local dentro de la transacción
             $item = Items::create([
-                'categoryId'         => $this->fp_category_id,
-                'name'               => $this->fp_name,
-                'internal_code'      => $this->fp_code,
-                'sku'                => $this->fp_sku ?: $this->fp_code,
-                'description'        => $this->fp_name,
-                'type'               => $this->fp_type,
-                'taxId'              => $this->fp_tax_id,
-                'brandId'            => $this->fp_brand_id ?: null,
-                'houseId'            => $this->fp_house_id ?: null,
-                'purchasing_unit'    => $this->fp_purchasing_unit ?: null,
-                'consumption_unit'   => $this->fp_consumption_unit ?: null,
-                'handles_serial'     => $this->fp_handles_serial ? 1 : 0,
-                'inventoriable'      => $this->fp_inventoriable ? 1 : 0,
-                'status'             => 1,
+                'categoryId'          => $this->fp_category_id,
+                'name'                => $this->fp_name,
+                'internal_code'       => $this->fp_code,
+                'sku'                 => $this->fp_sku ?: $this->fp_code,
+                'description'         => $this->fp_name,
+                'type'                => $this->fp_type,
+                'taxId'               => $this->fp_tax_id,
+                'brandId'             => $this->fp_brand_id ?: null,
+                'houseId'             => $this->fp_house_id ?: null,
+                'purchasing_unit'     => $this->fp_purchasing_unit ?: null,
+                'consumption_unit'    => $this->fp_consumption_unit ?: null,
+                'handles_serial'      => $this->fp_handles_serial ? 1 : 0,
+                'inventoriable'       => $this->fp_inventoriable ? 1 : 0,
+                'status'              => 1,
                 'cost_calculation_id' => $this->calculationId,
             ]);
 
             // Registro de bodega (storeId = 2 = bodega principal)
             DB::connection('tenant')->table('inv_items_store')->insert([
-                'itemId'            => $item->id,
-                'storeId'           => 2,
-                'initial_stock'     => 0,
-                'stock_items_store' => 0,
-                'stock_min'         => 0,
-                'stock_max'         => 0,
+                'itemId'              => $item->id,
+                'storeId'             => 2,
+                'initial_stock'       => 0,
+                'stock_items_store'   => 0,
+                'stock_min'           => 0,
+                'stock_max'           => 0,
                 'wp_stock_percentage' => 0,
-                'wp_min_stock'      => 0,
+                'wp_min_stock'        => 0,
             ]);
 
             // Guardar proveedor en imp_items_setup
@@ -851,66 +873,12 @@ class CostCalculationForm extends Component
                 }
             }
 
-            // Marcar el cálculo de costos como producto terminado
-            CostCalculation::where('id', $this->calculationId)->update(['type' => 'finished_product']);
-
-            DB::connection('tenant')->commit();
-
-        } catch (\Exception $e) {
-            DB::connection('tenant')->rollBack();
-            Log::error('❌ [CostCalc] Error al crear producto terminado en BD: ' . $e->getMessage());
-            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear el producto: ' . $e->getMessage()]);
-            return;
-        }
-
-        // ── BLOQUE ALEGRA (fuera de la transacción, igual que ManageItems) ──
-        // 3. Crear el producto en Alegra y obtener api_data_id
-        $this->syncNewProductWithAlegra($item);
-
-        // 4. Salida de materiales (ajuste negativo) en Alegra
-        $this->syncMaterialsExitToAlegra($item);
-
-        // 5. Entrada del producto terminado (ajuste positivo) en Alegra
-        $this->syncFinishedProductEntryToAlegra($item);
-
-        // ── FIN ──
-        $this->showFinishedProductModal = false;
-        $this->type = 'finished_product';
-        $this->assignedFinishedProductCode = $item->internal_code;
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => '¡Producto Terminado creado y sincronizado con Alegra!']);
-    }
-
-    /**
-     * Crea el ítem en Alegra y guarda el api_data_id en inv_items.
-     */
-    private function syncNewProductWithAlegra(Items $item): void
-    {
-        try {
-            $user = Auth::user();
-            $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($user->id);
-            if (!$optimizedConfig) {
-                Log::warning('⚠️ [CostCalc] Sin configuración de facturación — se omite creación en Alegra', ['item_id' => $item->id]);
-                return;
-            }
-
-            $apiClient = ApiClient::forConfig($optimizedConfig);
-
-            // Datos contables desde cnf_taxes
-            $tax      = CnfTaxes::find($this->fp_tax_id);
-            $taxData  = [
+            // 3. Crear el producto en Alegra
+            $tax = CnfTaxes::find($this->fp_tax_id);
+            $taxData = [
                 'inventoryAccount'            => $tax?->inventoryAccount,
                 'inventariablePurchaseAccount' => $tax?->inventariablePurchaseAccount,
             ];
-
-            // Bodega principal de Alegra
-            $principalStore = InvStore::where('status', 1)->orderBy('id', 'asc')->first();
-            $warehouseApiId = $principalStore?->api_data_id ? (string) $principalStore->api_data_id : '1';
-
-            // Precios desde fp_temp_values (recién guardados)
-            $precioBase    = (float) ($this->fp_temp_values['Precio Base']    ?? 0);
-            $precioRegular = (float) ($this->fp_temp_values['Precio Regular'] ?? 0);
-            $precioCredito = (float) ($this->fp_temp_values['Precio Crédito'] ?? 0);
-            $costoInicial  = (float) ($this->fp_temp_values['Costo Inicial']  ?? 0);
 
             $apiData = [
                 'name'        => $item->name,
@@ -919,18 +887,18 @@ class CostCalculationForm extends Component
                 'type'        => $item->inventoriable == 1 ? 'product' : 'service',
                 'tax'         => $item->taxId ? (string) $item->taxId : '0',
                 'inventory'   => [
-                    'unit'             => 'unit',
-                    'unitCost'         => $costoInicial,
-                    'negativeSale'     => false,
-                    'warehouses'       => [
+                    'unit'         => 'unit',
+                    'unitCost'     => $costoInicial,
+                    'negativeSale' => false,
+                    'warehouses'   => [
                         ['id' => $warehouseApiId, 'initialQuantity' => 0, 'minQuantity' => 0, 'maxQuantity' => 0]
                     ],
                 ],
-                'accounting' => [
-                    'inventory'              => $taxData['inventoryAccount'],
-                    'inventariablePurchase'  => $taxData['inventariablePurchaseAccount'],
+                'accounting'  => [
+                    'inventory'             => $taxData['inventoryAccount'],
+                    'inventariablePurchase' => $taxData['inventariablePurchaseAccount'],
                 ],
-                'price' => [
+                'price'       => [
                     ['idPriceList' => '019ac5f3-5f72-7440-874c-6e53c92fbfde', 'price' => $precioBase],
                     ['idPriceList' => '019b8e1a-f3fa-73b3-91d7-03f867191b3c', 'price' => $precioRegular],
                     ['idPriceList' => '019b8e1b-ab7b-71da-8c15-cf1e136e06c3', 'price' => $precioCredito],
@@ -944,34 +912,17 @@ class CostCalculationForm extends Component
             Log::info('🚀 [CostCalc] Creando producto en Alegra', ['item_id' => $item->id, 'name' => $item->name]);
             $apiResult = $apiClient->createItem($apiData);
 
-            if ($apiResult['success'] && isset($apiResult['data']['id'])) {
-                $item->update(['api_data_id' => $apiResult['data']['id']]);
-                Log::info('✅ [CostCalc] Producto creado en Alegra', ['item_id' => $item->id, 'api_data_id' => $apiResult['data']['id']]);
-            } else {
-                Log::error('❌ [CostCalc] Error al crear producto en Alegra', ['item_id' => $item->id, 'error' => $apiResult['message'] ?? 'desconocido']);
-                $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Producto creado en ERP, pero falló la sincronización con Alegra: ' . ($apiResult['message'] ?? 'error desconocido')]);
+            if (!($apiResult['success'] ?? false) || empty($apiResult['data']['id'])) {
+                $errorMsg = $apiResult['message'] ?? ($apiResult['data']['message'] ?? 'Error desconocido al crear en Alegra');
+                throw new \Exception('Alegra rechazó la creación del producto: ' . $errorMsg);
             }
-        } catch (\Exception $e) {
-            Log::error('❌ [CostCalc] Excepción al crear en Alegra: ' . $e->getMessage(), ['item_id' => $item->id]);
-            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Producto creado, pero no se pudo sincronizar con Alegra.']);
-        }
-    }
 
-    /**
-     * Hace la salida (ajuste negativo) de los materiales de la receta en Alegra.
-     */
-    private function syncMaterialsExitToAlegra(Items $item): void
-    {
-        try {
-            $user = Auth::user();
-            $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($user->id);
-            if (!$optimizedConfig) return;
+            $createdAlegraItemId = (int) $apiResult['data']['id'];
+            $item->update(['api_data_id' => $createdAlegraItemId]);
+            Log::info('✅ [CostCalc] Producto creado en Alegra exitosamente', ['item_id' => $item->id, 'api_data_id' => $createdAlegraItemId]);
 
-            $principalStore = InvStore::where('status', 1)->orderBy('id', 'asc')->first();
-            $warehouseApiId = $principalStore?->api_data_id ? (string) $principalStore->api_data_id : '1';
-
-            // Recopilar los materiales ERP con api_data_id para la salida
-            $itemsAlegra = [];
+            // 4. Salida de materiales (ajuste tipo 'out') en Alegra
+            $itemsSalidaAlegra = [];
             foreach ($this->lines as $line) {
                 if (($line['origin'] ?? '') !== 'erp') continue;
                 if (empty($line['item_id'])) continue;
@@ -982,80 +933,117 @@ class CostCalculationForm extends Component
                 $qty = (float) ($line['cm_quantity'] ?? $line['quantity'] ?? 0);
                 if ($qty <= 0) continue;
 
-                $itemsAlegra[] = [
+                $unitCost = (float) ($line['unit_cost'] ?? 0);
+                if ($unitCost <= 0) {
+                    $valCosto = DB::connection('tenant')->table('inv_values')
+                        ->where('itemId', $erpItem->id)
+                        ->whereIn('label', ['Costo', 'Costo Inicial'])
+                        ->value('values');
+                    $unitCost = $valCosto ? (float) $valCosto : 0.0;
+                }
+
+                $itemsSalidaAlegra[] = [
+                    'type'     => 'out',
                     'id'       => (string) $erpItem->api_data_id,
-                    'quantity' => -abs($qty), // negativo = salida
+                    'unitCost' => $unitCost,
+                    'quantity' => abs($qty),
                 ];
             }
 
-            if (empty($itemsAlegra)) {
-                Log::info('ℹ️ [CostCalc] Sin materiales con api_data_id — se omite salida en Alegra', ['item_id' => $item->id]);
-                return;
-            }
-
             $movementsService = new MovementsService();
-            $alegraData = [
-                'date'         => now()->format('Y-m-d'),
-                'warehouse'    => ['id' => $warehouseApiId],
-                'observations' => 'Salida de materiales - Prod. Terminado: ' . $item->internal_code,
-                'items'        => $itemsAlegra,
-            ];
 
-            Log::info('📦 [CostCalc] Salida de materiales Alegra', ['calc_id' => $this->calculationId, 'items' => count($itemsAlegra)]);
-            $result = $movementsService->syncAdjustmentToApi($alegraData);
+            if (!empty($itemsSalidaAlegra)) {
+                $exitPayload = [
+                    'date'         => now()->format('Y-m-d'),
+                    'warehouse'    => ['id' => $warehouseApiId],
+                    'observations' => 'Salida de materiales - Prod. Terminado: ' . $item->internal_code . ' (Cálculo #' . $this->calculationId . ')',
+                    'items'        => $itemsSalidaAlegra,
+                ];
 
-            if (!($result['success'] ?? false)) {
-                Log::error('❌ [CostCalc] Error en salida de materiales Alegra', ['error' => $result['message'] ?? 'desconocido']);
-                $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Salida de materiales no registrada en Alegra: ' . ($result['message'] ?? 'error')]);
-            } else {
-                Log::info('✅ [CostCalc] Salida de materiales registrada en Alegra');
-            }
-        } catch (\Exception $e) {
-            Log::error('❌ [CostCalc] Excepción en salida de materiales Alegra: ' . $e->getMessage());
-            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'No se pudo registrar salida de materiales en Alegra.']);
-        }
-    }
+                Log::info('📦 [CostCalc] Enviando salida de materiales a Alegra', [
+                    'calc_id'     => $this->calculationId,
+                    'items_count' => count($itemsSalidaAlegra),
+                ]);
 
-    /**
-     * Hace la entrada (ajuste positivo) del producto terminado en Alegra.
-     */
-    private function syncFinishedProductEntryToAlegra(Items $item): void
-    {
-        try {
-            if (!$item->api_data_id) {
-                Log::warning('⚠️ [CostCalc] Sin api_data_id — se omite entrada en Alegra', ['item_id' => $item->id]);
-                return;
+                $exitResult = $movementsService->syncAdjustmentToApi($exitPayload);
+                if (!($exitResult['success'] ?? false)) {
+                    $exitError = $exitResult['message'] ?? 'Error desconocido en salida de materiales';
+                    throw new \Exception('Falló la salida de materiales en Alegra: ' . $exitError);
+                }
+
+                $createdExitAdjustmentId = $exitResult['api_data_id'] ?? null;
+                Log::info('✅ [CostCalc] Salida de materiales registrada en Alegra exitosamente', ['adjustment_id' => $createdExitAdjustmentId]);
             }
 
-            $user = Auth::user();
-            $optimizedConfig = DatabaseConfigService::getFacturacionConfigByUser($user->id);
-            if (!$optimizedConfig) return;
-
-            $principalStore = InvStore::where('status', 1)->orderBy('id', 'asc')->first();
-            $warehouseApiId = $principalStore?->api_data_id ? (string) $principalStore->api_data_id : '1';
-
-            $movementsService = new MovementsService();
-            $alegraData = [
+            // 5. Entrada del producto terminado (ajuste tipo 'in') en Alegra
+            $entryPayload = [
                 'date'         => now()->format('Y-m-d'),
                 'warehouse'    => ['id' => $warehouseApiId],
                 'observations' => 'Entrada prod. terminado: ' . $item->internal_code . ' - Cálculo #' . $this->calculationId,
                 'items'        => [
-                    ['id' => (string) $item->api_data_id, 'quantity' => 1],
+                    [
+                        'type'     => 'in',
+                        'id'       => (string) $createdAlegraItemId,
+                        'unitCost' => $costoInicial,
+                        'quantity' => 1,
+                    ],
                 ],
             ];
 
-            Log::info('📦 [CostCalc] Entrada de producto terminado Alegra', ['item_id' => $item->id, 'api_data_id' => $item->api_data_id]);
-            $result = $movementsService->syncAdjustmentToApi($alegraData);
+            Log::info('📦 [CostCalc] Enviando entrada de producto terminado a Alegra', [
+                'item_id'     => $item->id,
+                'api_data_id' => $createdAlegraItemId,
+            ]);
 
-            if (!($result['success'] ?? false)) {
-                Log::error('❌ [CostCalc] Error en entrada de producto terminado Alegra', ['error' => $result['message'] ?? 'desconocido']);
-                $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'Entrada no registrada en Alegra: ' . ($result['message'] ?? 'error')]);
-            } else {
-                Log::info('✅ [CostCalc] Entrada de producto terminado registrada en Alegra');
+            $entryResult = $movementsService->syncAdjustmentToApi($entryPayload);
+            if (!($entryResult['success'] ?? false)) {
+                $entryError = $entryResult['message'] ?? 'Error desconocido en entrada de producto terminado';
+                throw new \Exception('Falló la entrada del producto terminado en Alegra: ' . $entryError);
             }
+
+            Log::info('✅ [CostCalc] Entrada de producto terminado registrada en Alegra exitosamente');
+
+            // 6. Todo en Alegra y en BD fue exitoso -> Marcar el cálculo de costos y confirmar transacción
+            CostCalculation::where('id', $this->calculationId)->update(['type' => 'finished_product']);
+
+            DB::connection('tenant')->commit();
+
+            $this->showFinishedProductModal = false;
+            $this->type = 'finished_product';
+            $this->assignedFinishedProductCode = $item->internal_code;
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Producto Terminado creado con éxito! Se sincronizó con Alegra, se realizó la salida de insumos y la entrada del producto terminado.'
+            ]);
+
         } catch (\Exception $e) {
-            Log::error('❌ [CostCalc] Excepción en entrada de producto terminado Alegra: ' . $e->getMessage());
-            $this->dispatch('show-toast', ['type' => 'warning', 'message' => 'No se pudo registrar entrada del producto terminado en Alegra.']);
+            DB::connection('tenant')->rollBack();
+
+            Log::error('❌ [CostCalc] Falló el proceso completo. Se cancela creación en ERP: ' . $e->getMessage());
+
+            // Si se llegó a crear el ítem o el ajuste de salida en Alegra antes de que fallara otro paso, revertir en Alegra
+            if ($createdExitAdjustmentId) {
+                try {
+                    $movementsService->deleteAdjustmentFromApi((string) $createdExitAdjustmentId);
+                    Log::info('🧹 [CostCalc] Ajuste de salida revertido en Alegra tras fallo');
+                } catch (\Exception $exRollback) {
+                    Log::error('⚠️ [CostCalc] No se pudo revertir ajuste de salida en Alegra: ' . $exRollback->getMessage());
+                }
+            }
+
+            if ($createdAlegraItemId) {
+                try {
+                    $apiClient->deleteItem($createdAlegraItemId);
+                    Log::info('🧹 [CostCalc] Producto revertido/eliminado en Alegra tras fallo');
+                } catch (\Exception $exRollback) {
+                    Log::error('⚠️ [CostCalc] No se pudo eliminar producto en Alegra: ' . $exRollback->getMessage());
+                }
+            }
+
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No se creó el producto en el ERP: ' . $e->getMessage()
+            ]);
         }
     }
 
