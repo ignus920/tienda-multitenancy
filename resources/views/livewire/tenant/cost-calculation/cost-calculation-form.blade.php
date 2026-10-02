@@ -694,19 +694,24 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 bg-white dark:bg-gray-900 space-y-4">
+                <div class="px-6 py-5 bg-white dark:bg-gray-900 space-y-4 overflow-y-auto max-h-[70vh]">
                     <p class="text-xs text-gray-500 dark:text-gray-400">
                         Al confirmar, esta receta se guardará y se creará un nuevo ítem oficial en el inventario listo para ser cotizado por los vendedores.
                     </p>
-                    
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Código del nuevo producto *</label>
-                        <input type="text" wire:model="fp_code" placeholder="Ej: PT-001" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
-                        @error('fp_code') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
-                    </div>
 
+                    {{-- Categoría --}}
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Categoría *</label>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                            Categoría <span class="text-red-500">*</span>
+                            <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                    Categoría a la que pertenece el producto en el inventario.
+                                </div>
+                            </div>
+                        </label>
                         <select wire:model="fp_category_id" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
                             <option value="">Seleccione una categoría...</option>
                             @foreach($categoriesList as $cat)
@@ -716,15 +721,285 @@
                         @error('fp_category_id') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
                     </div>
 
+                    {{-- Nombre --}}
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Impuesto *</label>
-                        <select wire:model="fp_tax_id" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
-                            <option value="">Seleccione el impuesto...</option>
-                            @foreach($taxesList as $tax)
-                                <option value="{{ $tax->id }}">{{ $tax->name }} ({{ number_format($tax->percentage, 2) }}%)</option>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                            Nombre <span class="text-red-500">*</span>
+                            <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                    Nombre comercial o descripción corta del producto.
+                                </div>
+                            </div>
+                        </label>
+                        <input type="text" wire:model="fp_name" placeholder="Ingrese nombre del producto"
+                            class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                        @error('fp_name') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Código interno + SKU --}}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Código interno <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Código de identificación interno del producto.
+                                    </div>
+                                </div>
+                            </label>
+                            <input type="text" wire:model="fp_code" placeholder="Ej: PT-001"
+                                class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                            @error('fp_code') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                SKU
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Código SKU. Si se deja vacío, se usará el código interno.
+                                    </div>
+                                </div>
+                            </label>
+                            <input type="text" wire:model="fp_sku" placeholder="Ej: PT-001"
+                                class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                        </div>
+                    </div>
+
+                    {{-- Tipo + Impuesto --}}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Tipo <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Define el tipo de artículo (Ensamblado, Importado, Producido, etc.).
+                                    </div>
+                                </div>
+                            </label>
+                            <select wire:model="fp_type" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="">-- Seleccione --</option>
+                                @foreach($fpItemTypes as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('fp_type') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Impuesto <span class="text-red-500">*</span>
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Porcentaje de IVA o impuesto aplicable al producto.
+                                    </div>
+                                </div>
+                            </label>
+                            <select wire:model="fp_tax_id" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="">-- Seleccione --</option>
+                                @foreach($taxesList as $tax)
+                                    <option value="{{ $tax->id }}">{{ $tax->name }} ({{ number_format($tax->percentage, 2) }}%)</option>
+                                @endforeach
+                            </select>
+                            @error('fp_tax_id') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    {{-- Marca --}}
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                            Marca
+                            <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                    Marca comercial del producto.
+                                </div>
+                            </div>
+                        </label>
+                        <select wire:model="fp_brand_id" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                            <option value="">Seleccione una marca</option>
+                            @foreach($brandsList as $brand)
+                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
                             @endforeach
                         </select>
-                        @error('fp_tax_id') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Casa --}}
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                            Casa
+                            <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                                <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                    Casa fabricante o distribuidora del producto.
+                                </div>
+                            </div>
+                        </label>
+                        <select wire:model="fp_house_id" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                            <option value="">Seleccione una casa</option>
+                            @foreach($housesList as $house)
+                                <option value="{{ $house->id }}">{{ $house->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Unidad de compra + Unidad de consumo --}}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Unidad de compra
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Unidad en la que se compra el producto al proveedor.
+                                    </div>
+                                </div>
+                            </label>
+                            <select wire:model="fp_purchasing_unit" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="">Seleccione</option>
+                                @foreach($purchasingUnitsList as $unit)
+                                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Unidad de consumo
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Unidad en la que se consume o vende el producto.
+                                    </div>
+                                </div>
+                            </label>
+                            <select wire:model="fp_consumption_unit" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="">Seleccione</option>
+                                @foreach($consumptionUnitsList as $unit)
+                                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Maneja Serial + Maneja Inventario --}}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Maneja Serial
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Indica si el producto requiere seguimiento por número de serie.
+                                    </div>
+                                </div>
+                            </label>
+                            <select wire:model="fp_handles_serial" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="0">NO</option>
+                                <option value="1">SI</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                                Maneja Inventario
+                                <div x-data="{ show: false }" class="relative inline-block ml-1">
+                                    <button @mouseenter="show = true" @mouseleave="show = false" type="button" class="text-gray-400 hover:text-green-600 focus:outline-none transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </button>
+                                    <div x-show="show" x-cloak x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50 text-center">
+                                        Indica si se controlan las existencias físicas en el inventario.
+                                    </div>
+                                </div>
+                            </label>
+                            <select wire:model="fp_inventoriable" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="1">SI</option>
+                                <option value="0">NO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Proveedor --}}
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                            Proveedor <span class="text-red-500">*</span>
+                        </label>
+                        <select wire:model="fp_supplier_id" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                            <option value="">Seleccionar Proveedor</option>
+                            @foreach($suppliersList as $supplier)
+                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('fp_supplier_id') <span class="text-3xs text-red-500 font-semibold">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Sección Valores --}}
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-3">Valores</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-800">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Etiqueta</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                                    @php
+                                        $fpStaticValues = [
+                                            ['label' => 'Costo Inicial',          'display' => 'Costo Inicial',          'type' => 'Costo'],
+                                            ['label' => 'Costo',                  'display' => 'Costo',                  'type' => 'Costo'],
+                                            ['label' => 'Precio Base',            'display' => 'Precio Lista',           'type' => 'Precio'],
+                                            ['label' => 'Precio Regular',         'display' => 'Precio Mínimo',          'type' => 'Precio'],
+                                            ['label' => 'Precio Crédito',         'display' => 'Precio Crédito',         'type' => 'Precio'],
+                                            ['label' => 'Precio unitario x caja', 'display' => 'Precio unitario x caja', 'type' => 'Precio'],
+                                        ];
+                                    @endphp
+                                    @foreach($fpStaticValues as $fpVal)
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                            <td class="px-3 py-2 text-xs text-gray-900 dark:text-white">{{ $fpVal['display'] }}</td>
+                                            <td class="px-3 py-2 text-xs">
+                                                <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full {{ $fpVal['type'] === 'Costo' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' }}">
+                                                    {{ $fpVal['type'] }}
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2 text-xs text-right">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    wire:model="fp_temp_values.{{ $fpVal['label'] }}"
+                                                    placeholder="0.00"
+                                                    class="w-28 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white text-xs"
+                                                >
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -732,9 +1007,10 @@
                     <button type="button" @click="show = false" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
                         Cancelar
                     </button>
-                    <button type="button" wire:click="saveAsFinishedProduct" wire:loading.attr="disabled" class="px-5 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow transition-colors flex items-center gap-2">
+                    <button type="button" wire:click="saveAsFinishedProduct" wire:loading.attr="disabled" class="px-5 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <svg wire:loading wire:target="saveAsFinishedProduct" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Guardar y Crear Producto
+                        <span wire:loading wire:target="saveAsFinishedProduct">Procesando...</span>
+                        <span wire:loading.remove wire:target="saveAsFinishedProduct">Guardar y Crear Producto</span>
                     </button>
                 </div>
             </div>

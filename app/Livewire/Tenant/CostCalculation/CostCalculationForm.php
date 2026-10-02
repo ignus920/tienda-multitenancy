@@ -71,10 +71,34 @@ class CostCalculationForm extends Component
     // Producto Terminado
     public $showFinishedProductModal = false;
     public $fp_code = '';
+    public $fp_name = '';
+    public $fp_sku = '';
+    public $fp_type = 'ENSAMBLADO';
     public $fp_category_id = null;
     public $fp_tax_id = null;
+    public $fp_brand_id = null;
+    public $fp_house_id = null;
+    public $fp_purchasing_unit = null;
+    public $fp_consumption_unit = null;
+    public $fp_handles_serial = 0;
+    public $fp_inventoriable = 1;
+    public $fp_supplier_id = null;
+    public $fp_temp_values = [];
     public $categoriesList = [];
     public $taxesList = [];
+    public $brandsList = [];
+    public $housesList = [];
+    public $purchasingUnitsList = [];
+    public $consumptionUnitsList = [];
+    public $suppliersList = [];
+    public $fpItemTypes = [
+        'ENSAMBLADO'      => 'Ensamblado',
+        'IMPORTADO'       => 'Importado',
+        'COMPRA NACIONAL' => 'Compra nacional',
+        'PRODUCIDO'       => 'Producido',
+        'INSUMO'          => 'Insumo',
+        'SERVICIO'        => 'Servicio',
+    ];
 
     public function mount($calculationId = null)
     {
@@ -96,6 +120,11 @@ class CostCalculationForm extends Component
     {
         $this->categoriesList = DB::connection('tenant')->table('inv_categories')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
         $this->taxesList = DB::connection('tenant')->table('cnf_taxes')->whereNull('deleted_at')->get(['id', 'name', 'percentage'])->toArray();
+        $this->brandsList = DB::connection('tenant')->table('inv_brands')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->housesList = DB::connection('tenant')->table('inv_houses')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->purchasingUnitsList = DB::connection('tenant')->table('inv_purchasing_units')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->consumptionUnitsList = DB::connection('tenant')->table('inv_consumption_units')->whereNull('deleted_at')->get(['id', 'name'])->toArray();
+        $this->suppliersList = DB::connection('tenant')->table('vnt_companies')->where('type', 'PROVEEDOR')->whereNull('deleted_at')->get(['id', 'businessName as name'])->toArray();
     }
 
     public function boot()
@@ -712,17 +741,24 @@ class CostCalculationForm extends Component
         if (!$this->checkCanEdit()) return;
 
         $this->validate([
-            'fp_code' => 'required|string|max:50',
-            'fp_category_id' => 'required',
-            'fp_tax_id' => 'required',
-            'name' => 'required|string|max:255',
+            'fp_code'             => 'required|string|max:50',
+            'fp_name'             => 'required|string|min:3|max:255',
+            'fp_category_id'      => 'required|integer',
+            'fp_type'             => 'required|string',
+            'fp_tax_id'           => 'required|integer',
+            'fp_supplier_id'      => 'required|integer',
         ], [
-            'fp_code.required' => 'El código es obligatorio.',
+            'fp_code.required'        => 'El código interno es obligatorio.',
+            'fp_name.required'        => 'El nombre del producto es obligatorio.',
+            'fp_name.min'             => 'El nombre debe tener al menos 3 caracteres.',
             'fp_category_id.required' => 'La categoría es obligatoria.',
-            'fp_tax_id.required' => 'El impuesto es obligatorio.',
+            'fp_type.required'        => 'El tipo de producto es obligatorio.',
+            'fp_tax_id.required'      => 'El impuesto es obligatorio.',
+            'fp_supplier_id.required' => 'El proveedor es obligatorio.',
         ]);
 
         $this->ensureTenantConnection();
+
         $exists = Items::where('internal_code', $this->fp_code)->exists();
         if ($exists) {
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Ese código ya existe en el inventario.']);
@@ -730,53 +766,85 @@ class CostCalculationForm extends Component
         }
 
         // Primero guardamos el cálculo de costos normal
-        $this->save(); 
-        
+        $this->save();
+
         if (!$this->calculationId) {
             return; // Algo falló al guardar
         }
 
-        // Ahora creamos el producto terminado y lo asociamos
+        // Ahora creamos el producto terminado con todos los campos
         try {
+            DB::connection('tenant')->beginTransaction();
+
             $item = Items::create([
-                'api_data_id' => 1,
-                'categoryId' => $this->fp_category_id,
-                'name' => $this->name,
-                'internal_code' => $this->fp_code,
-                'sku' => $this->fp_code,
-                'description' => 'Receta: ' . $this->name,
-                'type' => 'ENSAMBLADO',
-                'taxId' => $this->fp_tax_id,
-                'inventoriable' => 1,
-                'purchasing_unit' => 1,
-                'consumption_unit' => 1,
-                'status' => 1,
+                'api_data_id'        => 1,
+                'categoryId'         => $this->fp_category_id,
+                'name'               => $this->fp_name,
+                'internal_code'      => $this->fp_code,
+                'sku'                => $this->fp_sku ?: $this->fp_code,
+                'description'        => $this->fp_name,
+                'type'               => $this->fp_type,
+                'taxId'              => $this->fp_tax_id,
+                'brandId'            => $this->fp_brand_id ?: null,
+                'houseId'            => $this->fp_house_id ?: null,
+                'purchasing_unit'    => $this->fp_purchasing_unit ?: null,
+                'consumption_unit'   => $this->fp_consumption_unit ?: null,
+                'handles_serial'     => $this->fp_handles_serial ? 1 : 0,
+                'inventoriable'      => $this->fp_inventoriable ? 1 : 0,
+                'status'             => 1,
                 'cost_calculation_id' => $this->calculationId,
             ]);
 
-            // Crear el precio de lista usando el salePrice que haya configurado
-            $price = is_numeric($this->salePrice) ? (float) $this->salePrice : $this->computeTotals($this->computeAllLines())['total'];
-            
-            $invValue = new \App\Models\Tenant\Items\InvValues();
-            $invValue->itemId = $item->id;
-            $invValue->label = 'Precio Base';
-            $invValue->type = 'precio';
-            $invValue->values = (string) $price;
-            $invValue->date = now();
-            $invValue->warehouseId = 0;
-            $invValue->save();
+            // Guardar proveedor en imp_items_setup
+            if ($this->fp_supplier_id) {
+                DB::connection('tenant')->table('imp_items_setup')->insert([
+                    'item_id'     => $item->id,
+                    'supplier_id' => $this->fp_supplier_id,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+            }
 
-            // Guardar el tipo en el calculo de costos
+            // Guardar tabla de valores (precios y costos)
+            $valueTypeMap = [
+                'Costo Inicial'          => 'costo',
+                'Costo'                  => 'costo',
+                'Precio Base'            => 'precio',
+                'Precio Regular'         => 'precio',
+                'Precio Crédito'         => 'precio',
+                'Precio unitario x caja' => 'precio',
+            ];
+
+            foreach ($valueTypeMap as $label => $type) {
+                $val = $this->fp_temp_values[$label] ?? null;
+                if ($val !== null && $val !== '') {
+                    DB::connection('tenant')->table('inv_values')->insert([
+                        'itemId'      => $item->id,
+                        'label'       => $label,
+                        'type'        => $type,
+                        'values'      => (string)(float)$val,
+                        'date'        => now()->toDateString(),
+                        'warehouseId' => 0,
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
+            }
+
+            // Marcar el cálculo de costos como producto terminado
             CostCalculation::where('id', $this->calculationId)->update(['type' => 'finished_product']);
-            
+
+            DB::connection('tenant')->commit();
+
             $this->showFinishedProductModal = false;
             $this->dispatch('show-toast', ['type' => 'success', 'message' => '¡Producto Terminado Creado Exitosamente!']);
-            
+
             // Refrescar el estado a tipo finished_product
             $this->type = 'finished_product';
             $this->assignedFinishedProductCode = $item->internal_code;
 
         } catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Error al crear el producto: ' . $e->getMessage()]);
         }
     }
