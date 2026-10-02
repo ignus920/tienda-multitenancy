@@ -3957,18 +3957,23 @@ class ProductQuoter extends Component
 
             // Notificar a usuarios de Bodega / Importaciones
             try {
-                $importacionUsers = DB::connection('mysql')->table('user_tenants')
-                    ->join('usr_profiles', 'usr_profiles.id', '=', 'user_tenants.profile_id')
-                    ->where('user_tenants.tenant_id', session('tenant_id'))
-                    ->where('user_tenants.is_active', 1)
-                    ->whereNull('usr_profiles.deleted_at')
-                    ->where(function($q) {
-                        $q->where('usr_profiles.name', 'like', '%importacion%')
-                          ->orWhere('usr_profiles.name', 'like', '%bodega%');
+                $importacionUsers = \App\Models\Auth\User::whereHas('tenants', function($q) {
+                        $q->where('tenants.id', session('tenant_id'))
+                          ->where('user_tenants.is_active', 1);
                     })
-                    ->pluck('user_tenants.user_id')
-                    ->unique()
+                    ->whereHas('profile', function($q) {
+                        $q->where('name', 'like', '%importacion%')
+                          ->orWhere('name', 'like', '%almacen%')
+                          ->orWhere('name', 'like', '%bodega%');
+                    })
+                    ->pluck('id')
                     ->toArray();
+
+                Log::info('🔔 [NOTIFICACION-OP] Usuarios de Importaciones encontrados:', [
+                    'tenant_id' => session('tenant_id'),
+                    'users' => $importacionUsers,
+                    'lab_lines' => $labMaterialsNotificationLines
+                ]);
 
                 if (!empty($importacionUsers)) {
                     if (!empty($labMaterialsNotificationLines)) {
@@ -3986,7 +3991,8 @@ class ProductQuoter extends Component
                         $remission->id,
                         $title,
                         $message,
-                        "/inventory/lab-leftovers"
+                        "/inventory/lab-leftovers",
+                        null
                     );
                 }
             } catch (\Exception $e) {
