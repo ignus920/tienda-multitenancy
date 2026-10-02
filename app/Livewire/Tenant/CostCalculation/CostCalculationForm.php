@@ -909,12 +909,34 @@ class CostCalculationForm extends Component
                 unset($apiData['inventory'], $apiData['accounting']);
             }
 
-            Log::info('🚀 [CostCalc] Creando producto en Alegra', ['item_id' => $item->id, 'name' => $item->name]);
+            Log::info('🚀 [CostCalc] Creando producto en Alegra', [
+                'item_id' => $item->id,
+                'name'    => $item->name,
+                'payload' => $apiData,
+            ]);
+
             $apiResult = $apiClient->createItem($apiData);
 
             if (!($apiResult['success'] ?? false) || empty($apiResult['data']['id'])) {
-                $errorMsg = $apiResult['message'] ?? ($apiResult['data']['message'] ?? 'Error desconocido al crear en Alegra');
-                throw new \Exception('Alegra rechazó la creación del producto: ' . $errorMsg);
+                Log::error('❌ [CostCalc] Error detallado de Alegra al crear item', [
+                    'api_result' => $apiResult,
+                ]);
+
+                // Extraer el mensaje más descriptivo posible de la respuesta de Alegra
+                $detailMsg = '';
+                if (!empty($apiResult['data']['error'])) {
+                    $detailMsg = is_array($apiResult['data']['error']) ? json_encode($apiResult['data']['error'], JSON_UNESCAPED_UNICODE) : (string)$apiResult['data']['error'];
+                } elseif (!empty($apiResult['data']['message'])) {
+                    $detailMsg = (string)$apiResult['data']['message'];
+                } elseif (!empty($apiResult['validation_errors'])) {
+                    $detailMsg = json_encode($apiResult['validation_errors'], JSON_UNESCAPED_UNICODE);
+                } elseif (!empty($apiResult['error_details']['response_body'])) {
+                    $detailMsg = json_encode($apiResult['error_details']['response_body'], JSON_UNESCAPED_UNICODE);
+                } else {
+                    $detailMsg = $apiResult['message'] ?? 'Error desconocido';
+                }
+
+                throw new \Exception('Alegra rechazó la creación del producto: ' . $detailMsg);
             }
 
             $createdAlegraItemId = (int) $apiResult['data']['id'];
