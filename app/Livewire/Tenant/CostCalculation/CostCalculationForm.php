@@ -239,7 +239,7 @@ class CostCalculationForm extends Component
                 'description' => $item->description,
                 'mode' => $item->mode,
                 'quantity' => $item->quantity,
-                'cm_quantity' => $item->cm_quantity,
+                'cm_quantity' => $item->cm_quantity !== null ? (float) $item->cm_quantity : null,
                 'ext_unit_value' => $item->origin === 'externo' ? (float) $item->unit_value : null,
                 'is_variable' => (bool) $item->is_variable,
                 'options' => is_array($item->variable_options) ? $item->variable_options : (json_decode($item->variable_options, true) ?: [])
@@ -689,6 +689,12 @@ class CostCalculationForm extends Component
             }
 
             DB::connection('tenant')->commit();
+
+            foreach ($this->lines as $idx => $l) {
+                if (isset($this->lines[$idx]['cm_quantity']) && $this->lines[$idx]['cm_quantity'] !== null) {
+                    $this->lines[$idx]['cm_quantity'] = (float) $this->lines[$idx]['cm_quantity'];
+                }
+            }
 
             $this->updatedAtDisplay = now()->format('d/m/Y h:i A');
             $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Cálculo de costos guardado']);

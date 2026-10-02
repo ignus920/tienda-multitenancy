@@ -27,7 +27,7 @@ class CostCalculationItem extends Model
 
     protected $casts = [
         'quantity' => 'decimal:2',
-        'cm_quantity' => 'decimal:2',
+        'cm_quantity' => 'float',
         'unit_value' => 'decimal:2',
         'line_cost' => 'decimal:2',
         'is_variable' => 'boolean',
